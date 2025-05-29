@@ -153,8 +153,8 @@ func (p *RoleProcessor) replaceElementTag(s *goquery.Selection, newTagName strin
 	// Get inner HTML
 	innerHTML, _ := s.Html()
 
-	// Create new element HTML
-	var attrStrings []string
+	// Build attribute string
+	attrStrings := make([]string, 0, len(attrs)) // Pre-allocate with capacity
 	for key, value := range attrs {
 		attrStrings = append(attrStrings, fmt.Sprintf(`%s="%s"`, key, value))
 	}

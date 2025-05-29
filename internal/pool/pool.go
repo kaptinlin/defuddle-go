@@ -41,7 +41,7 @@ func GetNodeSlice() []*goquery.Selection {
 func PutNodeSlice(slice []*goquery.Selection) {
 	// Clear the slice but keep the underlying array
 	slice = slice[:0]
-	NodeSlicePool.Put(slice)
+	NodeSlicePool.Put(slice) //nolint:staticcheck // SA6002: slice is intentionally passed by value for pool reuse
 }
 
 // GetStringBuilder gets a string builder from the pool
@@ -66,5 +66,5 @@ func GetStringSlice() []string {
 func PutStringSlice(slice []string) {
 	// Clear the slice but keep the underlying array
 	slice = slice[:0]
-	StringSlicePool.Put(slice)
+	StringSlicePool.Put(slice) //nolint:staticcheck // SA6002: slice is intentionally passed by value for pool reuse
 }

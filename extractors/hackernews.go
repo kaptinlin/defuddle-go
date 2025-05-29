@@ -477,7 +477,6 @@ func (h *HackerNewsExtractor) processComments(comments []*goquery.Selection) str
 			}
 			html.WriteString("<blockquote>")
 			blockquoteStack = []int{0}
-			currentDepth = 0
 		} else {
 			// If we're moving back up the tree
 			if depth < currentDepth {

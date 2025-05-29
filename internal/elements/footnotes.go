@@ -523,7 +523,7 @@ func (p *FootnoteProcessor) numberFootnotes(footnotes []*Footnote, options *Foot
 		footnote.Number = i + 1
 
 		// Update reference text
-		if footnote.Reference.Length() > 0 {
+		if footnote.Reference != nil && footnote.Reference.Length() > 0 {
 			footnote.Reference.SetText(strconv.Itoa(footnote.Number))
 		}
 	}
@@ -538,12 +538,12 @@ func (p *FootnoteProcessor) numberFootnotes(footnotes []*Footnote, options *Foot
 // definition.setAttribute('aria-label', `Footnote ${footnote.number}`);
 func (p *FootnoteProcessor) improveAccessibility(footnotes []*Footnote) {
 	for _, footnote := range footnotes {
-		if footnote.Reference.Length() > 0 {
+		if footnote.Reference != nil && footnote.Reference.Length() > 0 {
 			footnote.Reference.SetAttr("role", "doc-noteref")
 			footnote.Reference.SetAttr("aria-describedby", footnote.ID)
 		}
 
-		if footnote.Definition.Length() > 0 {
+		if footnote.Definition != nil && footnote.Definition.Length() > 0 {
 			footnote.Definition.SetAttr("role", "doc-endnote")
 			footnote.Definition.SetAttr("aria-label", fmt.Sprintf("Footnote %d", footnote.Number))
 		}
@@ -691,7 +691,7 @@ func (p *FootnoteProcessor) HasFootnotes() bool {
 //	}
 func (p *FootnoteProcessor) CleanupFootnotes(footnotes []*Footnote) []*Footnote {
 	seen := make(map[string]bool)
-	var cleaned []*Footnote
+	cleaned := make([]*Footnote, 0, len(footnotes))
 
 	for _, footnote := range footnotes {
 		// Skip duplicates and invalid footnotes

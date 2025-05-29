@@ -9,6 +9,9 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Precompiled regex for performance
+var paragraphRegex = regexp.MustCompile(`<p[^>]*>[\s\S]*?</p>`)
+
 // ConversationMessage represents a single message in a conversation
 // Corresponding to TypeScript interface ConversationMessage
 type ConversationMessage struct {
@@ -126,7 +129,7 @@ func (c *ConversationExtractorBase) CreateContentHTML(messages []ConversationMes
 		}
 
 		// Check if content already has paragraph tags
-		hasParagraphs, _ := regexp.MatchString(`<p[^>]*>[\s\S]*?</p>`, message.Content)
+		hasParagraphs := paragraphRegex.MatchString(message.Content)
 		contentHTML := message.Content
 		if !hasParagraphs {
 			contentHTML = fmt.Sprintf("<p>%s</p>", message.Content)

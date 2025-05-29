@@ -508,7 +508,7 @@ func ScoreAndRemove(doc *goquery.Document, debug bool) {
 	removedCount := 0
 
 	// Track all elements to be removed
-	var elementsToRemove []*goquery.Selection
+	elementsToRemove := make([]*goquery.Selection, 0, 10) // Pre-allocate with reasonable capacity
 
 	// Get all block elements
 	blockElements := constants.GetBlockElements()

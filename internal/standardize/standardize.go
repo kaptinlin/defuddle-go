@@ -1794,17 +1794,6 @@ func removeEmptyLines(element *goquery.Selection, doc *goquery.Document) {
 		"processingTime", processingTime)
 }
 
-// isBlockElement checks if a tag name represents a block element
-func isBlockElement(tagName string) bool {
-	blockElements := constants.GetBlockElements()
-	for _, block := range blockElements {
-		if block == tagName {
-			return true
-		}
-	}
-	return false
-}
-
 // transformListElement converts div[role="list"] to actual lists with complex nested handling
 // JavaScript original code: (complex transform function from ELEMENT_STANDARDIZATION_RULES)
 func transformListElement(el *goquery.Selection, doc *goquery.Document) *goquery.Selection {

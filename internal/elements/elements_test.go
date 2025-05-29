@@ -154,7 +154,7 @@ func TestFootnoteProcessing(t *testing.T) {
 	// Check footnote structure
 	for _, footnote := range footnotes {
 		assert.NotEmpty(t, footnote.ID, "Footnote should have ID")
-		if footnote.Definition.Length() > 0 {
+		if footnote.Definition != nil && footnote.Definition.Length() > 0 {
 			assert.NotEmpty(t, footnote.Content, "Footnote should have content")
 		}
 	}

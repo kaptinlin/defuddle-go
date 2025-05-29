@@ -367,12 +367,12 @@ func (g *GrokExtractor) processFootnotes(content string) string {
 			g.footnoteCounter++
 			footnoteIndex = g.footnoteCounter
 
-			domainText := urlStr // Default to full URL if parsing fails
+			var domainText string
 			if parsedURL, err := url.Parse(urlStr); err == nil {
 				domain := strings.TrimPrefix(parsedURL.Hostname(), "www.")
 				domainText = fmt.Sprintf(`<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>`, urlStr, domain)
 			} else {
-				// Keep domainText as the original URL if parsing fails
+				// Use full URL if parsing fails
 				domainText = fmt.Sprintf(`<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>`, urlStr, urlStr)
 			}
 

@@ -1081,7 +1081,7 @@ func IsAllowedAttributeDebug(attrName string) bool {
 
 // GetInlineElements returns a slice of inline element names
 func GetInlineElements() []string {
-	var elements []string
+	elements := make([]string, 0, len(InlineElements))
 	for element := range InlineElements {
 		elements = append(elements, element)
 	}
@@ -1090,7 +1090,7 @@ func GetInlineElements() []string {
 
 // GetAllowedEmptyElements returns a slice of allowed empty element names
 func GetAllowedEmptyElements() []string {
-	var elements []string
+	elements := make([]string, 0, len(AllowedEmptyElements))
 	for element := range AllowedEmptyElements {
 		elements = append(elements, element)
 	}

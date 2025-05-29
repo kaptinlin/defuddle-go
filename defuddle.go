@@ -101,7 +101,7 @@ func (d *Defuddle) Parse(ctx context.Context) (*Result, error) {
 
 		retryResult, retryErr := d.parseInternal(ctx, retryOptions)
 		if retryErr != nil {
-			return result, nil // Return original result if retry fails
+			return result, retryErr
 		}
 
 		// Return the result with more content
@@ -138,7 +138,11 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch URL %s: %w", url, err)
 	}
-	defer resp.Close()
+	defer func() {
+		if closeErr := resp.Close(); closeErr != nil {
+			slog.Warn("Failed to close response", "error", closeErr)
+		}
+	}()
 
 	html := resp.String()
 
@@ -925,8 +929,10 @@ func (d *Defuddle) cleanJSONLDContent(content string) string {
 	content = strings.TrimSpace(content)
 
 	// Basic JSON validation - check if it starts and ends correctly
-	if content != "" && !((strings.HasPrefix(content, "{") && strings.HasSuffix(content, "}")) ||
-		(strings.HasPrefix(content, "[") && strings.HasSuffix(content, "]"))) {
+	isValidJSON := (strings.HasPrefix(content, "{") && strings.HasSuffix(content, "}")) ||
+		(strings.HasPrefix(content, "[") && strings.HasSuffix(content, "]"))
+
+	if content != "" && !isValidJSON {
 		if d.debug {
 			slog.Debug("Invalid JSON-LD format detected", "content_preview", content[:min(len(content), 50)])
 		}

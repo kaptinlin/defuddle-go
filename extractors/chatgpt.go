@@ -279,13 +279,14 @@ func (c *ChatGPTExtractor) ExtractMessages() []ConversationMessage {
 		var content string
 		var role string
 
-		if roleAttr == "user" {
+		switch roleAttr {
+		case "user":
 			textMessage := article.Find(".text-message").First()
 			if textMessage.Length() > 0 {
 				content, _ = textMessage.Html()
 			}
 			role = "you"
-		} else if roleAttr == "assistant" {
+		case "assistant":
 			messageContent := article.Find(".message-content").First()
 			if messageContent.Length() > 0 {
 				content, _ = messageContent.Html()
@@ -294,7 +295,7 @@ func (c *ChatGPTExtractor) ExtractMessages() []ConversationMessage {
 
 			// Process footnotes for assistant messages
 			content = c.processFootnotes(content)
-		} else {
+		default:
 			return
 		}
 

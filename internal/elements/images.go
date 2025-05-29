@@ -276,11 +276,9 @@ func (p *ImageProcessor) processFigure(s *goquery.Selection, options *ImageProce
 	caption := s.Find("figcaption").First()
 	if caption.Length() > 0 {
 		p.processFigcaption(img, caption)
-	} else {
+	} else if options.GenerateAltText {
 		// Try to generate caption from alt text or context
-		if options.GenerateAltText {
-			p.generateFigcaption(s, img)
-		}
+		p.generateFigcaption(s, img)
 	}
 
 	// Add figure styling classes
@@ -655,61 +653,36 @@ func (p *ImageProcessor) getAltFromFilename(src string) string {
 	return readable
 }
 
-// isGenericAltText checks if alt text is generic/unhelpful
+// isGenericAltText checks if alt text is generic or placeholder text
 // TypeScript original code:
 //
 //	isGenericAltText(alt: string): boolean {
-//	  const genericPatterns = [
-//	    /^image$/i,
-//	    /^picture$/i,
-//	    /^photo$/i,
-//	    /^illustration$/i,
-//	    /^img\d*$/i,
-//	    /^untitled$/i,
-//	    /^placeholder$/i,
-//	    /^\d+\.(jpg|jpeg|png|gif|webp)$/i
-//	  ];
+//	  const genericTerms = ['image', 'picture', 'photo', 'screenshot', 'icon', 'logo', 'banner'];
+//	  const altLower = alt.toLowerCase().trim();
 //
-//	  return genericPatterns.some(pattern => pattern.test(alt.trim()));
+//	  if (altLower.length < 3) {
+//	    return true;
+//	  }
+//
+//	  return genericTerms.some(term => altLower === term || altLower.includes(term));
 //	}
 func (p *ImageProcessor) isGenericAltText(alt string) bool {
-	genericPatterns := []string{
-		`^image$`,
-		`^picture$`,
-		`^photo$`,
-		`^illustration$`,
-		`^img\d*$`,
-		`^untitled$`,
-		`^placeholder$`,
-		`^\d+\.(jpg|jpeg|png|gif|webp)$`,
+	genericTerms := []string{"image", "picture", "photo", "screenshot", "icon", "logo", "banner", "graphic"}
+	altLower := strings.ToLower(strings.TrimSpace(alt))
+
+	// Very short alt text is considered generic
+	if len(altLower) < 3 {
+		return true
 	}
 
-	altTrimmed := strings.TrimSpace(strings.ToLower(alt))
-	for _, pattern := range genericPatterns {
-		if matched, _ := regexp.MatchString(pattern, altTrimmed); matched {
+	// Check if alt text exactly matches or contains generic terms
+	for _, term := range genericTerms {
+		if altLower == term || strings.Contains(altLower, term) {
 			return true
 		}
 	}
 
 	return false
-}
-
-// enhanceGenericAltText enhances generic alt text with context
-// TypeScript original code:
-//
-//	enhanceGenericAltText(img: Element, currentAlt: string): string {
-//	  const context = this.getContextualAltText(img);
-//	  if (context && context !== currentAlt) {
-//	    return context;
-//	  }
-//	  return currentAlt;
-//	}
-func (p *ImageProcessor) enhanceGenericAltText(s *goquery.Selection, currentAlt string) string {
-	context := p.getContextualAltText(s)
-	if context != "" && context != currentAlt {
-		return context
-	}
-	return currentAlt
 }
 
 // addLazyLoading adds lazy loading attributes to images
@@ -1040,11 +1013,7 @@ func (p *ImageProcessor) isRelativeURL(src string) bool {
 //
 //	  // Check if it's part of the main content
 //	  const article = img.closest('article, main, .content');
-//	  if (article) {
-//	    return true;
-//	  }
-//
-//	  return false;
+//	  return article.Length > 0;
 //	}
 func (p *ImageProcessor) isImportantImage(s *goquery.Selection) bool {
 	// Check if it's in a featured figure
@@ -1066,11 +1035,7 @@ func (p *ImageProcessor) isImportantImage(s *goquery.Selection) bool {
 
 	// Check if it's in main content area
 	mainContent := s.Closest("article, main, .content, .post")
-	if mainContent.Length() > 0 {
-		return true
-	}
-
-	return false
+	return mainContent.Length() > 0
 }
 
 // isAboveFold determines if an image is likely above the fold

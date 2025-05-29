@@ -1,13 +1,11 @@
 # Defuddle Go
 
-A Go port of the [Defuddle](https://github.com/kepano/defuddle) TypeScript library for intelligent web content extraction. Defuddle Go provides clean, readable content extraction from HTML documents with advanced algorithms for removing clutter and preserving meaningful content.
+A Go implementation of the [Defuddle](https://github.com/kepano/defuddle) TypeScript library for intelligent web content extraction. Defuddle Go extracts clean, readable content from HTML documents using advanced algorithms to remove clutter while preserving meaningful content.
 
 ## Features
 
-Defuddle Go aims to output clean and consistent HTML documents with enhanced Go-specific optimizations:
-
 - 🧠 **Intelligent Content Extraction**: Advanced algorithms to identify and extract main content
-- 🎯 **Site-Specific Extractors**: Built-in support for popular platforms (Twitter, YouTube, Reddit, etc.)
+- 🎯 **Site-Specific Extractors**: Built-in support for popular platforms (ChatGPT, Grok, Hacker News, etc.)
 - 🧹 **Clutter Removal**: Automatically removes ads, navigation, sidebars, and other non-content elements
 - 📱 **Mobile-First**: Applies mobile styles for better content detection
 - 🔍 **Metadata Extraction**: Extracts titles, descriptions, authors, images, and more
@@ -15,7 +13,7 @@ Defuddle Go aims to output clean and consistent HTML documents with enhanced Go-
 - 📝 **Markdown Conversion**: High-quality HTML to Markdown conversion
 - 🔧 **Element Processing**: Advanced processing for code blocks, images, math formulas, and more
 - 🐛 **Debug Mode**: Detailed processing information for troubleshooting
-- ⚡ **High Performance**: Optimized for Go 1.21+ with efficient DOM processing
+- ⚡ **High Performance**: Optimized for Go with efficient DOM processing
 
 ## Installation
 
@@ -23,9 +21,9 @@ Defuddle Go aims to output clean and consistent HTML documents with enhanced Go-
 go get github.com/kaptinlin/defuddle-go
 ```
 
-## Usage
+## Quick Start
 
-### Basic Usage
+### Basic Content Extraction
 
 ```go
 package main
@@ -53,15 +51,98 @@ func main() {
             <article>
                 <h1>Sample Article</h1>
                 <p>This is the main content of the article.</p>
+                <p>It contains multiple paragraphs of text.</p>
             </article>
         </main>
         <aside>Sidebar content</aside>
+        <footer>Footer content</footer>
     </body>
     </html>
     `
 
-    // Create Defuddle instance and parse
+    // Create Defuddle instance
     defuddleInstance, err := defuddle.NewDefuddle(html, nil)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Parse the content
+    result, err := defuddleInstance.Parse(context.Background())
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Output results
+    fmt.Printf("Title: %s\n", result.Title)
+    fmt.Printf("Author: %s\n", result.Author)
+    fmt.Printf("Description: %s\n", result.Description)
+    fmt.Printf("Word Count: %d\n", result.WordCount)
+    fmt.Printf("Parse Time: %dms\n", result.ParseTime)
+    fmt.Printf("Content: %s\n", result.Content)
+}
+```
+
+### Parsing from URL
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    "github.com/kaptinlin/defuddle-go"
+)
+
+func main() {
+    options := &defuddle.Options{
+        Debug: true,
+        URL:   "https://example.com/article",
+    }
+
+    result, err := defuddle.ParseFromURL(context.Background(), "https://example.com/article", options)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Printf("Title: %s\n", result.Title)
+    fmt.Printf("Content length: %d\n", len(result.Content))
+}
+```
+
+### Advanced Usage with All Options
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    "github.com/kaptinlin/defuddle-go"
+)
+
+func main() {
+    html := `<html>...</html>` // Your HTML content here
+
+    options := &defuddle.Options{
+        Debug:                  true,  // Enable debug mode
+        Markdown:               true,  // Convert content to Markdown
+        SeparateMarkdown:       true,  // Keep both HTML and Markdown
+        URL:                    "https://example.com/article",
+        ProcessCode:            true,  // Process code blocks
+        ProcessImages:          true,  // Filter and optimize images
+        ProcessHeadings:        true,  // Standardize headings
+        ProcessMath:            true,  // Handle mathematical formulas
+        ProcessFootnotes:       true,  // Extract footnotes
+        ProcessRoles:           true,  // Convert ARIA roles to semantic HTML
+        RemoveExactSelectors:   true,  // Remove exact clutter selectors
+        RemovePartialSelectors: true,  // Remove partial clutter selectors
+    }
+
+    defuddleInstance, err := defuddle.NewDefuddle(html, options)
     if err != nil {
         log.Fatal(err)
     }
@@ -71,149 +152,104 @@ func main() {
         log.Fatal(err)
     }
 
-    // Access the content and metadata
     fmt.Printf("Title: %s\n", result.Title)
-    fmt.Printf("Author: %s\n", result.Author)
-    fmt.Printf("Word Count: %d\n", result.WordCount)
-    fmt.Printf("Content: %s\n", result.Content)
+    if result.ContentMarkdown != nil {
+        fmt.Printf("Markdown content: %s\n", *result.ContentMarkdown)
+    }
+
+    if result.DebugInfo != nil {
+        fmt.Printf("Processing steps: %d\n", len(result.DebugInfo.ProcessingSteps))
+        fmt.Printf("Original elements: %d\n", result.DebugInfo.Statistics.OriginalElementCount)
+        fmt.Printf("Final elements: %d\n", result.DebugInfo.Statistics.FinalElementCount)
+    }
 }
 ```
 
-### Parsing from URL
+## API Reference
 
-```go
-result, err := defuddle.ParseFromURL(context.Background(), "https://example.com/article", &defuddle.Options{
-    URL: "https://example.com/article",
-})
-if err != nil {
-    log.Fatal(err)
-}
-```
+### Result Structure
 
-### With Options
+The `Result` object contains the following fields:
 
-```go
-options := &defuddle.Options{
-    Debug:                  true,  // Enable debug mode
-    Markdown:               true,  // Convert content to Markdown
-    SeparateMarkdown:       true,  // Keep both HTML and Markdown
-    URL:                    "https://example.com/article",
-    ProcessCode:            true,  // Process code blocks
-    ProcessImages:          true,  // Filter and optimize images
-    ProcessHeadings:        true,  // Standardize headings
-    ProcessMath:            true,  // Handle mathematical formulas
-    ProcessFootnotes:       true,  // Extract footnotes
-    ProcessRoles:           true,  // Convert ARIA roles to semantic HTML
-}
-
-result, err := defuddleInstance.Parse(context.Background())
-```
-
-## Response
-
-Defuddle Go returns a `Result` object with the following properties:
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `Title` | string | Title of the article |
-| `Author` | string | Author of the article |
-| `Description` | string | Description or summary of the article |
-| `Domain` | string | Domain name of the website |
-| `Favicon` | string | URL of the website's favicon |
-| `Image` | string | URL of the article's main image |
-| `Published` | string | Publication date of the article |
-| `Site` | string | Name of the website |
+| Field | Type | Description |
+|-------|------|-------------|
+| `Title` | string | Article title |
+| `Author` | string | Article author |
+| `Description` | string | Article description or summary |
+| `Domain` | string | Website domain |
+| `Favicon` | string | Website favicon URL |
+| `Image` | string | Main image URL |
+| `Published` | string | Publication date |
+| `Site` | string | Website name |
 | `Content` | string | Cleaned HTML content |
-| `ContentMarkdown` | *string | Markdown version of content (if enabled) |
-| `WordCount` | int | Total number of words in the extracted content |
-| `ParseTime` | int64 | Time taken to parse the page in milliseconds |
-| `SchemaOrgData` | interface{} | Raw schema.org data extracted from the page |
-| `MetaTags` | []MetaTag | Meta tags from the document |
-| `ExtractorType` | *string | Type of extractor used (if any) |
-| `DebugInfo` | *DebugInfo | Debug information (if debug mode enabled) |
+| `ContentMarkdown` | *string | Markdown version (if enabled) |
+| `WordCount` | int | Word count in extracted content |
+| `ParseTime` | int64 | Parse time in milliseconds |
+| `SchemaOrgData` | interface{} | Schema.org structured data |
+| `MetaTags` | []MetaTag | Document meta tags |
+| `ExtractorType` | *string | Extractor type used |
+| `DebugInfo` | *DebugInfo | Debug information (if enabled) |
 
-## Options
-
-Configure Defuddle's behavior with these options:
+### Configuration Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `Debug` | bool | false | Enable debug logging and preserve structure |
-| `URL` | string | "" | URL of the page being parsed |
+| `Debug` | bool | false | Enable debug logging |
+| `URL` | string | "" | Source URL for the content |
 | `Markdown` | bool | false | Convert content to Markdown |
-| `SeparateMarkdown` | bool | false | Keep both HTML and Markdown versions |
-| `RemoveExactSelectors` | bool | true | Remove elements matching exact clutter selectors |
-| `RemovePartialSelectors` | bool | true | Remove elements matching partial clutter selectors |
-| `ProcessCode` | bool | false | Process and standardize code blocks |
-| `ProcessImages` | bool | false | Filter small images and optimize content |
-| `ProcessHeadings` | bool | false | Standardize heading hierarchy |
+| `SeparateMarkdown` | bool | false | Keep both HTML and Markdown |
+| `RemoveExactSelectors` | bool | true | Remove exact clutter matches |
+| `RemovePartialSelectors` | bool | true | Remove partial clutter matches |
+| `ProcessCode` | bool | false | Process code blocks |
+| `ProcessImages` | bool | false | Process and optimize images |
+| `ProcessHeadings` | bool | false | Standardize heading structure |
 | `ProcessMath` | bool | false | Process mathematical formulas |
-| `ProcessFootnotes` | bool | false | Extract and standardize footnotes |
+| `ProcessFootnotes` | bool | false | Extract and format footnotes |
 | `ProcessRoles` | bool | false | Convert ARIA roles to semantic HTML |
 
-### Debug Mode
+### Core Functions
 
-Enable debug mode for detailed processing information:
+#### `NewDefuddle(html string, options *Options) (*Defuddle, error)`
+Creates a new Defuddle instance from HTML content.
 
-```go
-options := &defuddle.Options{
-    Debug: true,
-}
+#### `ParseFromURL(ctx context.Context, url string, options *Options) (*Result, error)`
+Fetches content from a URL and parses it directly.
 
-result, err := defuddleInstance.Parse(context.Background())
-if result.DebugInfo != nil {
-    fmt.Printf("Processing steps: %d\n", len(result.DebugInfo.ProcessingSteps))
-    fmt.Printf("Original elements: %d\n", result.DebugInfo.Statistics.OriginalElementCount)
-    fmt.Printf("Final elements: %d\n", result.DebugInfo.Statistics.FinalElementCount)
-}
-```
-
-Debug mode provides:
-- Detailed console logging about the parsing process
-- Processing step information
-- Element count statistics
-- Performance metrics
+#### `Parse(ctx context.Context) (*Result, error)`
+Parses the HTML content and returns extracted results.
 
 ## Content Processing
 
-Defuddle Go performs comprehensive content processing to ensure clean, consistent output:
+### Processing Pipeline
 
-### Content Processing Pipeline
+Defuddle Go processes content through these stages:
 
-1. **Schema.org Extraction**: Processes structured data using JSON-LD
-2. **Mobile Styles**: Applies mobile CSS for better content detection
-3. **Main Content Detection**: Identifies the primary content area
-4. **Site-Specific Extraction**: Uses specialized extractors when available
-5. **Image Processing**: Removes small/decorative images, preserves meaningful content
-6. **Hidden Element Removal**: Removes elements hidden by CSS
-7. **Content Scoring**: Scores and removes low-value content blocks
-8. **Selector-Based Removal**: Removes known clutter elements
-9. **Element Processing**: Processes code blocks, math formulas, footnotes, etc.
-10. **Content Standardization**: Normalizes HTML structure
-11. **Markdown Conversion**: Converts to Markdown format if enabled
+1. **Schema.org Extraction** - Extracts structured data using JSON-LD
+2. **Site-Specific Detection** - Uses specialized extractors when available
+3. **Main Content Detection** - Identifies primary content areas
+4. **Clutter Removal** - Removes navigation, ads, and decorative elements
+5. **Content Standardization** - Normalizes HTML structure
+6. **Element Processing** - Processes code, math, images, and footnotes
+7. **Markdown Conversion** - Converts to Markdown if requested
 
 ### HTML Standardization
 
-Defuddle Go standardizes HTML elements for consistent output:
-
 #### Headings
-- The first H1 or H2 heading is removed if it matches the title
-- H1s are converted to H2s
-- Anchor links in headings are removed
+- Duplicate H1/H2 headings matching the title are removed
+- Heading hierarchy is normalized
+- Navigation links within headings are removed
 
 #### Code Blocks
-Code blocks are standardized with language information preserved:
+Code blocks are standardized with preserved language information:
 
 ```html
-<pre>
-  <code data-lang="js" class="language-js">
-    // code content
-  </code>
-</pre>
+<pre><code data-lang="javascript" class="language-javascript">
+console.log("Hello, World!");
+</code></pre>
 ```
 
 #### Footnotes
-Inline references and footnotes are converted to a standard format:
+Footnotes are converted to a standard format with proper linking:
 
 ```html
 Text with footnote<sup id="fnref:1"><a href="#fn:1">1</a></sup>.
@@ -221,80 +257,65 @@ Text with footnote<sup id="fnref:1"><a href="#fn:1">1</a></sup>.
 <div id="footnotes">
   <ol>
     <li class="footnote" id="fn:1">
-      <p>Footnote content.&nbsp;<a href="#fnref:1" class="footnote-backref">↩</a></p>
+      <p>Footnote content <a href="#fnref:1" class="footnote-backref">↩</a></p>
     </li>
   </ol>
 </div>
 ```
 
-#### Math Elements
-Mathematical content is processed and preserved with proper formatting.
-
 ## Site-Specific Extractors
 
-Defuddle Go includes built-in extractors for popular platforms that automatically activate when parsing content from supported sites:
+Built-in extractors automatically activate for supported platforms:
 
-- **Twitter/X**: Extracts tweet content and metadata
-- **YouTube**: Extracts video information and embeds  
-- **Reddit**: Extracts post content and comments
-- **Hacker News**: Extracts story and comment content
+- **ChatGPT** - Extracts conversation content and metadata
+- **Grok** - Extracts AI conversation content  
+- **Hacker News** - Extracts posts and comments with proper threading
 
-Extractors provide enhanced extraction quality for specific site structures and layouts.
-
-## Performance
-
-Defuddle Go is optimized for high performance:
-
-- **Efficient DOM Processing**: Uses goquery for fast HTML parsing
-- **Minimal Memory Allocation**: Optimized memory usage patterns
-- **Concurrent Processing**: Leverages Go's concurrency where applicable
-- **Fast Processing**: Typical processing times of 5-15ms for most documents
+Custom extractors can be implemented using the `BaseExtractor` interface.
 
 ## Examples
 
-See the [`examples/`](./examples/) directory for comprehensive usage examples:
+The [`examples/`](./examples/) directory contains ready-to-run examples:
 
-- **[Basic Example](./examples/basic/)**: Simple content extraction
-- **[Advanced Example](./examples/advanced/)**: All processors and Markdown conversion
-- **[Markdown Example](./examples/markdown/)**: HTML to Markdown conversion focus
-- **[Extractors Example](./examples/extractors/)**: Site-specific extractors
-- **[Custom Extractor Example](./examples/custom_extractor/)**: Building custom extractors
+- **[Basic](./examples/basic/)** - Simple content extraction
+- **[Advanced](./examples/advanced/)** - Full feature demonstration
+- **[Markdown](./examples/markdown/)** - HTML to Markdown conversion
+- **[Extractors](./examples/extractors/)** - Site-specific extraction
+- **[Custom Extractor](./examples/custom_extractor/)** - Building custom extractors
 
-## API Reference
+Run examples with:
+```bash
+cd examples/basic && go run main.go
+cd examples/advanced && go run main.go
+cd examples/markdown && go run main.go
+cd examples/extractors && go run main.go
+cd examples/custom_extractor && go run custom_extractor.go
+```
 
-### Functions
+## Performance
 
-#### `NewDefuddle(html string, options *Options) (*Defuddle, error)`
-Creates a new Defuddle instance from HTML content.
+Typical performance characteristics:
 
-#### `ParseFromURL(ctx context.Context, url string, options *Options) (*Result, error)`
-Fetches and parses content from a URL.
-
-#### `Parse(ctx context.Context) (*Result, error)`
-Parses the HTML content and extracts clean, readable content.
-
-### Types
-
-Complete type definitions are available in the source code. Key types include `Options`, `Result`, `Metadata`, and `MetaTag`.
+- **Processing Speed**: 5-15ms for standard web pages
+- **Memory Usage**: Optimized with object pooling and efficient DOM processing  
+- **Concurrent Safe**: Can process multiple documents simultaneously
 
 ## Dependencies
 
-- [goquery](https://github.com/PuerkitoBio/goquery) - jQuery-like DOM manipulation
+- [goquery](https://github.com/PuerkitoBio/goquery) - DOM manipulation and traversal
 - [requests](https://github.com/kaptinlin/requests) - HTTP client for URL fetching
 - [html-to-markdown](https://github.com/JohannesKaufmann/html-to-markdown) - HTML to Markdown conversion
-- [json-gold](https://github.com/piprate/json-gold) - JSON-LD processing for schema.org data
-- Standard library packages for logging and utilities
+- [json-gold](https://github.com/piprate/json-gold) - JSON-LD processing
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome. Please open an issue or submit a pull request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
 - Original [Defuddle TypeScript library](https://github.com/kepano/defuddle) by Steph Ango (@kepano)
-- Inspired by Mozilla's Readability algorithm
-- Built with the excellent goquery library 
+- Inspired by Mozilla's Readability algorithm 
