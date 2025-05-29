@@ -7,7 +7,7 @@
 
 A Go implementation of the [Defuddle](https://github.com/kepano/defuddle) TypeScript library for intelligent web content extraction. Defuddle Go extracts clean, readable content from HTML documents using advanced algorithms to remove clutter while preserving meaningful content.
 
-**Available as both a Go library and a command-line tool.**
+**Available as both a Go library and a command-line tool compatible with the original [Defuddle CLI](https://github.com/kepano/defuddle-cli).**
 
 ## Features
 
@@ -51,7 +51,7 @@ go get github.com/kaptinlin/defuddle-go
 
 ## CLI Usage
 
-The `defuddle` command-line tool provides a simple interface for extracting content from web pages and HTML files.
+The `defuddle` command-line tool provides a simple interface for extracting content from web pages and HTML files, with full compatibility with the original [TypeScript CLI](https://github.com/kepano/defuddle-cli).
 
 ### Basic Usage
 
@@ -107,8 +107,6 @@ defuddle parse https://example.com/article --debug
 ```
 
 ## Library Usage
-
-## Library Quick Start
 
 ### Basic Content Extraction
 
@@ -405,4 +403,5 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## Acknowledgments
 
 - Original [Defuddle TypeScript library](https://github.com/kepano/defuddle) by Steph Ango (@kepano)
+- Original [Defuddle CLI](https://github.com/kepano/defuddle-cli) by Steph Ango (@kepano)
 - Inspired by Mozilla's Readability algorithm 
