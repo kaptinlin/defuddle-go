@@ -14,9 +14,10 @@ all: submodules lint test
 
 .PHONY: help
 help: ## Show this help message
-	@echo "Defuddle Go - Web Content Extraction Library"
-	@echo "Available targets:"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo 'Usage: make [target]'
+	@echo ''
+	@echo 'Targets:'
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 .PHONY: clean
 clean: ## Clean build artifacts
@@ -105,3 +106,12 @@ verify: submodules deps fmt vet lint test ## Run all verification steps (format,
 .PHONY: dev
 dev: deps fmt vet ## Quick development verification (deps, format, vet)
 	@echo "[dev] Development verification completed successfully"
+
+.PHONY: build-cli
+build-cli: ## Build the CLI binary
+	go build -o bin/defuddle ./cmd
+
+.PHONY: install-cli
+install-cli: build-cli ## Install CLI to system
+	sudo cp bin/defuddle /usr/local/bin/defuddle
+	@echo "defuddle CLI installed to /usr/local/bin/defuddle"
