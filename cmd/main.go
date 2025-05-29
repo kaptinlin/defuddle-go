@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,7 +17,20 @@ import (
 )
 
 var (
-	version = "0.1.0"
+	version = "0.1.1"
+)
+
+// Custom error types for linting compliance
+var (
+	ErrHTTPRequest      = errors.New("HTTP request failed")
+	ErrPropertyNotFound = errors.New("property not found in response")
+)
+
+// ContextKey is a custom type for context keys to avoid collisions
+type ContextKey string
+
+const (
+	OptionsContextKey ContextKey = "options"
 )
 
 // ParseOptions holds all CLI options for the parse command
@@ -84,7 +98,7 @@ Examples:
 
 	// Store options in context for access in RunE
 	parseCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-		cmd.SetContext(context.WithValue(cmd.Context(), "options", &opts))
+		cmd.SetContext(context.WithValue(cmd.Context(), OptionsContextKey, &opts))
 		return nil
 	}
 
@@ -97,7 +111,7 @@ Examples:
 }
 
 func runParse(cmd *cobra.Command, args []string) error {
-	opts := cmd.Context().Value("options").(*ParseOptions)
+	opts := cmd.Context().Value(OptionsContextKey).(*ParseOptions)
 	source := args[0]
 
 	// Handle --md alias
@@ -111,7 +125,7 @@ func runParse(cmd *cobra.Command, args []string) error {
 	var err error
 
 	if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
-		htmlContent, err = fetchURL(source)
+		htmlContent, err = fetchURL(cmd.Context(), source)
 		sourceURL = source
 	} else {
 		htmlContent, err = readFile(source)
@@ -145,16 +159,16 @@ func runParse(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Format output
+	// Format output using switch statement
 	var output string
-
-	if opts.Property != "" {
+	switch {
+	case opts.Property != "":
 		// Extract specific property
 		output, err = extractProperty(result, opts.Property)
 		if err != nil {
 			return err
 		}
-	} else if opts.JSON {
+	case opts.JSON:
 		// JSON output matching TypeScript structure
 		jsonOutput := JSONOutput{
 			Content:       result.Content,
@@ -177,7 +191,7 @@ func runParse(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error marshaling JSON: %w", err)
 		}
 		output = string(jsonBytes)
-	} else {
+	default:
 		// Default: return content (HTML or Markdown)
 		if opts.Markdown && result.ContentMarkdown != nil {
 			output = *result.ContentMarkdown
@@ -200,25 +214,34 @@ func runParse(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// fetchURL fetches content from a URL
-func fetchURL(url string) (string, error) {
+// fetchURL fetches content from a URL with context
+func fetchURL(ctx context.Context, url string) (string, error) {
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
-	resp, err := client.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: %s", ErrHTTPRequest, err.Error())
 	}
-	defer resp.Body.Close()
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("%w: %s", ErrHTTPRequest, err.Error())
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to close response body: %v\n", closeErr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+		return "", fmt.Errorf("%w: HTTP %d: %s", ErrHTTPRequest, resp.StatusCode, resp.Status)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: %s", ErrHTTPRequest, err.Error())
 	}
 
 	return string(body), nil
@@ -231,7 +254,7 @@ func readFile(filename string) (string, error) {
 		return "", err
 	}
 
-	content, err := os.ReadFile(absPath)
+	content, err := os.ReadFile(absPath) // #nosec G304 - file path is from user input
 	if err != nil {
 		return "", err
 	}
@@ -239,14 +262,14 @@ func readFile(filename string) (string, error) {
 	return string(content), nil
 }
 
-// writeFile writes content to a file
+// writeFile writes content to a file with secure permissions
 func writeFile(filename, content string) error {
 	absPath, err := filepath.Abs(filename)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(absPath, []byte(content), 0644)
+	return os.WriteFile(absPath, []byte(content), 0600) // Use secure permissions
 }
 
 // extractProperty extracts a specific property from the result
@@ -289,5 +312,5 @@ func extractProperty(result *defuddle.Result, property string) (string, error) {
 		return "", nil
 	}
 
-	return "", fmt.Errorf("property \"%s\" not found in response", property)
+	return "", fmt.Errorf("%w: \"%s\"", ErrPropertyNotFound, property)
 }

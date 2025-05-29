@@ -52,12 +52,12 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    format_overrides:
-      - goos: windows
-        format: zip
     files:
       - README.md
       - LICENSE*
+    format_overrides:
+      - goos: windows
+        format: zip
 
 checksum:
   name_template: 'checksums.txt'
@@ -98,11 +98,10 @@ release:
   github:
     owner: kaptinlin
     name: defuddle-go
-  discussion_category_name: General
   prerelease: auto
   mode: replace
   header: |
-    ## Defuddle Go v{{ .Tag }}
+    ## Defuddle Go {{ .Tag }}
 
     Web content extraction library and CLI tool for Go.
 
