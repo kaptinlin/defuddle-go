@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	version = "0.6.4"
+	version = "0.1.0"
 )
 
 // ParseOptions holds all CLI options for the parse command

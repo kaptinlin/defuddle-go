@@ -49,45 +49,56 @@ func (r *RedditExtractor) GetName() string {
 // TypeScript original code:
 //
 //	extract(): ExtractorResult {
-//		let content = '';
+//		const postContent = this.getPostContent();
+//		const comments = this.extractComments();
 //
-//		if (this.post) {
-//			const postContent = this.extractPost();
-//			content += postContent;
-//		}
-//
-//		if (this.comments && this.comments.length > 0) {
-//			const commentsContent = this.extractComments();
-//			if (commentsContent) {
-//				content += '\n\n<hr>\n\n<h2>Comments</h2>\n\n' + commentsContent;
-//			}
-//		}
+//		const contentHtml = this.createContentHtml(postContent, comments);
+//		const postTitle = this.document.querySelector('h1')?.textContent?.trim() || '';
+//		const subreddit = this.getSubreddit();
+//		const postAuthor = this.getPostAuthor();
+//		const description = this.createDescription(postContent);
 //
 //		return {
-//			content: content.trim(),
-//			contentHtml: content.trim()
+//			content: contentHtml,
+//			contentHtml: contentHtml,
+//			extractedContent: {
+//				postId: this.getPostId(),
+//				subreddit,
+//				 postAuthor,
+//			},
+//			variables: {
+//				title: postTitle,
+//				author: postAuthor,
+//				site: `r/${subreddit}`,
+//				description,
+//			}
 //		};
 //	}
 func (r *RedditExtractor) Extract() *ExtractorResult {
-	var content strings.Builder
+	postContent := r.extractPost()
+	comments := r.extractComments()
 
-	if r.post.Length() > 0 {
-		postContent := r.extractPost()
-		content.WriteString(postContent)
-	}
+	contentHTML := r.createContentHTML(postContent, comments)
+	postTitle := r.getPostTitle()
+	subreddit := r.getSubreddit()
+	postAuthor := r.getPostAuthor()
+	description := r.createDescription(postContent)
+	postID := r.getPostID()
 
-	if r.comments.Length() > 0 {
-		commentsContent := r.extractComments()
-		if commentsContent != "" {
-			content.WriteString("\n\n<hr>\n\n<h2>Comments</h2>\n\n")
-			content.WriteString(commentsContent)
-		}
-	}
-
-	finalContent := strings.TrimSpace(content.String())
 	return &ExtractorResult{
-		Content:     finalContent,
-		ContentHTML: finalContent,
+		Content:     contentHTML,
+		ContentHTML: contentHTML,
+		ExtractedContent: map[string]interface{}{
+			"postId":     postID,
+			"subreddit":  subreddit,
+			"postAuthor": postAuthor,
+		},
+		Variables: map[string]string{
+			"title":       postTitle,
+			"author":      postAuthor,
+			"site":        fmt.Sprintf("r/%s", subreddit),
+			"description": description,
+		},
 	}
 }
 
@@ -245,4 +256,173 @@ func parseDepthFromString(s string) (int, error) {
 		}
 	}
 	return depth, nil
+}
+
+// createContentHTML creates the formatted HTML content
+// TypeScript original code:
+//
+//	private createContentHtml(postContent: string, comments: string): string {
+//		return `
+//			<div class="reddit-post">
+//				<div class="post-content">
+//					${postContent}
+//				</div>
+//			</div>
+//			${comments ? `
+//				<hr>
+//				<h2>Comments</h2>
+//				<div class="reddit-comments">
+//					${comments}
+//				</div>
+//			` : ''}
+//		`.trim();
+//	}
+func (r *RedditExtractor) createContentHTML(postContent, comments string) string {
+	var content strings.Builder
+
+	content.WriteString(`<div class="reddit-post">`)
+	content.WriteString(`<div class="post-content">`)
+	content.WriteString(postContent)
+	content.WriteString(`</div>`)
+	content.WriteString(`</div>`)
+
+	if comments != "" {
+		content.WriteString(`<hr>`)
+		content.WriteString(`<h2>Comments</h2>`)
+		content.WriteString(`<div class="reddit-comments">`)
+		content.WriteString(comments)
+		content.WriteString(`</div>`)
+	}
+
+	return strings.TrimSpace(content.String())
+}
+
+// getPostTitle extracts the post title
+// TypeScript original code:
+//
+//	const postTitle = this.document.querySelector('h1')?.textContent?.trim() || '';
+func (r *RedditExtractor) getPostTitle() string {
+	// First try to get title from h1 element
+	h1Title := strings.TrimSpace(r.document.Find("h1").First().Text())
+	if h1Title != "" {
+		return h1Title
+	}
+
+	// Try to get title from post-title attribute
+	if r.post.Length() > 0 {
+		postTitle := r.GetAttribute(r.post, "post-title")
+		if postTitle != "" {
+			return postTitle
+		}
+	}
+
+	// Fallback to page title
+	pageTitle := strings.TrimSpace(r.document.Find("title").Text())
+	if pageTitle != "" && pageTitle != "Reddit - The heart of the internet" {
+		return pageTitle
+	}
+
+	return ""
+}
+
+// getSubreddit extracts the subreddit name from URL
+// TypeScript original code:
+//
+//	private getSubreddit(): string {
+//		const match = this.url.match(/\/r\/([^/]+)/);
+//		return match?.[1] || '';
+//	}
+func (r *RedditExtractor) getSubreddit() string {
+	// Extract subreddit from URL pattern like /r/subredditname/
+	if strings.Contains(r.url, "/r/") {
+		parts := strings.Split(r.url, "/r/")
+		if len(parts) > 1 {
+			subredditPart := parts[1]
+			// Find the end of subreddit name (next slash)
+			if slashIndex := strings.Index(subredditPart, "/"); slashIndex != -1 {
+				return subredditPart[:slashIndex]
+			}
+			return subredditPart
+		}
+	}
+	return ""
+}
+
+// getPostAuthor extracts the post author
+// TypeScript original code:
+//
+//	private getPostAuthor(): string {
+//		return this.shredditPost?.getAttribute('author') || '';
+//	}
+func (r *RedditExtractor) getPostAuthor() string {
+	if r.post.Length() > 0 {
+		author := r.GetAttribute(r.post, "author")
+		if author != "" {
+			return author
+		}
+	}
+	return ""
+}
+
+// createDescription creates a description from post content
+// TypeScript original code:
+//
+//	private createDescription(postContent: string): string {
+//		if (!postContent) return '';
+//
+//		const tempDiv = document.createElement('div');
+//		tempDiv.innerHTML = postContent;
+//		return tempDiv.textContent?.trim()
+//			.slice(0, 140)
+//			.replace(/\s+/g, ' ') || '';
+//	}
+func (r *RedditExtractor) createDescription(postContent string) string {
+	if postContent == "" {
+		return ""
+	}
+
+	// Create a temporary document to extract text content
+	tempDoc, err := goquery.NewDocumentFromReader(strings.NewReader(postContent))
+	if err != nil {
+		return ""
+	}
+
+	textContent := strings.TrimSpace(tempDoc.Text())
+	textContent = strings.ReplaceAll(textContent, "\n", " ")
+	textContent = strings.ReplaceAll(textContent, "\t", " ")
+
+	// Replace multiple spaces with single space
+	for strings.Contains(textContent, "  ") {
+		textContent = strings.ReplaceAll(textContent, "  ", " ")
+	}
+
+	// Limit to 140 characters
+	if len(textContent) > 140 {
+		return textContent[:140] + "..."
+	}
+
+	return textContent
+}
+
+// getPostID extracts the post ID from URL
+// TypeScript original code:
+//
+//	private getPostId(): string {
+//		const match = this.url.match(/comments\/([a-zA-Z0-9]+)/);
+//		return match?.[1] || '';
+//	}
+func (r *RedditExtractor) getPostID() string {
+	// Extract post ID from URL pattern like /comments/postid/
+	if strings.Contains(r.url, "/comments/") {
+		parts := strings.Split(r.url, "/comments/")
+		if len(parts) > 1 {
+			postIDPart := parts[1]
+			// Find the end of post ID (next slash)
+			if slashIndex := strings.Index(postIDPart, "/"); slashIndex != -1 {
+				return postIDPart[:slashIndex]
+			}
+			return postIDPart
+		}
+	}
+	return ""
 }

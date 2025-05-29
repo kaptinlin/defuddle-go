@@ -1,11 +1,18 @@
 # Defuddle Go
 
+[![Release](https://img.shields.io/github/v/release/kaptinlin/defuddle-go)](https://github.com/kaptinlin/defuddle-go/releases)
+[![Test](https://github.com/kaptinlin/defuddle-go/workflows/Test/badge.svg)](https://github.com/kaptinlin/defuddle-go/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kaptinlin/defuddle-go)](https://goreportcard.com/report/github.com/kaptinlin/defuddle-go)
+[![GoDoc](https://godoc.org/github.com/kaptinlin/defuddle-go?status.svg)](https://godoc.org/github.com/kaptinlin/defuddle-go)
+
 A Go implementation of the [Defuddle](https://github.com/kepano/defuddle) TypeScript library for intelligent web content extraction. Defuddle Go extracts clean, readable content from HTML documents using advanced algorithms to remove clutter while preserving meaningful content.
+
+**Available as both a Go library and a command-line tool.**
 
 ## Features
 
 - 🧠 **Intelligent Content Extraction**: Advanced algorithms to identify and extract main content
-- 🎯 **Site-Specific Extractors**: Built-in support for popular platforms (ChatGPT, Grok, Hacker News, etc.)
+- 🎯 **Site-Specific Extractors**: Built-in support for popular platforms (ChatGPT, Grok, Hacker News, Reddit, etc.)
 - 🧹 **Clutter Removal**: Automatically removes ads, navigation, sidebars, and other non-content elements
 - 📱 **Mobile-First**: Applies mobile styles for better content detection
 - 🔍 **Metadata Extraction**: Extracts titles, descriptions, authors, images, and more
@@ -14,14 +21,94 @@ A Go implementation of the [Defuddle](https://github.com/kepano/defuddle) TypeSc
 - 🔧 **Element Processing**: Advanced processing for code blocks, images, math formulas, and more
 - 🐛 **Debug Mode**: Detailed processing information for troubleshooting
 - ⚡ **High Performance**: Optimized for Go with efficient DOM processing
+- 🖥️ **CLI Tool**: Powerful command-line interface for extracting content
 
 ## Installation
+
+### CLI Tool
+
+#### Download Pre-built Binaries
+Download the latest binary for your platform from the [releases page](https://github.com/kaptinlin/defuddle-go/releases).
+
+#### Install with Go
+```bash
+go install github.com/kaptinlin/defuddle-go/cmd@latest
+```
+
+#### Install from Source
+```bash
+git clone https://github.com/kaptinlin/defuddle-go.git
+cd defuddle-go
+make build-cli
+sudo make install-cli
+```
+
+### Go Library
 
 ```bash
 go get github.com/kaptinlin/defuddle-go
 ```
 
-## Quick Start
+## CLI Usage
+
+The `defuddle` command-line tool provides a simple interface for extracting content from web pages and HTML files.
+
+### Basic Usage
+
+```bash
+# Extract content from a URL
+defuddle parse https://example.com/article
+
+# Extract from local HTML file
+defuddle parse article.html
+
+# Convert to Markdown
+defuddle parse https://example.com/article --markdown
+
+# Get JSON output with metadata
+defuddle parse https://example.com/article --json
+
+# Extract specific properties
+defuddle parse https://example.com/article --property title
+defuddle parse https://example.com/article --property author
+defuddle parse https://example.com/article --property description
+
+# Save output to file
+defuddle parse https://example.com/article --markdown --output article.md
+```
+
+### CLI Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--output` | `-o` | Output file path (default: stdout) |
+| `--markdown` | `-m` | Convert content to markdown format |
+| `--md` | | Alias for --markdown |
+| `--json` | `-j` | Output as JSON with metadata and content |
+| `--property` | `-p` | Extract a specific property |
+| `--debug` | | Enable debug mode |
+| `--help` | `-h` | Show help message |
+| `--version` | `-v` | Show version information |
+
+### CLI Examples
+
+```bash
+# Extract Reddit post title
+defuddle parse https://www.reddit.com/r/golang/comments/xyz/... --property title
+
+# Get full JSON metadata
+defuddle parse https://news.ycombinator.com/item?id=123456 --json
+
+# Convert article to Markdown and save
+defuddle parse https://blog.example.com/post --markdown --output post.md
+
+# Debug parsing process
+defuddle parse https://example.com/article --debug
+```
+
+## Library Usage
+
+## Library Quick Start
 
 ### Basic Content Extraction
 

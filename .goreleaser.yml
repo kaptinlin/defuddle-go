@@ -1,0 +1,147 @@
+# GoReleaser configuration for defuddle-go CLI
+# See: https://goreleaser.com
+
+# Check documentation at https://goreleaser.com
+version: 2
+
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # You may remove this if you don't need go generate
+    - go generate ./...
+
+builds:
+  - id: defuddle
+    main: ./cmd
+    binary: defuddle
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - "7"
+    ignore:
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    flags:
+      - -trimpath
+
+archives:
+  - id: defuddle
+    builds:
+      - defuddle
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^style:'
+      - 'merge conflict'
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: 'Bug fixes'
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: 'Performance improvements'
+      regexp: '^.*?perf(\(.+\))??!?:.+$'
+      order: 2
+    - title: 'Refactors'
+      regexp: '^.*?refactor(\(.+\))??!?:.+$'
+      order: 3
+    - title: Others
+      order: 999
+
+release:
+  github:
+    owner: kaptinlin
+    name: defuddle-go
+  discussion_category_name: General
+  prerelease: auto
+  mode: replace
+  header: |
+    ## Defuddle Go v{{ .Tag }}
+
+    Web content extraction library and CLI tool for Go.
+
+    ### 📦 Installation
+
+    #### Download Pre-built Binaries
+    Download the appropriate binary for your platform from the assets below.
+
+    #### Install with Go
+    ```bash
+    go install github.com/kaptinlin/defuddle-go/cmd@{{ .Tag }}
+    ```
+
+    #### Install from Source
+    ```bash
+    git clone https://github.com/kaptinlin/defuddle-go.git
+    cd defuddle-go
+    make build-cli
+    ```
+  footer: |
+
+    ### 🔍 Usage Examples
+
+    ```bash
+    # Extract content from URL
+    defuddle parse https://example.com/article
+
+    # Convert to markdown
+    defuddle parse https://example.com/article --markdown
+
+    # Get JSON output with metadata
+    defuddle parse https://example.com/article --json
+
+    # Extract specific property
+    defuddle parse https://example.com/article --property title
+    ```
+
+    **Full Changelog**: https://github.com/kaptinlin/defuddle-go/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+# modelines, feel free to remove those if you don't want/use them:
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj

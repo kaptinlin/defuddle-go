@@ -115,3 +115,27 @@ build-cli: ## Build the CLI binary
 install-cli: build-cli ## Install CLI to system
 	sudo cp bin/defuddle /usr/local/bin/defuddle
 	@echo "defuddle CLI installed to /usr/local/bin/defuddle"
+
+.PHONY: release-test
+release-test: ## Test release build without publishing
+	@echo "[release] Testing release build..."
+	@goreleaser check
+	@goreleaser build --snapshot --clean
+
+.PHONY: release-snapshot
+release-snapshot: ## Create a snapshot release
+	@echo "[release] Creating snapshot release..."
+	@goreleaser release --snapshot --clean
+
+.PHONY: install-goreleaser
+install-goreleaser: ## Install GoReleaser
+	@echo "[release] Installing GoReleaser..."
+	@go install github.com/goreleaser/goreleaser@latest
+
+.PHONY: tag
+tag: ## Create and push a new tag (usage: make tag VERSION=v0.1.0)
+	@if [ -z "$(VERSION)" ]; then echo "Usage: make tag VERSION=v0.1.0"; exit 1; fi
+	@echo "[release] Creating tag $(VERSION)..."
+	@git tag -a $(VERSION) -m "Release $(VERSION)"
+	@git push origin $(VERSION)
+	@echo "[release] Tag $(VERSION) created and pushed"
