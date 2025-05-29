@@ -1,0 +1,3 @@
+[submodule "reference/defuddle"]
+	path = reference/defuddle
+	url = https://github.com/kepano/defuddle.git

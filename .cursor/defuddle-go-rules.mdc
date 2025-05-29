@@ -1,0 +1,169 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Defuddle Go Implementation Rules
+
+## Core Principles
+
+### 1. API Compatibility (Highest Priority)
+- **Complete compatibility** with TypeScript Defuddle public API
+- Maintain identical method signatures, parameters, and return value structures
+- Ensure same input produces same output across platforms
+- **Keep field names aligned with JS version** - use identical naming conventions
+
+### 2. Go Best Practices
+- Use Go 1.21+ features for performance optimization
+- Follow Go idioms and best practices
+- **Use value types instead of pointer types for struct fields**
+- Zero-allocation optimization where possible
+
+### 3. English-Only Documentation
+- **ALL COMMENTS MUST BE IN ENGLISH**
+- Include complete JavaScript/TypeScript original code in comments for reference
+
+## Comment Standards
+
+### Mandatory Format
+```go
+// FunctionName describes what this function does in Go context
+// JavaScript original code:
+// export function functionName(param: Type): ReturnType {
+//   // complete original implementation
+//   return result;
+// }
+func FunctionName(param Type) ReturnType {
+    // implementation
+}
+```
+
+### Requirements
+- **ALL COMMENTS MUST BE IN ENGLISH**
+- Include complete JavaScript/TypeScript original code unmodified
+- Document performance characteristics
+- Include usage examples for public APIs
+- Preserve original code formatting and comments
+
+## Type Mappings
+
+| TypeScript | Go | Notes |
+|------------|-----|-------|
+| `string` | `string` | |
+| `number` | `int64` / `float64` | Use appropriate numeric type |
+| `boolean` | `bool` | |
+| `Array<T>` | `[]T` | Use slices, pre-allocate capacity when known |
+| `object` | `struct` / `map[string]any` | Prefer structs for known structure |
+| `undefined/null` | `nil` / zero value | Use pointers only for optional return values |
+| `Document` | `*goquery.Document` | Use goquery as jsdom equivalent |
+| `Element` | `*goquery.Selection` | |
+
+## Required Dependencies
+
+### Core (Minimal Set)
+- `github.com/PuerkitoBio/goquery` - HTML parsing
+- `github.com/kaptinlin/requests` - HTTP client (**MANDATORY** for URL operations)
+- `github.com/JohannesKaufmann/html-to-markdown` - HTML to Markdown conversion
+- `github.com/piprate/json-gold` - JSON-LD processing for schema.org
+- Standard library packages only
+
+## Performance Requirements
+
+### Mandatory Optimizations
+- Use `strings.Builder` for string concatenation
+- Use `sync.Pool` to reuse buffers and minimize allocations
+- Use `slog` for structured logging (replace fmt.Printf/log calls)
+- Pre-allocate slices with known capacity
+
+### Examples
+```go
+// ✅ Correct - structured logging
+slog.Debug("parsing document", "url", url, "wordCount", count)
+
+// ❌ Incorrect - unstructured logging
+fmt.Printf("parsing document: %s\n", url)
+```
+
+## Field Naming Standards
+
+### Strict Requirements
+- **All struct field names must match JavaScript property names exactly**
+- Use JSON tags for serialization compatibility
+- Maintain camelCase for JavaScript compatibility
+
+```go
+// ✅ Correct - matches JavaScript DefuddleResponse
+type Result struct {
+    Author          string `json:"author"`
+    Content         string `json:"content"`
+    ContentMarkdown string `json:"contentMarkdown,omitempty"`
+    ParseTime       int64  `json:"parseTime"`
+    WordCount       int    `json:"wordCount"`
+}
+```
+
+## Configuration Options Pattern
+
+Use value types for clean, idiomatic Go code:
+
+```go
+// ✅ Correct - Go idiomatic approach
+type Options struct {
+    Debug                  bool   `json:"debug,omitempty"`
+    URL                    string `json:"url,omitempty"`
+    Markdown               bool   `json:"markdown,omitempty"`
+    RemoveExactSelectors   bool   `json:"removeExactSelectors,omitempty"`
+    RemovePartialSelectors bool   `json:"removePartialSelectors,omitempty"`
+}
+
+// ❌ Incorrect - unnecessary pointer complexity
+type Options struct {
+    Debug    *bool   `json:"debug,omitempty"`     // Requires helper functions
+    URL      *string `json:"url,omitempty"`       // Makes code verbose
+    Markdown *bool   `json:"markdown,omitempty"`  // Adds nil checks
+}
+```
+
+## Testing Requirements
+
+- **MUST** use `github.com/stretchr/testify`
+- Test coverage > 90%
+- Include benchmark tests with `b.ReportAllocs()`
+- Test TypeScript compatibility with identical inputs
+
+## Quality Gates
+
+### Code Quality
+- Go vet passes without warnings
+- golangci-lint passes with strict configuration
+- No race conditions detected by `go test -race`
+
+### Performance Gates
+- Benchmark regression < 5%
+- Memory allocation regression < 10%
+- No memory leaks in long-running tests
+
+## Forbidden Practices
+
+- ❌ Adding features not in TypeScript version
+- ❌ Changing public API signatures
+- ❌ Using non-English comments
+- ❌ Using fmt.Printf/log instead of slog
+- ❌ String concatenation with + operator in hot paths
+- ❌ Using `net/http` directly for HTTP requests (use `github.com/kaptinlin/requests`)
+- ❌ Breaking changes to public APIs
+
+## Commit Standards
+
+### Format
+```
+<type>[scope]: <description>
+```
+
+### Types
+- `feat`: New features
+- `fix`: Bug fixes  
+- `perf`: Performance improvements
+- `refactor`: Code refactoring
+- `test`: Test improvements
+- `docs`: Documentation updates 
