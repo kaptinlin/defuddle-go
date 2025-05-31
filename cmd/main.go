@@ -15,6 +15,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const version = "0.1.3"
+
 // Define static errors to avoid dynamic error creation
 var (
 	ErrInvalidHeaderFormat = fmt.Errorf("invalid header format (expected 'Key: Value')")
@@ -28,8 +30,9 @@ type contextKey string
 const optionsKey contextKey = "options"
 
 var rootCmd = &cobra.Command{
-	Use:   "defuddle",
-	Short: "Extract and structure content from web pages",
+	Use:     "defuddle",
+	Short:   "Extract and structure content from web pages",
+	Version: version,
 	Long: `defuddle is a CLI tool for extracting and structuring content from web pages.
 It can parse HTML, extract metadata, and convert content to various formats.`,
 }
