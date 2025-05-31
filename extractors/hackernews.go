@@ -2,6 +2,7 @@ package extractors
 
 import (
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
@@ -10,7 +11,22 @@ import (
 )
 
 // HackerNewsExtractor handles Hacker News content extraction
-// Corresponding to TypeScript class HackerNewsExtractor extends BaseExtractor
+// TypeScript original code:
+// import { BaseExtractor } from './_base';
+// import { ExtractorResult } from '../types/extractors';
+//
+//	export class HackerNewsExtractor extends BaseExtractor {
+//		private mainPost: Element | null;
+//		private isCommentPage: boolean;
+//		private mainComment: Element | null;
+//
+//		constructor(document: Document, url: string) {
+//			super(document, url);
+//			this.mainPost = document.querySelector('.fatitem');
+//			this.isCommentPage = this.detectCommentPage();
+//			this.mainComment = this.isCommentPage ? this.findMainComment() : null;
+//		}
+//	}
 type HackerNewsExtractor struct {
 	*ExtractorBase
 	mainPost      *goquery.Selection
@@ -23,17 +39,9 @@ type HackerNewsExtractor struct {
 //
 //	constructor(document: Document, url: string) {
 //		super(document, url);
-//
-//		// Find the main post element
 //		this.mainPost = document.querySelector('.fatitem');
-//
-//		// Detect if this is a comment page
 //		this.isCommentPage = this.detectCommentPage();
-//
-//		// Find main comment if on a comment page
-//		if (this.isCommentPage) {
-//			this.mainComment = this.findMainComment();
-//		}
+//		this.mainComment = this.isCommentPage ? this.findMainComment() : null;
 //	}
 func NewHackerNewsExtractor(document *goquery.Document, url string, schemaOrgData interface{}) *HackerNewsExtractor {
 	extractor := &HackerNewsExtractor{
@@ -42,13 +50,16 @@ func NewHackerNewsExtractor(document *goquery.Document, url string, schemaOrgDat
 
 	// Find the main post element
 	extractor.mainPost = document.Find(".fatitem").First()
+	slog.Debug("HackerNews extractor: found main post", "hasMainPost", extractor.mainPost.Length() > 0)
 
 	// Detect if this is a comment page
 	extractor.isCommentPage = extractor.detectCommentPage()
+	slog.Debug("HackerNews extractor: detected page type", "isCommentPage", extractor.isCommentPage)
 
 	// Find main comment if on a comment page
 	if extractor.isCommentPage {
 		extractor.mainComment = extractor.findMainComment()
+		slog.Debug("HackerNews extractor: found main comment", "hasMainComment", extractor.mainComment != nil && extractor.mainComment.Length() > 0)
 	}
 
 	return extractor
@@ -58,11 +69,8 @@ func NewHackerNewsExtractor(document *goquery.Document, url string, schemaOrgDat
 // TypeScript original code:
 //
 //	private detectCommentPage(): boolean {
-//		if (!this.mainPost) return false;
-//
 //		// Check if we're on a comment page by looking for a parent link in the navigation
-//		const parentLink = this.mainPost.querySelector('.navs a[href*="parent"]');
-//		return !!parentLink;
+//		return !!this.mainPost?.querySelector('.navs a[href*="parent"]');
 //	}
 func (h *HackerNewsExtractor) detectCommentPage() bool {
 	if h.mainPost.Length() == 0 {
@@ -71,30 +79,33 @@ func (h *HackerNewsExtractor) detectCommentPage() bool {
 
 	// Check if we're on a comment page by looking for a parent link in the navigation
 	parentLink := h.mainPost.Find(`.navs a[href*="parent"]`)
-	return parentLink.Length() > 0
+	isCommentPage := parentLink.Length() > 0
+	slog.Debug("HackerNews extractor: checking for parent link", "parentLinkFound", isCommentPage)
+	return isCommentPage
 }
 
 // findMainComment finds the main comment on a comment page
 // TypeScript original code:
 //
 //	private findMainComment(): Element | null {
-//		if (!this.mainPost) return null;
-//
 //		// The main comment is the first comment in the fatitem
-//		const comment = this.mainPost.querySelector('.comment');
-//		return comment;
+//		const comment = this.mainPost?.querySelector('.comment');
+//		return comment || null;
 //	}
 func (h *HackerNewsExtractor) findMainComment() *goquery.Selection {
 	if h.mainPost.Length() == 0 {
+		slog.Debug("HackerNews extractor: no main post found for comment search")
 		return nil
 	}
 
 	// The main comment is the first comment in the fatitem
 	comment := h.mainPost.Find(".comment").First()
 	if comment.Length() > 0 {
+		slog.Debug("HackerNews extractor: found main comment")
 		return comment
 	}
 
+	slog.Debug("HackerNews extractor: no main comment found")
 	return nil
 }
 
@@ -105,7 +116,9 @@ func (h *HackerNewsExtractor) findMainComment() *goquery.Selection {
 //		return !!this.mainPost;
 //	}
 func (h *HackerNewsExtractor) CanExtract() bool {
-	return h.mainPost.Length() > 0
+	canExtract := h.mainPost.Length() > 0
+	slog.Debug("HackerNews extractor can extract check", "canExtract", canExtract)
+	return canExtract
 }
 
 // GetName returns the name of the extractor
@@ -131,18 +144,20 @@ func (h *HackerNewsExtractor) GetName() string {
 //			contentHtml: contentHtml,
 //			extractedContent: {
 //				postId: this.getPostId(),
-//				postAuthor: postAuthor
+//				postAuthor,
 //			},
 //			variables: {
 //				title: postTitle,
 //				author: postAuthor,
 //				site: 'Hacker News',
-//				description: description,
-//				published: published
+//				description,
+//				published,
 //			}
 //		};
 //	}
 func (h *HackerNewsExtractor) Extract() *ExtractorResult {
+	slog.Debug("HackerNews extractor starting extraction", "url", h.url)
+
 	postContent := h.getPostContent()
 	comments := h.extractComments()
 
@@ -151,12 +166,20 @@ func (h *HackerNewsExtractor) Extract() *ExtractorResult {
 	postAuthor := h.getPostAuthor()
 	description := h.createDescription()
 	published := h.getPostDate()
+	postID := h.getPostID()
+
+	slog.Debug("HackerNews extraction completed",
+		"postTitle", postTitle,
+		"postAuthor", postAuthor,
+		"postId", postID,
+		"hasComments", comments != "",
+		"published", published)
 
 	return &ExtractorResult{
 		Content:     contentHTML,
 		ContentHTML: contentHTML,
 		ExtractedContent: map[string]interface{}{
-			"postId":     h.getPostID(),
+			"postId":     postID,
 			"postAuthor": postAuthor,
 		},
 		Variables: map[string]string{
@@ -173,40 +196,38 @@ func (h *HackerNewsExtractor) Extract() *ExtractorResult {
 // TypeScript original code:
 //
 //	private createContentHtml(postContent: string, comments: string): string {
-//		let content = `<div class="hackernews-post">
-//			<div class="post-content">
-//				${postContent}
+//		return `
+//			<div class="hackernews-post">
+//				<div class="post-content">
+//					${postContent}
+//				</div>
+//				${comments ? `
+//					<hr>
+//					<h2>Comments</h2>
+//					<div class="hackernews-comments">
+//						${comments}
+//					</div>
+//				` : ''}
 //			</div>
-//		</div>`;
-//
-//		if (comments) {
-//			content += `
-//		<hr>
-//		<h2>Comments</h2>
-//		<div class="hackernews-comments">
-//			${comments}
-//		</div>`;
-//		}
-//
-//		return content.trim();
+//		`.trim();
 //	}
 func (h *HackerNewsExtractor) createContentHTML(postContent, comments string) string {
-	content := fmt.Sprintf(`<div class="hackernews-post">
-	<div class="post-content">
-		%s
-	</div>
-</div>`, postContent)
+	var content strings.Builder
+	content.WriteString(`<div class="hackernews-post">`)
+	content.WriteString(`<div class="post-content">`)
+	content.WriteString(postContent)
+	content.WriteString(`</div>`)
 
 	if comments != "" {
-		content += fmt.Sprintf(`
-<hr>
-<h2>Comments</h2>
-<div class="hackernews-comments">
-	%s
-</div>`, comments)
+		content.WriteString(`<hr>`)
+		content.WriteString(`<h2>Comments</h2>`)
+		content.WriteString(`<div class="hackernews-comments">`)
+		content.WriteString(comments)
+		content.WriteString(`</div>`)
 	}
 
-	return strings.TrimSpace(content)
+	content.WriteString(`</div>`)
+	return strings.TrimSpace(content.String())
 }
 
 // getPostContent extracts the main post content
@@ -219,36 +240,28 @@ func (h *HackerNewsExtractor) createContentHTML(postContent, comments string) st
 //		if (this.isCommentPage && this.mainComment) {
 //			const author = this.mainComment.querySelector('.hnuser')?.textContent || '[deleted]';
 //			const commentText = this.mainComment.querySelector('.commtext')?.innerHTML || '';
-//
 //			const timeElement = this.mainComment.querySelector('.age');
 //			const timestamp = timeElement?.getAttribute('title') || '';
-//			const date = timestamp ? timestamp.split('T')[0] : '';
-//
+//			const date = timestamp.split('T')[0] || '';
 //			const points = this.mainComment.querySelector('.score')?.textContent?.trim() || '';
 //			const parentUrl = this.mainPost.querySelector('.navs a[href*="parent"]')?.getAttribute('href') || '';
 //
-//			let content = '<div class="comment main-comment">';
-//			content += '<div class="comment-metadata">';
-//			content += `<span class="comment-author"><strong>${author}</strong></span> •`;
-//			content += ` <span class="comment-date">${date}</span>`;
-//
-//			if (points) {
-//				content += ` • <span class="comment-points">${points}</span>`;
-//			}
-//
-//			if (parentUrl) {
-//				content += ` • <a href="https://news.ycombinator.com/${parentUrl}" class="parent-link">parent</a>`;
-//			}
-//
-//			content += '</div>';
-//			content += `<div class="comment-content">${commentText}</div>`;
-//			content += '</div>';
-//
-//			return content;
+//			return `
+//				<div class="comment main-comment">
+//					<div class="comment-metadata">
+//						<span class="comment-author"><strong>${author}</strong></span> •
+//						<span class="comment-date">${date}</span>
+//						${points ? ` • <span class="comment-points">${points}</span>` : ''}
+//						${parentUrl ? ` • <a href="https://news.ycombinator.com/${parentUrl}" class="parent-link">parent</a>` : ''}
+//					</div>
+//					<div class="comment-content">${commentText}</div>
+//				</div>
+//			`.trim();
 //		}
 //
 //		// Otherwise handle regular post content
 //		const titleRow = this.mainPost.querySelector('tr.athing');
+//		const subRow = titleRow?.nextElementSibling;
 //		const url = titleRow?.querySelector('.titleline a')?.getAttribute('href') || '';
 //
 //		let content = '';
@@ -265,6 +278,7 @@ func (h *HackerNewsExtractor) createContentHTML(postContent, comments string) st
 //	}
 func (h *HackerNewsExtractor) getPostContent() string {
 	if h.mainPost.Length() == 0 {
+		slog.Debug("HackerNews extractor: no main post for content extraction")
 		return ""
 	}
 
@@ -288,7 +302,6 @@ func (h *HackerNewsExtractor) getPostContent() string {
 		}
 
 		points := strings.TrimSpace(h.mainComment.Find(".score").Text())
-
 		parentUrl, _ := h.mainPost.Find(`.navs a[href*="parent"]`).Attr("href")
 
 		var content strings.Builder
@@ -309,6 +322,7 @@ func (h *HackerNewsExtractor) getPostContent() string {
 		content.WriteString(fmt.Sprintf(`<div class="comment-content">%s</div>`, commentText))
 		content.WriteString(`</div>`)
 
+		slog.Debug("HackerNews extractor: extracted comment page content", "author", author, "hasPoints", points != "", "hasParentUrl", parentUrl != "")
 		return content.String()
 	}
 
@@ -327,6 +341,7 @@ func (h *HackerNewsExtractor) getPostContent() string {
 		content.WriteString(fmt.Sprintf(`<div class="post-text">%s</div>`, textHTML))
 	}
 
+	slog.Debug("HackerNews extractor: extracted regular post content", "hasUrl", url != "", "hasText", text.Length() > 0)
 	return content.String()
 }
 
@@ -343,6 +358,7 @@ func (h *HackerNewsExtractor) extractComments() string {
 		comments = append(comments, s)
 	})
 
+	slog.Debug("HackerNews extractor: found comments", "commentCount", len(comments))
 	return h.processComments(comments)
 }
 
@@ -353,28 +369,28 @@ func (h *HackerNewsExtractor) extractComments() string {
 //		let html = '';
 //		const processedIds = new Set<string>();
 //		let currentDepth = -1;
-//		const blockquoteStack: number[] = [];
+//		let blockquoteStack: number[] = [];
 //
 //		for (const comment of comments) {
 //			const id = comment.getAttribute('id');
 //			if (!id || processedIds.has(id)) continue;
 //			processedIds.add(id);
 //
-//			const indentImg = comment.querySelector('.ind img');
-//			const indentWidth = parseInt(indentImg?.getAttribute('width') || '0', 10);
-//			const depth = indentWidth / 40;
-//
+//			const indent = comment.querySelector('.ind img')?.getAttribute('width') || '0';
+//			const depth = parseInt(indent) / 40;
 //			const commentText = comment.querySelector('.commtext');
-//			if (!commentText) continue;
-//
 //			const author = comment.querySelector('.hnuser')?.textContent || '[deleted]';
 //			const timeElement = comment.querySelector('.age');
 //			const points = comment.querySelector('.score')?.textContent?.trim() || '';
 //
+//			if (!commentText) continue;
+//
+//			// Get the comment URL
 //			const commentUrl = `https://news.ycombinator.com/item?id=${id}`;
 //
+//			// Get the timestamp from the title attribute and extract the date portion
 //			const timestamp = timeElement?.getAttribute('title') || '';
-//			const date = timestamp ? timestamp.split('T')[0] : '';
+//			const date = timestamp.split('T')[0] || '';
 //
 //			// For top-level comments, close all previous blockquotes and start fresh
 //			if (depth === 0) {
@@ -383,36 +399,35 @@ func (h *HackerNewsExtractor) extractComments() string {
 //					blockquoteStack.pop();
 //				}
 //				html += '<blockquote>';
-//				blockquoteStack.push(0);
+//				blockquoteStack = [0];
 //				currentDepth = 0;
-//			} else {
+//			}
+//			// For nested comments
+//			else {
 //				// If we're moving back up the tree
 //				if (depth < currentDepth) {
 //					while (blockquoteStack.length > 0 && blockquoteStack[blockquoteStack.length - 1] >= depth) {
 //						html += '</blockquote>';
 //						blockquoteStack.pop();
 //					}
-//				} else if (depth > currentDepth) {
-//					// If we're going deeper
+//				}
+//				// If we're going deeper
+//				else if (depth > currentDepth) {
 //					html += '<blockquote>';
 //					blockquoteStack.push(depth);
 //				}
+//				// If we're at the same depth, no need to close or open blockquotes
 //			}
 //
-//			const commentContent = commentText.innerHTML;
+//			html += `<div class="comment">
+//	<div class="comment-metadata">
+//		<span class="comment-author"><strong>${author}</strong></span> •
+//		<a href="${commentUrl}" class="comment-link">${date}</a>
+//		${points ? ` • <span class="comment-points">${points}</span>` : ''}
+//	</div>
+//	<div class="comment-content">${commentText.innerHTML}</div>
 //
-//			html += '<div class="comment">';
-//			html += '<div class="comment-metadata">';
-//			html += `<span class="comment-author"><strong>${author}</strong></span> •`;
-//			html += ` <a href="${commentUrl}" class="comment-link">${date}</a>`;
-//
-//			if (points) {
-//				html += ` • <span class="comment-points">${points}</span>`;
-//			}
-//
-//			html += '</div>';
-//			html += `<div class="comment-content">${commentContent}</div>`;
-//			html += '</div>';
+// </div>`;
 //
 //			currentDepth = depth;
 //		}
@@ -430,6 +445,8 @@ func (h *HackerNewsExtractor) processComments(comments []*goquery.Selection) str
 	processedIDs := make(map[string]bool)
 	currentDepth := -1
 	var blockquoteStack []int
+
+	slog.Debug("HackerNews extractor: processing comments", "totalComments", len(comments))
 
 	for _, comment := range comments {
 		id, exists := comment.Attr("id")
@@ -469,8 +486,9 @@ func (h *HackerNewsExtractor) processComments(comments []*goquery.Selection) str
 			}
 		}
 
-		// For top-level comments, close all previous blockquotes and start fresh
+		// For top-level comments (indent = 0), start fresh
 		if depth == 0 {
+			// Close all open blockquotes
 			for len(blockquoteStack) > 0 {
 				html.WriteString("</blockquote>")
 				blockquoteStack = blockquoteStack[:len(blockquoteStack)-1]
@@ -478,8 +496,10 @@ func (h *HackerNewsExtractor) processComments(comments []*goquery.Selection) str
 			html.WriteString("<blockquote>")
 			blockquoteStack = []int{0}
 		} else {
+			// For nested comments
 			// If we're moving back up the tree
 			if depth < currentDepth {
+				// Close blockquotes until we reach the current depth
 				for len(blockquoteStack) > 0 && blockquoteStack[len(blockquoteStack)-1] >= depth {
 					html.WriteString("</blockquote>")
 					blockquoteStack = blockquoteStack[:len(blockquoteStack)-1]
@@ -489,6 +509,7 @@ func (h *HackerNewsExtractor) processComments(comments []*goquery.Selection) str
 				html.WriteString("<blockquote>")
 				blockquoteStack = append(blockquoteStack, depth)
 			}
+			// If we're at the same depth, no need to close or open blockquotes
 		}
 
 		commentContent, _ := commentText.Html()
@@ -496,7 +517,7 @@ func (h *HackerNewsExtractor) processComments(comments []*goquery.Selection) str
 		html.WriteString(`<div class="comment">`)
 		html.WriteString(`<div class="comment-metadata">`)
 		html.WriteString(fmt.Sprintf(`<span class="comment-author"><strong>%s</strong></span> •`, author))
-		html.WriteString(fmt.Sprintf(` <a href="%s" class="comment-link">%s</a>`, commentURL, date))
+		html.WriteString(fmt.Sprintf(` <a href="%s" class="comment-link">%s</a> •`, commentURL, date))
 
 		if points != "" {
 			html.WriteString(fmt.Sprintf(` • <span class="comment-points">%s</span>`, points))
@@ -515,6 +536,7 @@ func (h *HackerNewsExtractor) processComments(comments []*goquery.Selection) str
 		blockquoteStack = blockquoteStack[:len(blockquoteStack)-1]
 	}
 
+	slog.Debug("HackerNews extractor: comments processed", "processedCount", len(processedIDs))
 	return html.String()
 }
 
@@ -523,7 +545,7 @@ func (h *HackerNewsExtractor) processComments(comments []*goquery.Selection) str
 //
 //	private getPostId(): string {
 //		const match = this.url.match(/id=(\d+)/);
-//		return match ? match[1] : '';
+//		return match?.[1] || '';
 //	}
 func (h *HackerNewsExtractor) getPostID() string {
 	re := regexp.MustCompile(`id=(\d+)`)
@@ -540,17 +562,12 @@ func (h *HackerNewsExtractor) getPostID() string {
 //	private getPostTitle(): string {
 //		if (this.isCommentPage && this.mainComment) {
 //			const author = this.mainComment.querySelector('.hnuser')?.textContent || '[deleted]';
-//			const commentText = this.mainComment.querySelector('.commtext')?.textContent?.trim() || '';
-//
+//			const commentText = this.mainComment.querySelector('.commtext')?.textContent || '';
 //			// Use first 50 characters of comment as title
-//			const preview = commentText.length > 50 ? commentText.substring(0, 50) + '...' : commentText;
-//
+//			const preview = commentText.length > 50 ? commentText.slice(0, 50) + '...' : commentText;
 //			return `Comment by ${author}: ${preview}`;
 //		}
-//
-//		if (!this.mainPost) return '';
-//
-//		return this.mainPost.querySelector('.titleline')?.textContent?.trim() || '';
+//		return this.mainPost?.querySelector('.titleline')?.textContent?.trim() || '';
 //	}
 func (h *HackerNewsExtractor) getPostTitle() string {
 	if h.isCommentPage && h.mainComment != nil && h.mainComment.Length() > 0 {
@@ -581,9 +598,7 @@ func (h *HackerNewsExtractor) getPostTitle() string {
 // TypeScript original code:
 //
 //	private getPostAuthor(): string {
-//		if (!this.mainPost) return '';
-//
-//		return this.mainPost.querySelector('.hnuser')?.textContent?.trim() || '';
+//		return this.mainPost?.querySelector('.hnuser')?.textContent?.trim() || '';
 //	}
 func (h *HackerNewsExtractor) getPostAuthor() string {
 	if h.mainPost.Length() == 0 {
@@ -599,11 +614,9 @@ func (h *HackerNewsExtractor) getPostAuthor() string {
 //	private createDescription(): string {
 //		const title = this.getPostTitle();
 //		const author = this.getPostAuthor();
-//
 //		if (this.isCommentPage) {
 //			return `Comment by ${author} on Hacker News`;
 //		}
-//
 //		return `${title} - by ${author} on Hacker News`;
 //	}
 func (h *HackerNewsExtractor) createDescription() string {
@@ -622,15 +635,9 @@ func (h *HackerNewsExtractor) createDescription() string {
 //
 //	private getPostDate(): string {
 //		if (!this.mainPost) return '';
-//
 //		const timeElement = this.mainPost.querySelector('.age');
 //		const timestamp = timeElement?.getAttribute('title') || '';
-//
-//		if (timestamp) {
-//			return timestamp.split('T')[0];
-//		}
-//
-//		return '';
+//		return timestamp.split('T')[0] || '';
 //	}
 func (h *HackerNewsExtractor) getPostDate() string {
 	if h.mainPost.Length() == 0 {

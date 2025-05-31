@@ -2,6 +2,7 @@ package extractors
 
 import (
 	"fmt"
+	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
@@ -10,7 +11,24 @@ import (
 )
 
 // GrokExtractor handles Grok (X.AI) conversation content extraction
-// Corresponding to TypeScript class GrokExtractor extends ConversationExtractor
+// TypeScript original code:
+// import { ConversationExtractor } from './_conversation';
+// import { ConversationMessage, ConversationMetadata, Footnote } from '../types/extractors';
+//
+//	export class GrokExtractor extends ConversationExtractor {
+//		// Note: This selector relies heavily on CSS utility classes and may break if Grok's UI changes.
+//		private messageContainerSelector = '.relative.group.flex.flex-col.justify-center.w-full';
+//		private messageBubbles: NodeListOf<Element> | null;
+//		private footnotes: Footnote[];
+//		private footnoteCounter: number;
+//
+//		constructor(document: Document, url: string) {
+//			super(document, url);
+//			this.messageBubbles = document.querySelectorAll(this.messageContainerSelector);
+//			this.footnotes = [];
+//			this.footnoteCounter = 0;
+//		}
+//	}
 type GrokExtractor struct {
 	*ConversationExtractorBase
 	messageContainerSelector string
@@ -24,7 +42,6 @@ type GrokExtractor struct {
 //
 //	constructor(document: Document, url: string) {
 //		super(document, url);
-//
 //		// Note: This selector relies heavily on CSS utility classes and may break if Grok's UI changes.
 //		this.messageContainerSelector = '.relative.group.flex.flex-col.justify-center.w-full';
 //		this.messageBubbles = document.querySelectorAll(this.messageContainerSelector);
@@ -34,11 +51,41 @@ type GrokExtractor struct {
 func NewGrokExtractor(document *goquery.Document, urlStr string, schemaOrgData interface{}) *GrokExtractor {
 	// Note: This selector relies heavily on CSS utility classes and may break if Grok's UI changes.
 	messageContainerSelector := ".relative.group.flex.flex-col.justify-center.w-full"
+	messageBubbles := document.Find(messageContainerSelector)
+
+	// Fallback selectors if primary ones don't work
+	if messageBubbles.Length() == 0 {
+		slog.Debug("Grok extractor: trying fallback selectors")
+
+		fallbackSelectors := []string{
+			"div[data-testid*='message']",
+			".message",
+			"div[class*='message']",
+			"div[class*='chat']",
+			"div[role='article']",
+			"article",
+			"div[class*='conversation']",
+			"div[class*='bubble']",
+		}
+
+		for _, selector := range fallbackSelectors {
+			messageBubbles = document.Find(selector)
+			if messageBubbles.Length() > 0 {
+				slog.Debug("Grok extractor: found bubbles with fallback", "selector", selector, "count", messageBubbles.Length())
+				break
+			}
+		}
+	}
+
+	slog.Debug("Grok extractor initialized",
+		"messageBubblesFound", messageBubbles.Length(),
+		"url", urlStr,
+		"selector", messageContainerSelector)
 
 	return &GrokExtractor{
 		ConversationExtractorBase: NewConversationExtractorBase(document, urlStr, schemaOrgData),
 		messageContainerSelector:  messageContainerSelector,
-		messageBubbles:            document.Find(messageContainerSelector),
+		messageBubbles:            messageBubbles,
 		footnotes:                 make([]Footnote, 0),
 		footnoteCounter:           0,
 	}
@@ -48,10 +95,12 @@ func NewGrokExtractor(document *goquery.Document, urlStr string, schemaOrgData i
 // TypeScript original code:
 //
 //	canExtract(): boolean {
-//		return this.messageBubbles && this.messageBubbles.length > 0;
+//		return !!this.messageBubbles && this.messageBubbles.length > 0;
 //	}
 func (g *GrokExtractor) CanExtract() bool {
-	return g.messageBubbles.Length() > 0
+	canExtract := g.messageBubbles.Length() > 0
+	slog.Debug("Grok extractor can extract check", "canExtract", canExtract, "messageBubblesCount", g.messageBubbles.Length())
+	return canExtract
 }
 
 // GetName returns the name of the extractor
@@ -66,6 +115,7 @@ func (g *GrokExtractor) GetName() string {
 //		return this.extractWithDefuddle(this);
 //	}
 func (g *GrokExtractor) Extract() *ExtractorResult {
+	slog.Debug("Grok extractor starting extraction", "url", g.url)
 	return g.ExtractWithDefuddle(g)
 }
 
@@ -77,38 +127,38 @@ func (g *GrokExtractor) Extract() *ExtractorResult {
 //		this.footnotes = [];
 //		this.footnoteCounter = 0;
 //
+//		if (!this.messageBubbles || this.messageBubbles.length === 0) return messages;
+//
 //		this.messageBubbles.forEach((container) => {
 //			// Note: Relies on layout classes 'items-end' and 'items-start' which might change.
 //			const isUserMessage = container.classList.contains('items-end');
 //			const isGrokMessage = container.classList.contains('items-start');
 //
-//			if (!isUserMessage && !isGrokMessage) {
-//				return; // Skip elements that aren't clearly user or Grok messages
-//			}
+//			if (!isUserMessage && !isGrokMessage) return; // Skip elements that aren't clearly user or Grok messages
 //
 //			const messageBubble = container.querySelector('.message-bubble');
-//			if (!messageBubble) {
-//				return; // Skip if the core message bubble isn't found
-//			}
+//			if (!messageBubble) return; // Skip if the core message bubble isn't found
 //
-//			let content: string;
-//			let role: string;
-//			let author: string;
+//			let content: string = '';
+//			let role: string = '';
+//			let author: string = '';
 //
 //			if (isUserMessage) {
 //				// Assume user message bubble's textContent is the desired content.
+//				// This is simpler and potentially less brittle than selecting specific spans.
 //				content = messageBubble.textContent || '';
 //				role = 'user';
-//				author = 'You';
+//				author = 'You'; // Or potentially extract from an attribute if available later
 //			} else if (isGrokMessage) {
 //				role = 'assistant';
-//				author = 'Grok';
+//				author = 'Grok'; // Or potentially extract from an attribute if available later
 //
 //				// Clone the bubble to modify it without affecting the original page
 //				const clonedBubble = messageBubble.cloneNode(true) as Element;
 //
 //				// Remove known non-content elements like the DeepSearch artifact
-//				clonedBubble.querySelectorAll('.relative.border.border-border-l1.bg-surface-base').forEach(el => el.remove());
+//				clonedBubble.querySelector('.relative.border.border-border-l1.bg-surface-base')?.remove();
+//				// Add selectors here for any other known elements to remove (e.g., buttons, toolbars within the bubble)
 //
 //				content = clonedBubble.innerHTML;
 //
@@ -116,11 +166,13 @@ func (g *GrokExtractor) Extract() *ExtractorResult {
 //				content = this.processFootnotes(content);
 //			}
 //
-//			if (content && content.trim()) {
+//			if (content.trim()) {
 //				messages.push({
-//					author,
+//					author: author,
 //					content: content.trim(),
-//					metadata: { role }
+//					metadata: {
+//						role: role
+//					}
 //				});
 //			}
 //		});
@@ -132,17 +184,24 @@ func (g *GrokExtractor) ExtractMessages() []ConversationMessage {
 	g.footnotes = make([]Footnote, 0)
 	g.footnoteCounter = 0
 
+	if g.messageBubbles.Length() == 0 {
+		slog.Debug("No message bubbles found for Grok extraction")
+		return messages
+	}
+
 	g.messageBubbles.Each(func(i int, container *goquery.Selection) {
 		// Note: Relies on layout classes 'items-end' and 'items-start' which might change.
 		isUserMessage := container.HasClass("items-end")
 		isGrokMessage := container.HasClass("items-start")
 
 		if !isUserMessage && !isGrokMessage {
+			slog.Debug("Grok extractor: skipping non-message element", "index", i)
 			return // Skip elements that aren't clearly user or Grok messages
 		}
 
 		messageBubble := container.Find(".message-bubble").First()
 		if messageBubble.Length() == 0 {
+			slog.Debug("Grok extractor: no message bubble found", "index", i, "isUserMessage", isUserMessage, "isGrokMessage", isGrokMessage)
 			return // Skip if the core message bubble isn't found
 		}
 
@@ -164,6 +223,7 @@ func (g *GrokExtractor) ExtractMessages() []ConversationMessage {
 			clonedBubbleHTML, _ := messageBubble.Html()
 			clonedDoc, err := goquery.NewDocumentFromReader(strings.NewReader(clonedBubbleHTML))
 			if err != nil {
+				slog.Warn("Grok extractor: failed to parse message bubble HTML", "error", err, "index", i)
 				return
 			}
 
@@ -186,9 +246,13 @@ func (g *GrokExtractor) ExtractMessages() []ConversationMessage {
 					"role": role,
 				},
 			})
+			slog.Debug("Grok extractor: extracted message", "index", i, "author", author, "role", role, "contentLength", len(content))
+		} else {
+			slog.Debug("Grok extractor: empty content found", "index", i, "author", author, "role", role)
 		}
 	})
 
+	slog.Debug("Grok messages extracted", "messageCount", len(messages), "footnoteCount", len(g.footnotes))
 	return messages
 }
 
@@ -207,13 +271,13 @@ func (g *GrokExtractor) GetFootnotes() []Footnote {
 //
 //	protected getMetadata(): ConversationMetadata {
 //		const title = this.getTitle();
-//		const messageCount = this.messageBubbles.length;
+//		const messageCount = this.messageBubbles?.length || 0;
 //
 //		return {
 //			title,
 //			site: 'Grok',
 //			url: this.url,
-//			messageCount, // Use estimated count
+//			messageCount: messageCount, // Use estimated count
 //			description: `Grok conversation with ${messageCount} messages`
 //		};
 //	}
@@ -249,7 +313,7 @@ func (g *GrokExtractor) GetMetadata() ConversationMetadata {
 //			if (messageBubble) {
 //				const text = messageBubble.textContent?.trim() || '';
 //				// Truncate to first 50 characters if longer
-//				return text.length > 50 ? text.substring(0, 50) + '...' : text;
+//				return text.length > 50 ? text.slice(0, 50) + '...' : text;
 //			}
 //		}
 //
@@ -261,7 +325,10 @@ func (g *GrokExtractor) getTitle() string {
 	if pageTitle != "" && pageTitle != "Grok" && !strings.HasPrefix(pageTitle, "Grok by ") {
 		// Remove ' - Grok' suffix if present
 		re := regexp.MustCompile(`\s-\s*Grok$`)
-		return strings.TrimSpace(re.ReplaceAllString(pageTitle, ""))
+		title := strings.TrimSpace(re.ReplaceAllString(pageTitle, ""))
+		if title != "" {
+			return title
+		}
 	}
 
 	// Fallback: Find the first user message bubble and use its text content
@@ -275,7 +342,9 @@ func (g *GrokExtractor) getTitle() string {
 			if len(text) > 50 {
 				return text[:50] + "..."
 			}
-			return text
+			if text != "" {
+				return text
+			}
 		}
 	}
 
@@ -287,49 +356,50 @@ func (g *GrokExtractor) getTitle() string {
 //
 //	private processFootnotes(content: string): string {
 //		// Regex to find <a> tags, capture href and link text
-//		const linkPattern = /<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>(.*?)<\/a>/g;
+//		const linkPattern = /<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>(.*?)<\/a>/gi; // Use 'g' and 'i' flags
 //
 //		return content.replace(linkPattern, (match, url, linkText) => {
-//			// Skip processing for internal anchor links, empty URLs, or non-http(s) protocols
-//			if (!url || url.startsWith('#')) {
-//				return match;
-//			}
-//
-//			if (!/^https?:\/\//.test(url)) {
+//			 // Skip processing for internal anchor links, empty URLs, or non-http(s) protocols
+//			if (!url || url.startsWith('#') || !url.match(/^https?:\/\//i)) {
 //				return match;
 //			}
 //
 //			// Check if this URL already exists in our footnotes
-//			let footnoteIndex = this.footnotes.findIndex(fn => fn.url === url);
+//			let footnote = this.footnotes.find(fn => fn.url === url);
+//			let footnoteIndex: number;
 //
-//			if (footnoteIndex === -1) {
+//			if (!footnote) {
 //				// Create a new footnote if URL doesn't exist
 //				this.footnoteCounter++;
-//				footnoteIndex = this.footnoteCounter - 1;
+//				footnoteIndex = this.footnoteCounter;
 //
 //				let domainText = url; // Default to full URL if parsing fails
 //				try {
 //					const domain = new URL(url).hostname.replace(/^www\./, '');
 //					domainText = `<a href="${url}" target="_blank" rel="noopener noreferrer">${domain}</a>`;
 //				} catch (e) {
+//					// Keep domainText as the original URL if parsing fails
 //					domainText = `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+//					console.warn(`GrokExtractor: Could not parse URL for footnote: ${url}`);
 //				}
 //
 //				this.footnotes.push({
 //					url,
 //					text: domainText // Store the link HTML directly
 //				});
+//			} else {
+//				// Find the 1-based index of the existing footnote
+//				footnoteIndex = this.footnotes.findIndex(fn => fn.url === url) + 1;
 //			}
 //
-//			const footnoteNumber = footnoteIndex + 1;
-//
 //			// Return the original link text wrapped with a footnote reference
-//			return `${linkText}<sup id="fnref:${footnoteNumber}" class="footnote-ref"><a href="#fn:${footnoteNumber}" class="footnote-link">${footnoteNumber}</a></sup>`;
+//			// Ensure the link text itself is not clickable again if it was part of the original match
+//			return `${linkText}<sup id="fnref:${footnoteIndex}" class="footnote-ref"><a href="#fn:${footnoteIndex}" class="footnote-link">${footnoteIndex}</a></sup>`;
 //		});
 //	}
 func (g *GrokExtractor) processFootnotes(content string) string {
 	// Regex to find <a> tags, capture href and link text
-	linkPattern := regexp.MustCompile(`<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>(.*?)</a>`)
+	linkPattern := regexp.MustCompile(`(?i)<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>(.*?)</a>`)
 
 	return linkPattern.ReplaceAllStringFunc(content, func(match string) string {
 		matches := linkPattern.FindStringSubmatch(match)
@@ -345,7 +415,7 @@ func (g *GrokExtractor) processFootnotes(content string) string {
 			return match
 		}
 
-		httpPattern := regexp.MustCompile(`^https?://`)
+		httpPattern := regexp.MustCompile(`(?i)^https?://`)
 		if !httpPattern.MatchString(urlStr) {
 			return match
 		}
@@ -374,6 +444,7 @@ func (g *GrokExtractor) processFootnotes(content string) string {
 			} else {
 				// Use full URL if parsing fails
 				domainText = fmt.Sprintf(`<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>`, urlStr, urlStr)
+				slog.Warn("GrokExtractor: Could not parse URL for footnote", "url", urlStr, "error", err)
 			}
 
 			g.footnotes = append(g.footnotes, Footnote{

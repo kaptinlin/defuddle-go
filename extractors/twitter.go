@@ -9,7 +9,47 @@ import (
 )
 
 // TwitterExtractor handles Twitter/X content extraction
-// Corresponding to TypeScript class TwitterExtractor extends BaseExtractor
+// TypeScript original code:
+// import { BaseExtractor } from './_base';
+// import { ExtractorResult } from '../types/extractors';
+//
+//	export class TwitterExtractor extends BaseExtractor {
+//		private mainTweet: Element | null = null;
+//		private threadTweets: Element[] = [];
+//
+//		constructor(document: Document, url: string) {
+//			super(document, url);
+//
+//			// Get all tweets from the timeline
+//			const timeline = document.querySelector('[aria-label="Timeline: Conversation"]');
+//			if (!timeline) {
+//				// Try to find a single tweet if not in timeline view
+//				const singleTweet = document.querySelector('article[data-testid="tweet"]');
+//				if (singleTweet) {
+//					this.mainTweet = singleTweet;
+//				}
+//				return;
+//			}
+//
+//			// Get all tweets before any section with "Discover more" or similar headings
+//			const allTweets = Array.from(timeline.querySelectorAll('article[data-testid="tweet"]'));
+//			const firstSection = timeline.querySelector('section, h2')?.parentElement;
+//
+//			if (firstSection) {
+//				// Filter out tweets that appear after the first section
+//				allTweets.forEach((tweet, index) => {
+//					if (firstSection.compareDocumentPosition(tweet) & Node.DOCUMENT_POSITION_FOLLOWING) {
+//						allTweets.splice(index);
+//						return false;
+//					}
+//				});
+//			}
+//
+//			// Set main tweet and thread tweets
+//			this.mainTweet = allTweets[0] || null;
+//			this.threadTweets = allTweets.slice(1);
+//		}
+//	}
 type TwitterExtractor struct {
 	*ExtractorBase
 	mainTweet    *goquery.Selection
@@ -56,22 +96,54 @@ func NewTwitterExtractor(document *goquery.Document, url string, schemaOrgData i
 		threadTweets:  make([]*goquery.Selection, 0),
 	}
 
-	// Get all tweets from the timeline
+	// Primary method: Get all tweets from the timeline
 	timeline := document.Find(`[aria-label="Timeline: Conversation"]`).First()
 	if timeline.Length() == 0 {
-		// Try to find a single tweet if not in timeline view
-		singleTweet := document.Find(`article[data-testid="tweet"]`).First()
-		if singleTweet.Length() > 0 {
-			extractor.mainTweet = singleTweet
+		// Fallback: Try alternative timeline selectors
+		timelineSelectors := []string{
+			`[aria-label*="timeline"]`,
+			`[aria-label*="Timeline"]`,
+			`main[role="main"]`,
+			`section[role="region"]`,
 		}
-		return extractor
+
+		for _, selector := range timelineSelectors {
+			timeline = document.Find(selector).First()
+			if timeline.Length() > 0 {
+				break
+			}
+		}
 	}
 
-	// Get all tweets before any section with "Discover more" or similar headings
 	var allTweets []*goquery.Selection
-	timeline.Find(`article[data-testid="tweet"]`).Each(func(i int, s *goquery.Selection) {
-		allTweets = append(allTweets, s)
-	})
+
+	if timeline.Length() > 0 {
+		// Try to find tweets within the timeline
+		timeline.Find(`article[data-testid="tweet"]`).Each(func(i int, s *goquery.Selection) {
+			allTweets = append(allTweets, s)
+		})
+	}
+
+	// Fallback: Try to find tweets anywhere in the document if timeline method fails
+	if len(allTweets) == 0 {
+		// Try alternative tweet selectors
+		tweetSelectors := []string{
+			`article[data-testid="tweet"]`,
+			`[data-testid="tweet"]`,
+			`.tweet`,
+			`article[role="article"]`,
+			`div[data-tweet-id]`,
+		}
+
+		for _, selector := range tweetSelectors {
+			document.Find(selector).Each(func(i int, s *goquery.Selection) {
+				allTweets = append(allTweets, s)
+			})
+			if len(allTweets) > 0 {
+				break
+			}
+		}
+	}
 
 	// Set main tweet and thread tweets
 	if len(allTweets) > 0 {

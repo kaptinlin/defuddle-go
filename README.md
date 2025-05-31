@@ -75,6 +75,15 @@ defuddle parse https://example.com/article --property description
 
 # Save output to file
 defuddle parse https://example.com/article --markdown --output article.md
+
+# Add custom headers
+defuddle parse https://example.com/article --header "Authorization: Bearer token123"
+
+# Use proxy for requests
+defuddle parse https://example.com/article --proxy http://localhost:8080
+
+# Use custom timeout and user agent
+defuddle parse https://example.com/article --timeout 60s --user-agent "MyBot/1.0"
 ```
 
 ### CLI Options
@@ -87,6 +96,10 @@ defuddle parse https://example.com/article --markdown --output article.md
 | `--json` | `-j` | Output as JSON with metadata and content |
 | `--property` | `-p` | Extract a specific property |
 | `--debug` | | Enable debug mode |
+| `--proxy` | | Proxy URL (e.g., http://localhost:8080, socks5://localhost:1080) |
+| `--user-agent` | | Custom user agent string |
+| `--timeout` | | Request timeout (default: 30s) |
+| `--header` | `-H` | Custom headers in format 'Key: Value' (can be used multiple times) |
 | `--help` | `-h` | Show help message |
 | `--version` | `-v` | Show version information |
 
@@ -104,6 +117,12 @@ defuddle parse https://blog.example.com/post --markdown --output post.md
 
 # Debug parsing process
 defuddle parse https://example.com/article --debug
+
+# Access site behind authentication
+defuddle parse https://secured.example.com/article --header "Authorization: Bearer your-token"
+
+# Handle slow connections
+defuddle parse https://slow-site.example.com/article --timeout 120s
 ```
 
 ## Library Usage

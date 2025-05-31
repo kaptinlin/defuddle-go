@@ -141,7 +141,12 @@ func (r *Registry) matchesPatterns(urlStr, domain string, patterns []interface{}
 	for _, pattern := range patterns {
 		switch p := pattern.(type) {
 		case string:
-			// Simple domain matching
+			// Simple domain matching - check if domain ends with the pattern
+			// This handles cases like "reddit.com" matching "www.reddit.com"
+			if domain == p || strings.HasSuffix(domain, "."+p) {
+				return true
+			}
+			// Also check if the pattern is contained in the domain for backwards compatibility
 			if strings.Contains(domain, p) {
 				return true
 			}
@@ -306,7 +311,10 @@ func (r *Registry) initializeBuiltins() {
 	//   });
 	r.Register(ExtractorMapping{
 		Patterns: []interface{}{
-			regexp.MustCompile(`^https?://grok\.com/(chat|share)(/.*)?$`),
+			"grok.x.ai",
+			"x.ai",
+			regexp.MustCompile(`^https?://grok\.x\.ai.*`),
+			regexp.MustCompile(`^https?://x\.ai.*`),
 		},
 		Extractor: func(doc *goquery.Document, url string, schemaOrgData interface{}) BaseExtractor {
 			return NewGrokExtractor(doc, url, schemaOrgData)
@@ -321,7 +329,8 @@ func (r *Registry) initializeBuiltins() {
 	//   });
 	r.Register(ExtractorMapping{
 		Patterns: []interface{}{
-			regexp.MustCompile(`^https?://gemini\.google\.com/app/.*`),
+			"gemini.google.com",
+			regexp.MustCompile(`^https?://gemini\.google\.com/.*`),
 		},
 		Extractor: func(doc *goquery.Document, url string, schemaOrgData interface{}) BaseExtractor {
 			return NewGeminiExtractor(doc, url, schemaOrgData)

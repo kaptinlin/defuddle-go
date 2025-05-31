@@ -2,7 +2,7 @@ package extractors
 
 import (
 	"fmt"
-	"net/url"
+	"log/slog"
 	"regexp"
 	"strings"
 
@@ -183,9 +183,12 @@ type ChatGPTExtractor struct {
 //		this.footnoteCounter = 0;
 //	}
 func NewChatGPTExtractor(document *goquery.Document, urlStr string, schemaOrgData interface{}) *ChatGPTExtractor {
+	articles := document.Find(`article[data-testid^="conversation-turn-"]`)
+	slog.Debug("ChatGPT extractor initialized", "articlesFound", articles.Length(), "url", urlStr)
+
 	return &ChatGPTExtractor{
 		ConversationExtractorBase: NewConversationExtractorBase(document, urlStr, schemaOrgData),
-		articles:                  document.Find(`article[data-testid^="conversation-turn-"]`),
+		articles:                  articles,
 		footnotes:                 make([]Footnote, 0),
 		footnoteCounter:           0,
 	}
@@ -198,7 +201,9 @@ func NewChatGPTExtractor(document *goquery.Document, urlStr string, schemaOrgDat
 //		return !!this.articles && this.articles.length > 0;
 //	}
 func (c *ChatGPTExtractor) CanExtract() bool {
-	return c.articles.Length() > 0
+	canExtract := c.articles.Length() > 0
+	slog.Debug("ChatGPT extractor can extract check", "canExtract", canExtract, "articlesCount", c.articles.Length())
+	return canExtract
 }
 
 // GetName returns the name of the extractor
@@ -217,11 +222,12 @@ func (c *ChatGPTExtractor) GetName() string {
 //		// ... rest of extract method
 //	}
 func (c *ChatGPTExtractor) Extract() *ExtractorResult {
+	slog.Debug("ChatGPT extractor starting extraction", "url", c.url)
 	return c.ExtractWithDefuddle(c)
 }
 
 // ExtractMessages extracts conversation messages
-// TypeScript original code:
+// TypeScript original code (improved version):
 //
 //	protected extractMessages(): ConversationMessage[] {
 //		const messages: ConversationMessage[] = [];
@@ -231,36 +237,42 @@ func (c *ChatGPTExtractor) Extract() *ExtractorResult {
 //		if (!this.articles) return messages;
 //
 //		this.articles.forEach((article) => {
-//			const roleAttr = article.getAttribute('data-message-author-role');
-//			if (!roleAttr) return;
+//			// Get the localized author text from the sr-only heading and clean it
+//			const authorElement = article.querySelector('h5.sr-only, h6.sr-only');
+//			const authorText = authorElement?.textContent
+//				?.trim()
+//				?.replace(/:\s*$/, '') // Remove colon and any trailing whitespace
+//				|| '';
 //
-//			let content: string;
-//			let role: string;
+//			let currentAuthorRole = '';
 //
-//			if (roleAttr === 'user') {
-//				const textMessage = article.querySelector('.text-message');
-//				content = textMessage ? textMessage.innerHTML : '';
-//				role = 'you';
-//			} else if (roleAttr === 'assistant') {
-//				const messageContent = article.querySelector('.message-content');
-//				content = messageContent ? messageContent.innerHTML : '';
-//				role = 'assistant';
-//
-//				// Process footnotes for assistant messages
-//				content = this.processFootnotes(content);
-//			} else {
-//				return;
+//			const authorRole = article.getAttribute('data-message-author-role');
+//			if (authorRole) {
+//				currentAuthorRole = authorRole;
 //			}
 //
-//			if (content) {
-//				messages.push({
-//					author: role === 'you' ? 'You' : 'ChatGPT',
-//					content: content.trim(),
-//					metadata: {
-//						role: role
-//					}
-//				});
-//			}
+//			let messageContent = article.innerHTML || '';
+//			messageContent = messageContent.replace(/\u200B/g, '');
+//
+//			// Remove specific elements from the message content
+//			const tempDiv = document.createElement('div');
+//			tempDiv.innerHTML = messageContent;
+//			tempDiv.querySelectorAll('h5.sr-only, h6.sr-only, span[data-state="closed"]').forEach(el => el.remove());
+//			messageContent = tempDiv.innerHTML;
+//
+//			// Process inline references
+//			messageContent = this.processFootnotes(messageContent);
+//
+//			// Clean up any stray empty paragraph tags
+//			messageContent = messageContent.replace(/<p[^>]*>\s*<\/p>/g, '');
+//
+//			messages.push({
+//				author: authorText,
+//				content: messageContent.trim(),
+//				metadata: {
+//					role: currentAuthorRole || 'unknown'
+//				}
+//			});
 //		});
 //
 //		return messages;
@@ -270,54 +282,87 @@ func (c *ChatGPTExtractor) ExtractMessages() []ConversationMessage {
 	c.footnotes = make([]Footnote, 0)
 	c.footnoteCounter = 0
 
+	if c.articles.Length() == 0 {
+		slog.Debug("No articles found for ChatGPT extraction")
+		return messages
+	}
+
 	c.articles.Each(func(i int, article *goquery.Selection) {
-		roleAttr, exists := article.Attr("data-message-author-role")
-		if !exists {
+		// Get the localized author text from the sr-only heading and clean it
+		authorElement := article.Find("h5.sr-only, h6.sr-only").First()
+		authorText := strings.TrimSpace(authorElement.Text())
+
+		// Remove colon and any trailing whitespace
+		authorText = strings.TrimSuffix(strings.TrimSpace(authorText), ":")
+
+		// Get author role from data attribute
+		currentAuthorRole, _ := article.Attr("data-message-author-role")
+		if currentAuthorRole == "" {
+			currentAuthorRole = "unknown"
+		}
+
+		// Get message content
+		messageContent, _ := article.Html()
+		if messageContent == "" {
+			slog.Debug("Empty message content found", "index", i)
 			return
 		}
 
-		var content string
-		var role string
+		// Remove zero-width space characters
+		messageContent = strings.ReplaceAll(messageContent, "\u200B", "")
 
-		switch roleAttr {
-		case "user":
-			textMessage := article.Find(".text-message").First()
-			if textMessage.Length() > 0 {
-				content, _ = textMessage.Html()
-			}
-			role = "you"
-		case "assistant":
-			messageContent := article.Find(".message-content").First()
-			if messageContent.Length() > 0 {
-				content, _ = messageContent.Html()
-			}
-			role = "assistant"
+		// Remove specific elements from the message content
+		messageContent = c.cleanMessageContent(messageContent)
 
-			// Process footnotes for assistant messages
-			content = c.processFootnotes(content)
-		default:
-			return
-		}
+		// Process inline references using regex to find the containers
+		messageContent = c.processFootnotes(messageContent)
 
-		if content != "" {
-			var author string
-			if role == "you" {
-				author = "You"
-			} else {
-				author = "ChatGPT"
-			}
+		// Clean up any stray empty paragraph tags
+		emptyParagraphRegex := regexp.MustCompile(`<p[^>]*>\s*</p>`)
+		messageContent = emptyParagraphRegex.ReplaceAllString(messageContent, "")
 
+		if strings.TrimSpace(messageContent) != "" {
 			messages = append(messages, ConversationMessage{
-				Author:  author,
-				Content: strings.TrimSpace(content),
+				Author:  authorText,
+				Content: strings.TrimSpace(messageContent),
 				Metadata: map[string]interface{}{
-					"role": role,
+					"role": currentAuthorRole,
 				},
 			})
 		}
 	})
 
+	slog.Debug("ChatGPT messages extracted", "messageCount", len(messages), "footnoteCount", len(c.footnotes))
 	return messages
+}
+
+// cleanMessageContent removes specific elements from message content
+// TypeScript original code:
+//
+//	// Remove specific elements from the message content
+//	const tempDiv = document.createElement('div');
+//	tempDiv.innerHTML = messageContent;
+//	tempDiv.querySelectorAll('h5.sr-only, h6.sr-only, span[data-state="closed"]').forEach(el => el.remove());
+//	messageContent = tempDiv.innerHTML;
+func (c *ChatGPTExtractor) cleanMessageContent(messageContent string) string {
+	// Create a temporary document to manipulate the HTML
+	tempDoc, err := goquery.NewDocumentFromReader(strings.NewReader(messageContent))
+	if err != nil {
+		slog.Warn("Failed to parse message content as HTML", "error", err)
+		return messageContent
+	}
+
+	// Remove specific elements
+	tempDoc.Find(`h5.sr-only, h6.sr-only, span[data-state="closed"]`).Remove()
+
+	// Get the cleaned HTML
+	cleanedContent, err := tempDoc.Html()
+	if err != nil {
+		slog.Warn("Failed to get cleaned HTML content", "error", err)
+		return messageContent
+	}
+
+	return cleanedContent
 }
 
 // GetFootnotes returns the conversation footnotes
@@ -362,28 +407,34 @@ func (c *ChatGPTExtractor) GetMetadata() ConversationMetadata {
 // TypeScript original code:
 //
 //	private getTitle(): string {
+//		// Try to get the page title first
 //		const pageTitle = this.document.title?.trim();
 //		if (pageTitle && pageTitle !== 'ChatGPT') {
 //			return pageTitle;
 //		}
 //
-//		const firstUserMessage = this.articles?.item(0)?.querySelector('.text-message');
-//		if (firstUserMessage) {
-//			const text = firstUserMessage.textContent || '';
+//		// Fall back to first user message
+//		const firstUserTurn = this.articles?.item(0)?.querySelector('.text-message');
+//		if (firstUserTurn) {
+//			const text = firstUserTurn.textContent || '';
+//			// Truncate to first 50 characters if longer
 //			return text.length > 50 ? text.slice(0, 50) + '...' : text;
 //		}
 //
 //		return 'ChatGPT Conversation';
 //	}
 func (c *ChatGPTExtractor) getTitle() string {
+	// Try to get the page title first
 	pageTitle := strings.TrimSpace(c.document.Find("title").Text())
 	if pageTitle != "" && pageTitle != "ChatGPT" {
 		return pageTitle
 	}
 
-	firstUserMessage := c.articles.First().Find(".text-message")
-	if firstUserMessage.Length() > 0 {
-		text := firstUserMessage.Text()
+	// Fall back to first user message
+	firstUserTurn := c.articles.First().Find(".text-message").First()
+	if firstUserTurn.Length() > 0 {
+		text := firstUserTurn.Text()
+		// Truncate to first 50 characters if longer
 		if len(text) > 50 {
 			return text[:50] + "..."
 		}
@@ -393,110 +444,58 @@ func (c *ChatGPTExtractor) getTitle() string {
 	return "ChatGPT Conversation"
 }
 
-// processFootnotes processes citation links and converts them to footnotes
+// processFootnotes processes footnotes in the content
 // TypeScript original code:
 //
 //	private processFootnotes(content: string): string {
-//		const citationPattern = /(&ZeroWidthSpace;)?<span[^>]*><a\s+href="([^"]*)"[^>]*>([^<]*)</a></span>/g;
+//	  // Find all citation links and replace them with footnotes
+//	  const citationPattern = /(&ZeroWidthSpace;)?(<span[^>]*?>\s*<a(?=[^>]*?href="([^"]+)")(?=[^>]*?target="_blank")(?=[^>]*?rel="noopener")[^>]*?>[\s\S]*?<\/a>\s*<\/span>)/g;
+//	  let processedContent = content;
+//	  let match;
 //
-//		return content.replace(citationPattern, (match, zws, url, linkText) => {
-//			if (!url || url.startsWith('#')) {
-//				return match;
-//			}
+//	  while ((match = citationPattern.exec(content)) !== null) {
+//	    const fullMatch = match[0];
+//	    const url = match[3];
 //
-//			let footnote = this.footnotes.find(fn => fn.url === url);
-//			let footnoteIndex: number;
+//	    // Add to footnotes
+//	    this.footnoteCounter++;
+//	    this.footnotes.push({
+//	      number: this.footnoteCounter,
+//	      url: url,
+//	      text: `Source ${this.footnoteCounter}`
+//	    });
 //
-//			if (!footnote) {
-//				this.footnoteCounter++;
-//				footnoteIndex = this.footnoteCounter;
+//	    // Replace with footnote reference
+//	    processedContent = processedContent.replace(fullMatch, `<sup><a href="#footnote-${this.footnoteCounter}">[${this.footnoteCounter}]</a></sup>`);
+//	  }
 //
-//				let decodedText = this.decodeFragmentText(linkText);
-//				if (!decodedText || decodedText.trim() === '') {
-//					try {
-//						const domain = new URL(url).hostname.replace(/^www\./, '');
-//						decodedText = domain;
-//					} catch (e) {
-//						decodedText = 'Link';
-//					}
-//				}
-//
-//				this.footnotes.push({
-//					url,
-//					text: decodedText
-//				});
-//			} else {
-//				footnoteIndex = this.footnotes.findIndex(fn => fn.url === url) + 1;
-//			}
-//
-//			return `<sup id="fnref:${footnoteIndex}" class="footnote-ref"><a href="#fn:${footnoteIndex}" class="footnote-link">${footnoteIndex}</a></sup>`;
-//		});
+//	  return processedContent;
 //	}
 func (c *ChatGPTExtractor) processFootnotes(content string) string {
-	citationPattern := regexp.MustCompile(`(&ZeroWidthSpace;)?<span[^>]*><a\s+href="([^"]*)"[^>]*>([^<]*)</a></span>`)
+	// Simplified pattern without Perl lookaheads
+	// Matches: <span...><a href="..." target="_blank" rel="noopener">...</a></span>
+	citationPattern := regexp.MustCompile(`(&ZeroWidthSpace;)?(<span[^>]*?>\s*<a[^>]*?href="([^"]+)"[^>]*?target="_blank"[^>]*?rel="noopener"[^>]*?>[\s\S]*?</a>\s*</span>)`)
 
-	return citationPattern.ReplaceAllStringFunc(content, func(match string) string {
-		matches := citationPattern.FindStringSubmatch(match)
-		if len(matches) < 4 {
-			return match
-		}
+	matches := citationPattern.FindAllStringSubmatch(content, -1)
+	processedContent := content
 
-		urlStr := matches[2]
-		linkText := matches[3]
+	for _, match := range matches {
+		if len(match) >= 4 {
+			fullMatch := match[0]
+			url := match[3]
 
-		if urlStr == "" || strings.HasPrefix(urlStr, "#") {
-			return match
-		}
-
-		var footnoteIndex int
-		found := false
-
-		for idx, footnote := range c.footnotes {
-			if footnote.URL == urlStr {
-				footnoteIndex = idx + 1
-				found = true
-				break
-			}
-		}
-
-		if !found {
+			// Add to footnotes
 			c.footnoteCounter++
-			footnoteIndex = c.footnoteCounter
-
-			decodedText := c.decodeFragmentText(linkText)
-			if decodedText == "" || strings.TrimSpace(decodedText) == "" {
-				if parsedURL, err := url.Parse(urlStr); err == nil {
-					domain := strings.TrimPrefix(parsedURL.Hostname(), "www.")
-					decodedText = domain
-				} else {
-					decodedText = "Link"
-				}
-			}
-
 			c.footnotes = append(c.footnotes, Footnote{
-				URL:  urlStr,
-				Text: decodedText,
+				URL:  url,
+				Text: fmt.Sprintf("Source %d", c.footnoteCounter),
 			})
+
+			// Replace with footnote reference
+			replacement := fmt.Sprintf(`<sup><a href="#footnote-%d">[%d]</a></sup>`, c.footnoteCounter, c.footnoteCounter)
+			processedContent = strings.Replace(processedContent, fullMatch, replacement, 1)
 		}
-
-		return fmt.Sprintf(`<sup id="fnref:%d" class="footnote-ref"><a href="#fn:%d" class="footnote-link">%d</a></sup>`, footnoteIndex, footnoteIndex, footnoteIndex)
-	})
-}
-
-// decodeFragmentText decodes URL fragment text
-// TypeScript original code:
-//
-//	private decodeFragmentText(text: string): string {
-//		try {
-//			return decodeURIComponent(text);
-//		} catch (e) {
-//			return text;
-//		}
-//	}
-func (c *ChatGPTExtractor) decodeFragmentText(text string) string {
-	decoded, err := url.QueryUnescape(text)
-	if err != nil {
-		return text
 	}
-	return decoded
+
+	return processedContent
 }

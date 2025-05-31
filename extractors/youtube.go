@@ -2,6 +2,7 @@ package extractors
 
 import (
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strings"
 
@@ -9,7 +10,48 @@ import (
 )
 
 // YouTubeExtractor handles YouTube content extraction
-// Corresponding to TypeScript class YouTubeExtractor extends BaseExtractor
+// TypeScript original code:
+// import { BaseExtractor } from './_base';
+// import { ExtractorResult } from '../types/extractors';
+//
+//	export class YoutubeExtractor extends BaseExtractor {
+//		private videoElement: HTMLVideoElement | null;
+//		protected override schemaOrgData: any;
+//
+//		constructor(document: Document, url: string, schemaOrgData?: any) {
+//			super(document, url, schemaOrgData);
+//			this.videoElement = document.querySelector('video');
+//			this.schemaOrgData = schemaOrgData;
+//		}
+//
+//		canExtract(): boolean {
+//			return true;
+//		}
+//
+//		extract(): ExtractorResult {
+//			const videoData = this.getVideoData();
+//			const description = videoData.description || '';
+//			const formattedDescription = this.formatDescription(description);
+//			const contentHtml = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${this.getVideoId()}?si=_m0qv33lAuJFoGNh" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe><br>${formattedDescription}`;
+//
+//			return {
+//				content: contentHtml,
+//				contentHtml: contentHtml,
+//				extractedContent: {
+//					videoId: this.getVideoId(),
+//					author: videoData.author || '',
+//				},
+//				variables: {
+//					title: videoData.name || '',
+//					author: videoData.author || '',
+//					site: 'YouTube',
+//					image: Array.isArray(videoData.thumbnailUrl) ? videoData.thumbnailUrl[0] || '' : '',
+//					published: videoData.uploadDate,
+//					description: description.slice(0, 200).trim(),
+//				}
+//			};
+//		}
+//	}
 type YouTubeExtractor struct {
 	*ExtractorBase
 	videoElement *goquery.Selection
@@ -21,6 +63,7 @@ type YouTubeExtractor struct {
 //	constructor(document: Document, url: string, schemaOrgData?: any) {
 //		super(document, url, schemaOrgData);
 //		this.videoElement = document.querySelector('video');
+//		this.schemaOrgData = schemaOrgData;
 //	}
 func NewYouTubeExtractor(document *goquery.Document, url string, schemaOrgData interface{}) *YouTubeExtractor {
 	extractor := &YouTubeExtractor{
@@ -29,6 +72,11 @@ func NewYouTubeExtractor(document *goquery.Document, url string, schemaOrgData i
 
 	// Find video element
 	extractor.videoElement = document.Find("video").First()
+
+	slog.Debug("YouTube extractor initialized",
+		"hasVideoElement", extractor.videoElement.Length() > 0,
+		"url", url,
+		"hasSchemaOrgData", schemaOrgData != nil)
 
 	return extractor
 }
@@ -40,7 +88,9 @@ func NewYouTubeExtractor(document *goquery.Document, url string, schemaOrgData i
 //		return true; // YouTube extractor can always extract
 //	}
 func (y *YouTubeExtractor) CanExtract() bool {
-	return true // YouTube extractor can always extract
+	canExtract := true // YouTube extractor can always extract
+	slog.Debug("YouTube extractor can extract check", "canExtract", canExtract)
+	return canExtract
 }
 
 // GetName returns the name of the extractor
@@ -53,30 +103,30 @@ func (y *YouTubeExtractor) GetName() string {
 //
 //	extract(): ExtractorResult {
 //		const videoData = this.getVideoData();
-//		const description = this.getDescription(videoData);
+//		const description = videoData.description || '';
 //		const formattedDescription = this.formatDescription(description);
-//		const videoId = this.getVideoId();
-//
-//		const contentHtml = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}?si=_m0qv33lAuJFoGNh" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe><br>${formattedDescription}`;
+//		const contentHtml = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${this.getVideoId()}?si=_m0qv33lAuJFoGNh" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe><br>${formattedDescription}`;
 //
 //		return {
 //			content: contentHtml,
 //			contentHtml: contentHtml,
 //			extractedContent: {
-//				videoId: videoId,
-//				author: this.getAuthor(videoData)
+//				videoId: this.getVideoId(),
+//				author: videoData.author || '',
 //			},
 //			variables: {
-//				title: this.getTitle(videoData),
-//				author: this.getAuthor(videoData),
+//				title: videoData.name || '',
+//				author: videoData.author || '',
 //				site: 'YouTube',
-//				image: this.getThumbnail(videoData),
-//				published: this.getPublished(videoData),
-//				description: this.truncateDescription(description)
+//				image: Array.isArray(videoData.thumbnailUrl) ? videoData.thumbnailUrl[0] || '' : '',
+//				published: videoData.uploadDate,
+//				description: description.slice(0, 200).trim(),
 //			}
 //		};
 //	}
 func (y *YouTubeExtractor) Extract() *ExtractorResult {
+	slog.Debug("YouTube extractor starting extraction", "url", y.url)
+
 	videoData := y.getVideoData()
 	description := y.getDescription(videoData)
 	formattedDescription := y.formatDescription(description)
@@ -89,20 +139,33 @@ func (y *YouTubeExtractor) Extract() *ExtractorResult {
 		formattedDescription,
 	)
 
+	title := y.getTitle(videoData)
+	author := y.getAuthor(videoData)
+	thumbnail := y.getThumbnail(videoData)
+	published := y.getPublished(videoData)
+	truncatedDescription := y.truncateDescription(description)
+
+	slog.Debug("YouTube extraction completed",
+		"videoId", videoID,
+		"title", title,
+		"author", author,
+		"published", published,
+		"descriptionLength", len(description))
+
 	return &ExtractorResult{
 		Content:     contentHTML,
 		ContentHTML: contentHTML,
 		ExtractedContent: map[string]interface{}{
 			"videoId": videoID,
-			"author":  y.getAuthor(videoData),
+			"author":  author,
 		},
 		Variables: map[string]string{
-			"title":       y.getTitle(videoData),
-			"author":      y.getAuthor(videoData),
+			"title":       title,
+			"author":      author,
 			"site":        "YouTube",
-			"image":       y.getThumbnail(videoData),
-			"published":   y.getPublished(videoData),
-			"description": y.truncateDescription(description),
+			"image":       thumbnail,
+			"published":   published,
+			"description": truncatedDescription,
 		},
 	}
 }
@@ -113,15 +176,15 @@ func (y *YouTubeExtractor) Extract() *ExtractorResult {
 //	private getVideoData(): any {
 //		if (!this.schemaOrgData) return {};
 //
-//		// Handle both single object and array of objects
-//		if (Array.isArray(this.schemaOrgData)) {
-//			return this.schemaOrgData.find(item => item['@type'] === 'VideoObject') || {};
-//		}
+//		const videoData = Array.isArray(this.schemaOrgData)
+//			? this.schemaOrgData.find(item => item['@type'] === 'VideoObject')
+//			: this.schemaOrgData['@type'] === 'VideoObject' ? this.schemaOrgData : null;
 //
-//		return this.schemaOrgData['@type'] === 'VideoObject' ? this.schemaOrgData : {};
+//		return videoData || {};
 //	}
 func (y *YouTubeExtractor) getVideoData() map[string]interface{} {
 	if y.schemaOrgData == nil {
+		slog.Debug("YouTube extractor: no schema.org data available")
 		return make(map[string]interface{})
 	}
 
@@ -132,15 +195,23 @@ func (y *YouTubeExtractor) getVideoData() map[string]interface{} {
 		for _, item := range data {
 			if itemMap, ok := item.(map[string]interface{}); ok {
 				if itemType, exists := itemMap["@type"]; exists && itemType == "VideoObject" {
+					slog.Debug("YouTube extractor: found VideoObject in array", "hasVideoData", true)
 					return itemMap
 				}
 			}
 		}
+		slog.Debug("YouTube extractor: no VideoObject found in schema.org array")
 	case map[string]interface{}:
 		// Check if it's a VideoObject
 		if itemType, exists := data["@type"]; exists && itemType == "VideoObject" {
+			slog.Debug("YouTube extractor: found VideoObject", "hasVideoData", true)
 			return data
 		}
+		if itemType, exists := data["@type"]; exists {
+			slog.Debug("YouTube extractor: schema.org data is not VideoObject", "type", itemType)
+		}
+	default:
+		slog.Debug("YouTube extractor: unexpected schema.org data type", "type", fmt.Sprintf("%T", data))
 	}
 
 	return make(map[string]interface{})
@@ -150,37 +221,31 @@ func (y *YouTubeExtractor) getVideoData() map[string]interface{} {
 // TypeScript original code:
 //
 //	private getVideoId(): string {
-//		const url = new URL(this.url);
-//
-//		// For youtube.com/watch?v=...
-//		if (url.hostname.includes('youtube.com')) {
-//			return url.searchParams.get('v') || '';
-//		}
-//
-//		// For youtu.be/...
-//		if (url.hostname.includes('youtu.be')) {
-//			return url.pathname.slice(1);
-//		}
-//
-//		return '';
+//		const urlParams = new URLSearchParams(new URL(this.url).search);
+//		return urlParams.get('v') || '';
 //	}
 func (y *YouTubeExtractor) getVideoID() string {
 	parsedURL, err := url.Parse(y.url)
 	if err != nil {
+		slog.Warn("YouTube extractor: failed to parse URL", "url", y.url, "error", err)
 		return ""
 	}
 
 	// For youtube.com/watch?v=...
 	if strings.Contains(parsedURL.Host, "youtube.com") {
-		return parsedURL.Query().Get("v")
+		videoID := parsedURL.Query().Get("v")
+		slog.Debug("YouTube extractor: extracted video ID from youtube.com", "videoId", videoID)
+		return videoID
 	}
 
 	// For youtu.be/...
 	if strings.Contains(parsedURL.Host, "youtu.be") {
 		path := strings.TrimPrefix(parsedURL.Path, "/")
+		slog.Debug("YouTube extractor: extracted video ID from youtu.be", "videoId", path)
 		return path
 	}
 
+	slog.Debug("YouTube extractor: no video ID found in URL", "host", parsedURL.Host)
 	return ""
 }
 
@@ -199,7 +264,8 @@ func (y *YouTubeExtractor) getVideoID() string {
 //	}
 func (y *YouTubeExtractor) getTitle(videoData map[string]interface{}) string {
 	if name, exists := videoData["name"]; exists {
-		if nameStr, ok := name.(string); ok {
+		if nameStr, ok := name.(string); ok && nameStr != "" {
+			slog.Debug("YouTube extractor: using title from schema.org", "title", nameStr)
 			return nameStr
 		}
 	}
@@ -208,6 +274,8 @@ func (y *YouTubeExtractor) getTitle(videoData map[string]interface{}) string {
 	title := y.document.Find("title").Text()
 	// Remove " - YouTube" suffix if present
 	title = strings.TrimSuffix(title, " - YouTube")
+
+	slog.Debug("YouTube extractor: using title from document", "title", title)
 	return title
 }
 
@@ -240,7 +308,8 @@ func (y *YouTubeExtractor) getAuthor(videoData map[string]interface{}) string {
 //	}
 func (y *YouTubeExtractor) getDescription(videoData map[string]interface{}) string {
 	if description, exists := videoData["description"]; exists {
-		if descStr, ok := description.(string); ok {
+		if descStr, ok := description.(string); ok && descStr != "" {
+			slog.Debug("YouTube extractor: using description from schema.org", "descriptionLength", len(descStr))
 			return descStr
 		}
 	}
@@ -248,9 +317,12 @@ func (y *YouTubeExtractor) getDescription(videoData map[string]interface{}) stri
 	// Fallback to description element in DOM
 	descElement := y.document.Find("#description").First()
 	if descElement.Length() > 0 {
-		return descElement.Text()
+		description := descElement.Text()
+		slog.Debug("YouTube extractor: using description from DOM", "descriptionLength", len(description))
+		return description
 	}
 
+	slog.Debug("YouTube extractor: no description found")
 	return ""
 }
 
@@ -287,20 +359,27 @@ func (y *YouTubeExtractor) getThumbnail(videoData map[string]interface{}) string
 		case []interface{}:
 			if len(thumb) > 0 {
 				if thumbStr, ok := thumb[0].(string); ok {
+					slog.Debug("YouTube extractor: using thumbnail from schema.org array", "thumbnailUrl", thumbStr)
 					return thumbStr
 				}
 			}
 		case string:
-			return thumb
+			if thumb != "" {
+				slog.Debug("YouTube extractor: using thumbnail from schema.org", "thumbnailUrl", thumb)
+				return thumb
+			}
 		}
 	}
 
 	// Generate thumbnail URL from video ID if not found
 	videoID := y.getVideoID()
 	if videoID != "" {
-		return fmt.Sprintf("https://img.youtube.com/vi/%s/maxresdefault.jpg", videoID)
+		generatedThumbnail := fmt.Sprintf("https://img.youtube.com/vi/%s/maxresdefault.jpg", videoID)
+		slog.Debug("YouTube extractor: generated thumbnail URL", "thumbnailUrl", generatedThumbnail)
+		return generatedThumbnail
 	}
 
+	slog.Debug("YouTube extractor: no thumbnail available")
 	return ""
 }
 
@@ -308,11 +387,7 @@ func (y *YouTubeExtractor) getThumbnail(videoData map[string]interface{}) string
 // TypeScript original code:
 //
 //	private formatDescription(description: string): string {
-//		if (!description) return '';
-//
-//		// Replace newlines with <br> tags
-//		const formatted = description.replace(/\n/g, '<br>');
-//		return `<p>${formatted}</p>`;
+//		return `<p>${description.replace(/\n/g, '<br>')}</p>`;
 //	}
 func (y *YouTubeExtractor) formatDescription(description string) string {
 	if description == "" {

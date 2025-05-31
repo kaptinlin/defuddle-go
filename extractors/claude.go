@@ -2,6 +2,7 @@ package extractors
 
 import (
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 
@@ -120,9 +121,36 @@ type ClaudeExtractor struct {
 //		this.articles = document.querySelectorAll('div[data-testid="user-message"], div[data-testid="assistant-message"], div.font-claude-message');
 //	}
 func NewClaudeExtractor(document *goquery.Document, urlStr string, schemaOrgData interface{}) *ClaudeExtractor {
+	// Primary selectors from TypeScript reference
+	articles := document.Find(`div[data-testid="user-message"], div[data-testid="assistant-message"], div.font-claude-message`)
+
+	// Fallback selectors if primary ones don't work
+	if articles.Length() == 0 {
+		slog.Debug("Claude extractor: trying fallback selectors")
+
+		fallbackSelectors := []string{
+			`div[data-testid*="message"]`,
+			`.message`,
+			`div[class*="message"]`,
+			`div[class*="chat"]`,
+			`div[role="article"]`,
+			`article`,
+		}
+
+		for _, selector := range fallbackSelectors {
+			articles = document.Find(selector)
+			if articles.Length() > 0 {
+				slog.Debug("Claude extractor: found articles with fallback", "selector", selector, "count", articles.Length())
+				break
+			}
+		}
+	}
+
+	slog.Debug("Claude extractor initialized", "articlesFound", articles.Length(), "url", urlStr)
+
 	return &ClaudeExtractor{
 		ConversationExtractorBase: NewConversationExtractorBase(document, urlStr, schemaOrgData),
-		articles:                  document.Find(`div[data-testid="user-message"], div[data-testid="assistant-message"], div.font-claude-message`),
+		articles:                  articles,
 	}
 }
 
@@ -133,7 +161,9 @@ func NewClaudeExtractor(document *goquery.Document, urlStr string, schemaOrgData
 //		return !!this.articles && this.articles.length > 0;
 //	}
 func (c *ClaudeExtractor) CanExtract() bool {
-	return c.articles.Length() > 0
+	canExtract := c.articles.Length() > 0
+	slog.Debug("Claude extractor can extract check", "canExtract", canExtract, "articlesCount", c.articles.Length())
+	return canExtract
 }
 
 // GetName returns the name of the extractor
@@ -148,6 +178,7 @@ func (c *ClaudeExtractor) GetName() string {
 //		return this.extractWithDefuddle(this);
 //	}
 func (c *ClaudeExtractor) Extract() *ExtractorResult {
+	slog.Debug("Claude extractor starting extraction", "url", c.url)
 	return c.ExtractWithDefuddle(c)
 }
 
@@ -198,30 +229,34 @@ func (c *ClaudeExtractor) Extract() *ExtractorResult {
 func (c *ClaudeExtractor) ExtractMessages() []ConversationMessage {
 	var messages []ConversationMessage
 
+	if c.articles.Length() == 0 {
+		slog.Debug("No articles found for Claude extraction")
+		return messages
+	}
+
 	c.articles.Each(func(i int, article *goquery.Selection) {
 		var role string
 		var content string
 
 		// Check if element has data-testid attribute
-		if testid, exists := article.Attr("data-testid"); exists {
-			// Handle user messages
-			if testid == "user-message" {
-				role = "you"
-				content, _ = article.Html()
-			} else {
-				// Skip non-message elements
-				return
-			}
-		} else if article.HasClass("font-claude-message") {
-			// Handle Claude messages
-			role = "assistant"
-			content, _ = article.Html()
-		} else {
-			// Skip unknown elements
+		testid, exists := article.Attr("data-testid")
+		if !exists {
 			return
 		}
 
-		if content != "" {
+		switch testid {
+		case "user-message":
+			role = "you"
+			content, _ = article.Html()
+		case "assistant-message":
+			role = "assistant"
+			content, _ = article.Html()
+		default:
+			slog.Debug("Skipping non-message element", "testid", testid, "index", i)
+			return
+		}
+
+		if strings.TrimSpace(content) != "" {
 			var author string
 			if role == "you" {
 				author = "You"
@@ -236,9 +271,12 @@ func (c *ClaudeExtractor) ExtractMessages() []ConversationMessage {
 					"role": role,
 				},
 			})
+		} else {
+			slog.Debug("Empty content found", "role", role, "index", i)
 		}
 	})
 
+	slog.Debug("Claude messages extracted", "messageCount", len(messages))
 	return messages
 }
 
@@ -332,6 +370,19 @@ func (c *ClaudeExtractor) getTitle() string {
 			return text[:50] + "..."
 		}
 		return text
+	}
+
+	// Try to fall back to any first message
+	if c.articles.Length() > 0 {
+		firstMessage := c.articles.First()
+		text := strings.TrimSpace(firstMessage.Text())
+		if text != "" {
+			// Truncate to first 50 characters if longer
+			if len(text) > 50 {
+				return text[:50] + "..."
+			}
+			return text
+		}
 	}
 
 	return "Claude Conversation"

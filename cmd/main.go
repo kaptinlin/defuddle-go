@@ -3,155 +3,181 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"net/http"
+	"log/slog"
 	"os"
-	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/kaptinlin/defuddle-go"
+	"github.com/kaptinlin/defuddle-go/extractors"
 	"github.com/spf13/cobra"
 )
 
+// Define static errors to avoid dynamic error creation
 var (
-	version = "0.1.2"
+	ErrInvalidHeaderFormat = fmt.Errorf("invalid header format (expected 'Key: Value')")
+	ErrDirectoryTraversal  = fmt.Errorf("invalid file path: directory traversal detected")
+	ErrPropertyNotFound    = fmt.Errorf("property not found in response")
 )
 
-// Custom error types for linting compliance
-var (
-	ErrHTTPRequest      = errors.New("HTTP request failed")
-	ErrPropertyNotFound = errors.New("property not found in response")
-)
+// Define custom type for context key to avoid collisions
+type contextKey string
 
-// ContextKey is a custom type for context keys to avoid collisions
-type ContextKey string
+const optionsKey contextKey = "options"
 
-const (
-	OptionsContextKey ContextKey = "options"
-)
-
-// ParseOptions holds all CLI options for the parse command
-type ParseOptions struct {
-	Output   string
-	Markdown bool
-	MD       bool
-	JSON     bool
-	Debug    bool
-	Property string
+var rootCmd = &cobra.Command{
+	Use:   "defuddle",
+	Short: "Extract and structure content from web pages",
+	Long: `defuddle is a CLI tool for extracting and structuring content from web pages.
+It can parse HTML, extract metadata, and convert content to various formats.`,
 }
 
-// JSONOutput represents the JSON output structure matching TypeScript version
-type JSONOutput struct {
-	Content       string      `json:"content"`
-	Title         string      `json:"title"`
-	Description   string      `json:"description"`
-	Domain        string      `json:"domain"`
-	Favicon       string      `json:"favicon"`
-	Image         string      `json:"image"`
-	MetaTags      interface{} `json:"metaTags"`
-	ParseTime     int64       `json:"parseTime"`
-	Published     string      `json:"published"`
-	Author        string      `json:"author"`
-	Site          string      `json:"site"`
-	SchemaOrgData interface{} `json:"schemaOrgData"`
-	WordCount     int         `json:"wordCount"`
+var parseCmd = &cobra.Command{
+	Use:   "parse <source>",
+	Short: "Parse and extract content from a URL or HTML file",
+	Long: `Parse content from a URL or local HTML file and extract structured information.
+You can output the content in different formats and extract specific properties.`,
+	Args: cobra.ExactArgs(1),
+	RunE: parseContent,
+}
+
+type ParseOptions struct {
+	Source    string
+	JSON      bool
+	Markdown  bool
+	Property  string
+	Output    string
+	UserAgent string
+	Headers   []string
+	Timeout   time.Duration
+	Debug     bool
+	Proxy     string
+}
+
+func init() {
+	// Initialize built-in extractors
+	extractors.InitializeBuiltins()
+
+	parseCmd.Flags().BoolP("json", "j", false, "Output as JSON with metadata and content")
+	parseCmd.Flags().BoolP("markdown", "m", false, "Convert content to markdown format")
+	parseCmd.Flags().Bool("md", false, "Alias for --markdown")
+	parseCmd.Flags().StringP("property", "p", "", "Extract a specific property (e.g., title, description, domain)")
+	parseCmd.Flags().StringP("output", "o", "", "Output file path (default: stdout)")
+	parseCmd.Flags().String("user-agent", "", "Custom user agent string")
+	parseCmd.Flags().StringArrayP("header", "H", []string{}, "Custom headers in format 'Key: Value'")
+	parseCmd.Flags().Duration("timeout", 30*time.Second, "Request timeout")
+	parseCmd.Flags().Bool("debug", false, "Enable debug mode")
+	parseCmd.Flags().String("proxy", "", "Proxy URL (e.g., http://localhost:8080, socks5://localhost:1080)")
+
+	rootCmd.AddCommand(parseCmd)
 }
 
 func main() {
-	rootCmd := &cobra.Command{
-		Use:     "defuddle",
-		Short:   "Extract article content from web pages",
-		Long:    "Command line interface for Defuddle - extract clean HTML, markdown and metadata from web pages.",
-		Version: version,
-	}
-
-	parseCmd := &cobra.Command{
-		Use:   "parse <source>",
-		Short: "Parse HTML content from a file or URL",
-		Long: `Parse HTML content from a file or URL and extract clean article content.
-
-The source can be either:
-  - A local HTML file path
-  - A URL (http:// or https://)
-
-Examples:
-  defuddle parse article.html
-  defuddle parse https://example.com/article --md
-  defuddle parse article.html --json
-  defuddle parse article.html --property title`,
-		Args: cobra.ExactArgs(1),
-		RunE: runParse,
-	}
-
-	var opts ParseOptions
-
-	// Add flags matching TypeScript version exactly
-	parseCmd.Flags().StringVarP(&opts.Output, "output", "o", "", "Output file path (default: stdout)")
-	parseCmd.Flags().BoolVarP(&opts.Markdown, "markdown", "m", false, "Convert content to markdown format")
-	parseCmd.Flags().BoolVar(&opts.MD, "md", false, "Alias for --markdown")
-	parseCmd.Flags().BoolVarP(&opts.JSON, "json", "j", false, "Output as JSON with metadata and content")
-	parseCmd.Flags().StringVarP(&opts.Property, "property", "p", "", "Extract a specific property (e.g., title, description, domain)")
-	parseCmd.Flags().BoolVar(&opts.Debug, "debug", false, "Enable debug mode")
-
-	// Store options in context for access in RunE
-	parseCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-		cmd.SetContext(context.WithValue(cmd.Context(), OptionsContextKey, &opts))
-		return nil
-	}
-
-	rootCmd.AddCommand(parseCmd)
-
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func runParse(cmd *cobra.Command, args []string) error {
-	opts := cmd.Context().Value(OptionsContextKey).(*ParseOptions)
+func parseContent(cmd *cobra.Command, args []string) error {
 	source := args[0]
 
-	// Handle --md alias
-	if opts.MD {
-		opts.Markdown = true
+	jsonOutput, _ := cmd.Flags().GetBool("json")
+	markdown, _ := cmd.Flags().GetBool("markdown")
+	mdAlias, _ := cmd.Flags().GetBool("md")
+	property, _ := cmd.Flags().GetString("property")
+	output, _ := cmd.Flags().GetString("output")
+	userAgent, _ := cmd.Flags().GetString("user-agent")
+	headers, _ := cmd.Flags().GetStringArray("header")
+	timeout, _ := cmd.Flags().GetDuration("timeout")
+	debug, _ := cmd.Flags().GetBool("debug")
+	proxy, _ := cmd.Flags().GetString("proxy")
+
+	// Handle markdown alias
+	if mdAlias {
+		markdown = true
 	}
 
-	// Read content from source
-	var htmlContent string
-	var sourceURL string
+	opts := &ParseOptions{
+		Source:    source,
+		JSON:      jsonOutput,
+		Markdown:  markdown,
+		Property:  property,
+		Output:    output,
+		UserAgent: userAgent,
+		Headers:   headers,
+		Timeout:   timeout,
+		Debug:     debug,
+		Proxy:     proxy,
+	}
+
+	// Set context with custom key type
+	cmd.SetContext(context.WithValue(cmd.Context(), optionsKey, opts))
+
+	if debug {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	}
+
+	return executeParseContent(opts)
+}
+
+func executeParseContent(opts *ParseOptions) error {
+	// Parse headers
+	headerMap := make(map[string]string)
+	for _, header := range opts.Headers {
+		key, value, err := parseHeader(header)
+		if err != nil {
+			return err
+		}
+		headerMap[key] = value
+	}
+
+	// Create defuddle options
+	defuddleOpts := &defuddle.Options{
+		Debug:            opts.Debug,
+		URL:              opts.Source,
+		Markdown:         opts.Markdown,
+		SeparateMarkdown: opts.Markdown,
+	}
+
+	var result *defuddle.Result
 	var err error
 
-	if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
-		htmlContent, err = fetchURL(cmd.Context(), source)
-		sourceURL = source
+	// Parse content based on source type
+	if strings.HasPrefix(opts.Source, "http://") || strings.HasPrefix(opts.Source, "https://") {
+		// Parse from URL
+		ctx := context.Background()
+		if opts.Timeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
+			defer cancel()
+		}
+		result, err = defuddle.ParseFromURL(ctx, opts.Source, defuddleOpts)
 	} else {
-		htmlContent, err = readFile(source)
+		// Parse from file
+		htmlContent, fileErr := readFile(opts.Source)
+		if fileErr != nil {
+			return fmt.Errorf("error reading file: %w", fileErr)
+		}
+
+		defuddleInstance, createErr := defuddle.NewDefuddle(htmlContent, defuddleOpts)
+		if createErr != nil {
+			return fmt.Errorf("error creating defuddle instance: %w", createErr)
+		}
+
+		ctx := context.Background()
+		if opts.Timeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
+			defer cancel()
+		}
+		result, err = defuddleInstance.Parse(ctx)
 	}
 
 	if err != nil {
 		return fmt.Errorf("error loading content: %w", err)
-	}
-
-	// Configure defuddle options
-	defuddleOpts := &defuddle.Options{
-		Debug:            opts.Debug,
-		Markdown:         opts.Markdown,
-		SeparateMarkdown: opts.Markdown,
-		URL:              sourceURL,
-	}
-
-	// Parse content
-	defuddleInstance, err := defuddle.NewDefuddle(htmlContent, defuddleOpts)
-	if err != nil {
-		return fmt.Errorf("error creating defuddle instance: %w", err)
-	}
-
-	result, err := defuddleInstance.Parse(context.Background())
-	if err != nil {
-		return fmt.Errorf("error during parsing: %w", err)
 	}
 
 	// If in debug mode, don't show content output (matching TypeScript behavior)
@@ -159,158 +185,165 @@ func runParse(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Format output using switch statement
-	var output string
-	switch {
-	case opts.Property != "":
-		// Extract specific property
-		output, err = extractProperty(result, opts.Property)
-		if err != nil {
-			return err
+	// Handle property extraction
+	if opts.Property != "" {
+		value := getProperty(result, opts.Property)
+		if value == "" {
+			return fmt.Errorf("%w: \"%s\"", ErrPropertyNotFound, opts.Property)
 		}
-	case opts.JSON:
-		// JSON output matching TypeScript structure
-		jsonOutput := JSONOutput{
-			Content:       result.Content,
-			Title:         result.Title,
-			Description:   result.Description,
-			Domain:        result.Domain,
-			Favicon:       result.Favicon,
-			Image:         result.Image,
-			MetaTags:      result.MetaTags,
-			ParseTime:     result.ParseTime,
-			Published:     result.Published,
-			Author:        result.Author,
-			Site:          result.Site,
-			SchemaOrgData: result.SchemaOrgData,
-			WordCount:     result.WordCount,
-		}
+		return writeOutput(opts.Output, value)
+	}
 
-		jsonBytes, err := json.MarshalIndent(jsonOutput, "", "  ")
+	// Handle different output formats
+	var content string
+	switch {
+	case opts.JSON:
+		jsonData, err := json.MarshalIndent(result, "", "  ")
 		if err != nil {
 			return fmt.Errorf("error marshaling JSON: %w", err)
 		}
-		output = string(jsonBytes)
-	default:
-		// Default: return content (HTML or Markdown)
-		if opts.Markdown && result.ContentMarkdown != nil {
-			output = *result.ContentMarkdown
+		content = string(jsonData)
+	case opts.Markdown:
+		if result.ContentMarkdown != nil {
+			content = *result.ContentMarkdown
 		} else {
-			output = result.Content
+			// If ContentMarkdown is not available, try to convert HTML content to markdown
+			// Create a new defuddle instance specifically for markdown conversion
+			markdownOpts := &defuddle.Options{
+				Debug:            false,
+				URL:              opts.Source,
+				Markdown:         true,
+				SeparateMarkdown: true,
+			}
+
+			// Create temporary HTML document for conversion
+			htmlContent := fmt.Sprintf("<html><body>%s</body></html>", result.Content)
+			defuddleInstance, err := defuddle.NewDefuddle(htmlContent, markdownOpts)
+			if err == nil {
+				ctx := context.Background()
+				if opts.Timeout > 0 {
+					var cancel context.CancelFunc
+					ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
+					defer cancel()
+				}
+
+				markdownResult, markdownErr := defuddleInstance.Parse(ctx)
+				if markdownErr == nil && markdownResult.ContentMarkdown != nil {
+					content = *markdownResult.ContentMarkdown
+				} else {
+					// Fallback to original content if markdown conversion fails
+					content = result.Content
+				}
+			} else {
+				// Fallback to original content if defuddle creation fails
+				content = result.Content
+			}
 		}
+	default:
+		content = result.Content
 	}
 
-	// Handle output
-	if opts.Output != "" {
-		err := writeFile(opts.Output, output)
-		if err != nil {
-			return fmt.Errorf("error writing output file: %w", err)
-		}
-		fmt.Printf("Output written to %s\n", opts.Output)
-	} else {
-		fmt.Print(output)
-	}
-
-	return nil
+	return writeOutput(opts.Output, content)
 }
 
-// fetchURL fetches content from a URL with context
-func fetchURL(ctx context.Context, url string) (string, error) {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
+func parseHeader(header string) (string, string, error) {
+	parts := strings.SplitN(header, ":", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("%w: %s", ErrInvalidHeaderFormat, header)
 	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return "", fmt.Errorf("%w: %s", ErrHTTPRequest, err.Error())
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("%w: %s", ErrHTTPRequest, err.Error())
-	}
-	defer func() {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to close response body: %v\n", closeErr)
-		}
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%w: HTTP %d: %s", ErrHTTPRequest, resp.StatusCode, resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("%w: %s", ErrHTTPRequest, err.Error())
-	}
-
-	return string(body), nil
+	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), nil
 }
 
-// readFile reads content from a local file
 func readFile(filename string) (string, error) {
-	absPath, err := filepath.Abs(filename)
-	if err != nil {
+	if err := validateFilePath(filename); err != nil {
 		return "", err
 	}
-
-	content, err := os.ReadFile(absPath) // #nosec G304 - file path is from user input
+	content, err := os.ReadFile(filename) // #nosec G304 - path validated above
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error reading file: %w", err)
 	}
-
 	return string(content), nil
 }
 
-// writeFile writes content to a file with secure permissions
-func writeFile(filename, content string) error {
-	absPath, err := filepath.Abs(filename)
+func validateFilePath(filename string) error {
+	// Add basic path validation to prevent directory traversal
+	if strings.Contains(filename, "..") {
+		return ErrDirectoryTraversal
+	}
+	return nil
+}
+
+func writeOutput(filename, content string) error {
+	if filename == "" {
+		fmt.Print(content)
+		return nil
+	}
+
+	err := os.WriteFile(filename, []byte(content), 0600) // More secure file permissions
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(absPath, []byte(content), 0600) // Use secure permissions
+	fmt.Printf("Output written to %s\n", filename)
+	return nil
 }
 
-// extractProperty extracts a specific property from the result
-func extractProperty(result *defuddle.Result, property string) (string, error) {
-	property = strings.ToLower(property)
+func getProperty(result *defuddle.Result, property string) string {
+	// Convert to lowercase for case-insensitive matching (matching TypeScript behavior)
+	prop := strings.ToLower(property)
 
-	// Direct mapping of common properties
-	switch property {
-	case "title":
-		return result.Title, nil
-	case "description":
-		return result.Description, nil
-	case "domain":
-		return result.Domain, nil
-	case "favicon":
-		return result.Favicon, nil
-	case "image":
-		return result.Image, nil
-	case "published":
-		return result.Published, nil
-	case "author":
-		return result.Author, nil
-	case "site":
-		return result.Site, nil
+	switch prop {
 	case "content":
-		return result.Content, nil
-	case "parsetime":
-		return fmt.Sprintf("%d", result.ParseTime), nil
+		return result.Content
+	case "title":
+		return result.Title
+	case "description":
+		return result.Description
+	case "domain":
+		return result.Domain
+	case "favicon":
+		return result.Favicon
+	case "image":
+		return result.Image
+	case "author":
+		return result.Author
+	case "site":
+		return result.Site
+	case "published":
+		return result.Published
 	case "wordcount":
-		return fmt.Sprintf("%d", result.WordCount), nil
+		return strconv.Itoa(result.WordCount)
+	case "parsetime":
+		return strconv.FormatInt(result.ParseTime, 10)
+	case "metatags":
+		if result.MetaTags != nil {
+			jsonBytes, err := json.Marshal(result.MetaTags)
+			if err != nil {
+				return ""
+			}
+			return string(jsonBytes)
+		}
+		return ""
+	case "schemaorgdata":
+		if result.SchemaOrgData != nil {
+			jsonBytes, err := json.Marshal(result.SchemaOrgData)
+			if err != nil {
+				return ""
+			}
+			return string(jsonBytes)
+		}
+		return "null"
 	case "extractortype":
 		if result.ExtractorType != nil {
-			return *result.ExtractorType, nil
+			return *result.ExtractorType
 		}
-		return "", nil
+		return ""
 	case "contentmarkdown":
 		if result.ContentMarkdown != nil {
-			return *result.ContentMarkdown, nil
+			return *result.ContentMarkdown
 		}
-		return "", nil
+		return ""
+	default:
+		return ""
 	}
-
-	return "", fmt.Errorf("%w: \"%s\"", ErrPropertyNotFound, property)
 }
