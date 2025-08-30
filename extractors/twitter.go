@@ -287,6 +287,11 @@ func (t *TwitterExtractor) formatTweetText(text string) string {
 		return ""
 	}
 
+	// Add safety check for base document to mirror TypeScript fix
+	if t.document == nil {
+		return text
+	}
+
 	// Parse HTML content to clean it
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(text))
 	if err != nil {

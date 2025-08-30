@@ -132,12 +132,18 @@ func (y *YouTubeExtractor) Extract() *ExtractorResult {
 	formattedDescription := y.formatDescription(description)
 	videoID := y.getVideoID()
 
-	// Create iframe content
-	contentHTML := fmt.Sprintf(
-		`<iframe width="560" height="315" src="https://www.youtube.com/embed/%s?si=_m0qv33lAuJFoGNh" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe><br>%s`,
-		videoID,
-		formattedDescription,
-	)
+	// Create iframe content - only if videoID is not empty
+	var contentHTML string
+	if videoID != "" {
+		contentHTML = fmt.Sprintf(
+			`<iframe width="560" height="315" src="https://www.youtube.com/embed/%s" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe><br>%s`,
+			videoID,
+			formattedDescription,
+		)
+	} else {
+		// Fallback content when videoID is empty
+		contentHTML = formattedDescription
+	}
 
 	title := y.getTitle(videoData)
 	author := y.getAuthor(videoData)

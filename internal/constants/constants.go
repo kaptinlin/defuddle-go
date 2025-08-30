@@ -236,10 +236,21 @@ var ExactSelectors = []string{
 	"#Sidebar",
 	"#sitesub",
 
-	// skip links
+	// skip links - expanded based on upstream changes
 	`[data-link-name*="skip" i]`,
 	`[aria-label*="skip" i]`,
+	`[aria-label*="Skip" i]`,
 	"#skip-link",
+	".skip-link",
+	".skip-to-content",
+	"#skip-to-content",
+	`[href="#content"]`,
+	`[href="#main-content"]`,
+	`[href="#main"]`,
+	`[href^="#skip"]`,
+	`a[href^="#"][class*="skip"]`,
+	`a[aria-label*="skip to"]`,
+	`a[title*="skip to"]`,
 
 	// other
 	".copyright",
@@ -254,6 +265,10 @@ var ExactSelectors = []string{
 	`.pencraft:not(.pc-display-contents)`,            // Substack
 	`[data-optimizely="related-articles-section" i]`, // The Economist
 	`[data-orientation="vertical"]`,
+
+	// GitHub - avoid duplicate metadata
+	".gh-header-sticky",                     // GitHub
+	`[data-testid="issue-metadata-sticky"]`, // GitHub
 }
 
 // TestAttributes are attributes to test against for partial matches
@@ -704,9 +719,15 @@ var PartialSelectors = []string{
 	//	'skip-link', TechCrunch
 	"skip-content",
 	"skip-to-content",
+	"skip-to-main",
+	"skip-main",
+	"skip-nav",
+	"skip-navigation",
 	//	'skip-link',
 	"c-skip-link",
 	"_skip-link",
+	"-skip-link",
+	"skip-link-",
 	"-slider",
 	"slug-wrap",
 	//	'social',

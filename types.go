@@ -42,6 +42,10 @@ type Options struct {
 	// Defaults to true.
 	RemovePartialSelectors bool `json:"removePartialSelectors,omitempty"`
 
+	// Remove images from the extracted content
+	// Defaults to false.
+	RemoveImages bool `json:"removeImages,omitempty"`
+
 	// Element processing options
 	ProcessCode      bool                                 `json:"processCode,omitempty"`
 	ProcessImages    bool                                 `json:"processImages,omitempty"`

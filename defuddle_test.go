@@ -676,3 +676,89 @@ func TestSchemaOrgImprovement(t *testing.T) {
 	// Log the processed schema data structure
 	t.Logf("Schema.org data extracted: %+v", result.SchemaOrgData)
 }
+
+func TestRemoveImages(t *testing.T) {
+	html := `<html>
+		<head><title>Test Article</title></head>
+		<body>
+			<h1>Test Article</h1>
+			<p>This is some text content.</p>
+			<img src="test1.jpg" alt="Test image 1">
+			<p>More content.</p>
+			<svg><rect width="100" height="100"/></svg>
+			<p>Final content.</p>
+			<video src="test.mp4"></video>
+			<canvas width="200" height="100"></canvas>
+			<picture><img src="test2.jpg" alt="Test image 2"></picture>
+		</body>
+	</html>`
+
+	t.Run("removeImages=false should keep images", func(t *testing.T) {
+		defuddleInstance, err := NewDefuddle(html, &Options{
+			RemoveImages: false,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		result, err := defuddleInstance.Parse(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		t.Logf("Content with images: %s", result.Content)
+
+		// Should contain images when removeImages is false
+		if !strings.Contains(result.Content, "<img") {
+			t.Error("Expected to find img tags when removeImages=false")
+		}
+		if !strings.Contains(result.Content, "<svg") {
+			t.Error("Expected to find svg tags when removeImages=false")
+		}
+		if !strings.Contains(result.Content, "<video") {
+			t.Error("Expected to find video tags when removeImages=false")
+		}
+	})
+
+	t.Run("removeImages=true should remove all images", func(t *testing.T) {
+		defuddleInstance, err := NewDefuddle(html, &Options{
+			RemoveImages: true,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		result, err := defuddleInstance.Parse(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		t.Logf("Content without images: %s", result.Content)
+
+		// Should not contain images when removeImages is true
+		if strings.Contains(result.Content, "<img") {
+			t.Error("Found img tags when removeImages=true, they should be removed")
+		}
+		if strings.Contains(result.Content, "<svg") {
+			t.Error("Found svg tags when removeImages=true, they should be removed")
+		}
+		if strings.Contains(result.Content, "<video") {
+			t.Error("Found video tags when removeImages=true, they should be removed")
+		}
+		if strings.Contains(result.Content, "<canvas") {
+			t.Error("Found canvas tags when removeImages=true, they should be removed")
+		}
+		if strings.Contains(result.Content, "<picture") {
+			t.Error("Found picture tags when removeImages=true, they should be removed")
+		}
+
+		// Should still contain text content
+		if !strings.Contains(result.Content, "This is some text content") {
+			t.Error("Text content should be preserved when removeImages=true")
+		}
+		// Title is typically in result.Title, not in content body
+		if result.Title != "Test Article" {
+			t.Errorf("Expected title to be 'Test Article', got '%s'", result.Title)
+		}
+	})
+}

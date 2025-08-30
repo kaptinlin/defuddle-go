@@ -422,6 +422,11 @@ func (d *Defuddle) parseInternal(ctx context.Context, overrideOptions *Options) 
 	// Remove small images
 	d.removeSmallImages(workingDoc, smallImages)
 
+	// Remove all images if removeImages option is enabled
+	if options.RemoveImages {
+		d.removeAllImages(workingDoc)
+	}
+
 	// Remove hidden elements using computed styles
 	d.removeHiddenElements(workingDoc)
 
@@ -697,6 +702,7 @@ func (d *Defuddle) mergeOptions(overrideOptions *Options) *Options {
 		// For boolean options that can override defaults, always apply them
 		options.RemoveExactSelectors = d.options.RemoveExactSelectors
 		options.RemovePartialSelectors = d.options.RemovePartialSelectors
+		options.RemoveImages = d.options.RemoveImages
 		options.ProcessCode = d.options.ProcessCode
 		options.ProcessImages = d.options.ProcessImages
 		options.ProcessHeadings = d.options.ProcessHeadings
@@ -738,6 +744,7 @@ func (d *Defuddle) mergeOptions(overrideOptions *Options) *Options {
 		// Override boolean options (these will override any previous values)
 		options.RemoveExactSelectors = overrideOptions.RemoveExactSelectors
 		options.RemovePartialSelectors = overrideOptions.RemovePartialSelectors
+		options.RemoveImages = overrideOptions.RemoveImages
 		options.ProcessCode = overrideOptions.ProcessCode
 		options.ProcessImages = overrideOptions.ProcessImages
 		options.ProcessHeadings = overrideOptions.ProcessHeadings
@@ -1528,6 +1535,21 @@ func (d *Defuddle) removeSmallImages(doc *goquery.Document, smallImages map[stri
 
 	if d.debug {
 		slog.Debug("Removed small images", "count", removedCount)
+	}
+}
+
+// removeAllImages removes all images from the document
+// Implements the removeImages option from TypeScript version
+func (d *Defuddle) removeAllImages(doc *goquery.Document) {
+	removedCount := 0
+
+	doc.Find("img, svg, picture, video, canvas").Each(func(i int, element *goquery.Selection) {
+		element.Remove()
+		removedCount++
+	})
+
+	if d.debug {
+		slog.Debug("Removed all images", "count", removedCount)
 	}
 }
 

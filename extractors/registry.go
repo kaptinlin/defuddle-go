@@ -336,6 +336,22 @@ func (r *Registry) initializeBuiltins() {
 			return NewGeminiExtractor(doc, url, schemaOrgData)
 		},
 	})
+
+	// Register GitHub extractor
+	// TypeScript original code:
+	//   this.register({
+	//     patterns: ['github.com'],
+	//     extractor: GitHubExtractor
+	//   });
+	r.Register(ExtractorMapping{
+		Patterns: []interface{}{
+			"github.com",
+			regexp.MustCompile(`^https?://github\.com/.*/(issues|pull)/.*`),
+		},
+		Extractor: func(doc *goquery.Document, url string, schemaOrgData interface{}) BaseExtractor {
+			return NewGitHubExtractor(doc, url, schemaOrgData)
+		},
+	})
 }
 
 // Convenience functions for working with the default registry

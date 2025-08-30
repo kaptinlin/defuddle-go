@@ -304,6 +304,7 @@ The `Result` object contains the following fields:
 | `SeparateMarkdown` | bool | false | Keep both HTML and Markdown |
 | `RemoveExactSelectors` | bool | true | Remove exact clutter matches |
 | `RemovePartialSelectors` | bool | true | Remove partial clutter matches |
+| `RemoveImages` | bool | false | Remove all images from extracted content |
 | `ProcessCode` | bool | false | Process code blocks |
 | `ProcessImages` | bool | false | Process and optimize images |
 | `ProcessHeadings` | bool | false | Standardize heading structure |
