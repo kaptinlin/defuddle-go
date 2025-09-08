@@ -1,8 +1,6 @@
 module github.com/kaptinlin/defuddle-go
 
-go 1.24.0
-
-toolchain go1.24.3
+go 1.24.7
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.4.0
