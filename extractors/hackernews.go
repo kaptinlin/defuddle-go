@@ -302,7 +302,7 @@ func (h *HackerNewsExtractor) getPostContent() string {
 		}
 
 		points := strings.TrimSpace(h.mainComment.Find(".score").Text())
-		parentUrl, _ := h.mainPost.Find(`.navs a[href*="parent"]`).Attr("href")
+		parentURL, _ := h.mainPost.Find(`.navs a[href*="parent"]`).Attr("href")
 
 		var content strings.Builder
 		content.WriteString(`<div class="comment main-comment">`)
@@ -314,15 +314,15 @@ func (h *HackerNewsExtractor) getPostContent() string {
 			content.WriteString(fmt.Sprintf(` • <span class="comment-points">%s</span>`, points))
 		}
 
-		if parentUrl != "" {
-			content.WriteString(fmt.Sprintf(` • <a href="https://news.ycombinator.com/%s" class="parent-link">parent</a>`, parentUrl))
+		if parentURL != "" {
+			content.WriteString(fmt.Sprintf(` • <a href="https://news.ycombinator.com/%s" class="parent-link">parent</a>`, parentURL))
 		}
 
 		content.WriteString(`</div>`)
 		content.WriteString(fmt.Sprintf(`<div class="comment-content">%s</div>`, commentText))
 		content.WriteString(`</div>`)
 
-		slog.Debug("HackerNews extractor: extracted comment page content", "author", author, "hasPoints", points != "", "hasParentUrl", parentUrl != "")
+		slog.Debug("HackerNews extractor: extracted comment page content", "author", author, "hasPoints", points != "", "hasParentURL", parentURL != "")
 		return content.String()
 	}
 
@@ -354,7 +354,7 @@ func (h *HackerNewsExtractor) getPostContent() string {
 //	}
 func (h *HackerNewsExtractor) extractComments() string {
 	var comments []*goquery.Selection
-	h.document.Find("tr.comtr").Each(func(i int, s *goquery.Selection) {
+	h.document.Find("tr.comtr").Each(func(_ int, s *goquery.Selection) {
 		comments = append(comments, s)
 	})
 

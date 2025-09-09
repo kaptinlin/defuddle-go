@@ -219,7 +219,7 @@ func (r *RedditExtractor) getPostContent() string {
 		for _, selector := range imageSelectors {
 			images := r.document.Find(selector)
 			if images.Length() > 0 {
-				images.Each(func(i int, img *goquery.Selection) {
+				images.Each(func(_ int, img *goquery.Selection) {
 					if outerHTML, err := img.Clone().Wrap("<div>").Parent().Html(); err == nil {
 						content.WriteString(outerHTML)
 					}
@@ -287,7 +287,7 @@ func (r *RedditExtractor) extractComments() string {
 	var comments []*goquery.Selection
 
 	// Primary method: Look for shreddit-comment elements
-	r.document.Find("shreddit-comment").Each(func(i int, s *goquery.Selection) {
+	r.document.Find("shreddit-comment").Each(func(_ int, s *goquery.Selection) {
 		comments = append(comments, s)
 	})
 
@@ -306,7 +306,7 @@ func (r *RedditExtractor) extractComments() string {
 		}
 
 		for _, selector := range alternativeSelectors {
-			r.document.Find(selector).Each(func(i int, s *goquery.Selection) {
+			r.document.Find(selector).Each(func(_ int, s *goquery.Selection) {
 				comments = append(comments, s)
 			})
 			if len(comments) > 0 {

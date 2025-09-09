@@ -87,7 +87,7 @@ func TestMathProcessing(t *testing.T) {
 	assert.Greater(t, mathElements.Length(), 0, "Should have created math elements")
 
 	// Check for MathML namespace
-	mathElements.Each(func(i int, s *goquery.Selection) {
+	mathElements.Each(func(_ int, s *goquery.Selection) {
 		xmlns, exists := s.Attr("xmlns")
 		assert.True(t, exists, "Math element should have xmlns attribute")
 		assert.Equal(t, "http://www.w3.org/1998/Math/MathML", xmlns, "Should have correct MathML namespace")
@@ -122,7 +122,7 @@ func TestImageProcessing(t *testing.T) {
 	assert.Equal(t, 0, smallImages.Length(), "Should have removed small images")
 
 	// Check if responsive classes were added
-	images.Each(func(i int, s *goquery.Selection) {
+	images.Each(func(_ int, s *goquery.Selection) {
 		class, _ := s.Attr("class")
 		if !strings.Contains(class, "responsive-image") {
 			// Some images might be removed or modified

@@ -1,3 +1,4 @@
+// Package main demonstrates markdown conversion.
 package main
 
 import (

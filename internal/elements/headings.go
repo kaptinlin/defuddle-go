@@ -205,7 +205,7 @@ func (p *HeadingProcessor) ProcessHeadings(options *HeadingProcessingOptions) {
 	slog.Debug("processing headings", "removeNavigation", options.RemoveNavigation, "preserveStructure", options.PreserveStructure)
 
 	var processedCount int
-	p.doc.Find("h1, h2, h3, h4, h5, h6").Each(func(i int, s *goquery.Selection) {
+	p.doc.Find("h1, h2, h3, h4, h5, h6").Each(func(_ int, s *goquery.Selection) {
 		p.processHeading(s, options)
 		processedCount++
 	})
@@ -319,7 +319,7 @@ func (p *HeadingProcessor) extractNavigationTexts(s *goquery.Selection) []string
 	var navigationTexts []string
 	textMap := make(map[string]bool) // To avoid duplicates
 
-	s.Find("*").Each(func(i int, child *goquery.Selection) {
+	s.Find("*").Each(func(_ int, child *goquery.Selection) {
 		shouldExtract := false
 		var extractedText string
 
@@ -397,7 +397,7 @@ func (p *HeadingProcessor) extractNavigationTexts(s *goquery.Selection) []string
 func (p *HeadingProcessor) removeNavigationElements(s *goquery.Selection) {
 	var toRemove []*goquery.Selection
 
-	s.Find("*").Each(func(i int, child *goquery.Selection) {
+	s.Find("*").Each(func(_ int, child *goquery.Selection) {
 		shouldRemove := false
 
 		// Remove anchor links with hash

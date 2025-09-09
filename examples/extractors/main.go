@@ -1,3 +1,4 @@
+// Package main demonstrates extractors usage.
 package main
 
 import (

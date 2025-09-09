@@ -168,7 +168,7 @@ func (p *CodeBlockProcessor) ProcessCodeBlocks(options *CodeBlockProcessingOptio
 	slog.Debug("using code block selector", "selector", combinedSelector)
 
 	var processedCount int
-	p.doc.Find(combinedSelector).Each(func(i int, s *goquery.Selection) {
+	p.doc.Find(combinedSelector).Each(func(_ int, s *goquery.Selection) {
 		p.processCodeBlock(s, options)
 		processedCount++
 	})
@@ -449,7 +449,7 @@ func (p *CodeBlockProcessor) extractWordPressContent(s *goquery.Selection) strin
 			}
 
 			var lineBuilder strings.Builder
-			line.Find("code").Each(func(j int, code *goquery.Selection) {
+			line.Find("code").Each(func(_ int, code *goquery.Selection) {
 				text := code.Text()
 				if code.HasClass("spaces") {
 					// Replace with spaces of same length
@@ -477,7 +477,7 @@ func (p *CodeBlockProcessor) extractWordPressContent(s *goquery.Selection) strin
 			}
 
 			var lineBuilder strings.Builder
-			line.Find("code").Each(func(j int, code *goquery.Selection) {
+			line.Find("code").Each(func(_ int, code *goquery.Selection) {
 				lineBuilder.WriteString(code.Text())
 			})
 
@@ -540,7 +540,7 @@ func (p *CodeBlockProcessor) extractWordPressContent(s *goquery.Selection) strin
 func (p *CodeBlockProcessor) extractStructuredText(s *goquery.Selection) string {
 	var builder strings.Builder
 
-	s.Contents().Each(func(i int, node *goquery.Selection) {
+	s.Contents().Each(func(_ int, node *goquery.Selection) {
 		// Handle text nodes
 		if goquery.NodeName(node) == "#text" {
 			builder.WriteString(node.Text())
@@ -577,11 +577,11 @@ func (p *CodeBlockProcessor) extractStructuredText(s *goquery.Selection) string 
 				if lineNumber.Length() > 0 {
 					// Extract content without line numbers
 					var lineContent strings.Builder
-					node.Contents().Each(func(j int, child *goquery.Selection) {
+					node.Contents().Each(func(_ int, child *goquery.Selection) {
 						// Check if child is not contained in lineNumber elements
 						childNode := child.Get(0)
 						isLineNumber := false
-						lineNumber.Each(func(k int, ln *goquery.Selection) {
+						lineNumber.Each(func(_ int, ln *goquery.Selection) {
 							if ln.Get(0) == childNode {
 								isLineNumber = true
 							}
@@ -657,7 +657,7 @@ func (p *CodeBlockProcessor) normalizeCodeContent(content string) string {
 //
 // newPre.appendChild(code);
 // return newPre;
-func (p *CodeBlockProcessor) formatCodeBlock(s *goquery.Selection, language, content string, options *CodeBlockProcessingOptions) {
+func (p *CodeBlockProcessor) formatCodeBlock(s *goquery.Selection, language, content string, _ *CodeBlockProcessingOptions) {
 	// Create new pre and code structure using HTML strings (simpler approach)
 	var preHTML strings.Builder
 	preHTML.WriteString("<pre>")

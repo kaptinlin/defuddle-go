@@ -257,7 +257,7 @@ func (g *GeminiExtractor) ExtractMessages() []ConversationMessage {
 	// Extract sources first (for footnotes)
 	g.extractSources()
 
-	g.conversationContainers.Each(func(i int, container *goquery.Selection) {
+	g.conversationContainers.Each(func(_ int, container *goquery.Selection) {
 		// Handle user query
 		userQuery := container.Find("user-query").First()
 		if userQuery.Length() > 0 {
@@ -376,7 +376,7 @@ func (g *GeminiExtractor) extractSources() {
 	browseItems := g.document.Find("browse-item")
 
 	if browseItems.Length() > 0 {
-		browseItems.Each(func(i int, item *goquery.Selection) {
+		browseItems.Each(func(_ int, item *goquery.Selection) {
 			link := item.Find("a").First()
 			if link.Length() > 0 {
 				href, exists := link.Attr("href")

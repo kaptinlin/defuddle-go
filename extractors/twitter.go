@@ -119,7 +119,7 @@ func NewTwitterExtractor(document *goquery.Document, url string, schemaOrgData i
 
 	if timeline.Length() > 0 {
 		// Try to find tweets within the timeline
-		timeline.Find(`article[data-testid="tweet"]`).Each(func(i int, s *goquery.Selection) {
+		timeline.Find(`article[data-testid="tweet"]`).Each(func(_ int, s *goquery.Selection) {
 			allTweets = append(allTweets, s)
 		})
 	}
@@ -136,7 +136,7 @@ func NewTwitterExtractor(document *goquery.Document, url string, schemaOrgData i
 		}
 
 		for _, selector := range tweetSelectors {
-			document.Find(selector).Each(func(i int, s *goquery.Selection) {
+			document.Find(selector).Each(func(_ int, s *goquery.Selection) {
 				allTweets = append(allTweets, s)
 			})
 			if len(allTweets) > 0 {
@@ -299,13 +299,13 @@ func (t *TwitterExtractor) formatTweetText(text string) string {
 	}
 
 	// Convert links to plain text with @ handles
-	doc.Find("a").Each(func(i int, link *goquery.Selection) {
+	doc.Find("a").Each(func(_ int, link *goquery.Selection) {
 		handle := strings.TrimSpace(link.Text())
 		link.ReplaceWithHtml(handle)
 	})
 
 	// Remove unnecessary spans and divs but keep their content
-	doc.Find("span, div").Each(func(i int, element *goquery.Selection) {
+	doc.Find("span, div").Each(func(_ int, element *goquery.Selection) {
 		content := element.Text()
 		element.ReplaceWithHtml(content)
 	})
@@ -619,12 +619,12 @@ func (t *TwitterExtractor) extractImages(tweet *goquery.Selection) []string {
 	}
 
 	for _, selector := range imageSelectors {
-		tweet.Find(selector).Each(func(i int, img *goquery.Selection) {
+		tweet.Find(selector).Each(func(_ int, img *goquery.Selection) {
 			// Skip if the image is inside a quoted tweet
 			if quotedTweetContainer != nil && quotedTweetContainer.Length() > 0 {
 				// Check if img is contained within quotedTweetContainer
 				isInQuoted := false
-				quotedTweetContainer.Find("*").Each(func(j int, el *goquery.Selection) {
+				quotedTweetContainer.Find("*").Each(func(_ int, el *goquery.Selection) {
 					if el.Get(0) == img.Get(0) {
 						isInQuoted = true
 						return

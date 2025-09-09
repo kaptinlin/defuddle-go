@@ -1,3 +1,5 @@
+// Package markdown provides HTML to Markdown conversion functionality.
+// It uses the html-to-markdown library to convert HTML content to clean Markdown format.
 package markdown
 
 import (

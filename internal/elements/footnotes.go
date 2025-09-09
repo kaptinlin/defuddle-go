@@ -219,11 +219,11 @@ func (p *FootnoteProcessor) detectFootnotes(options *FootnoteProcessingOptions) 
 //	  }
 //	  return;
 //	}
-func (p *FootnoteProcessor) detectExistingFootnotes(options *FootnoteProcessingOptions) []*Footnote {
+func (p *FootnoteProcessor) detectExistingFootnotes(_ *FootnoteProcessingOptions) []*Footnote {
 	var footnotes []*Footnote
 
 	// Find footnote references
-	p.doc.Find("sup a[href^='#'], a.footnote, .footnote-ref, a[href^='#footnote'], a[href^='#fn']").Each(func(i int, s *goquery.Selection) {
+	p.doc.Find("sup a[href^='#'], a.footnote, .footnote-ref, a[href^='#footnote'], a[href^='#fn']").Each(func(_ int, s *goquery.Selection) {
 		href, hasHref := s.Attr("href")
 		if !hasHref {
 			return
@@ -293,7 +293,7 @@ func (p *FootnoteProcessor) detectTextFootnotes(options *FootnoteProcessingOptio
 		re := regexp.MustCompile(pattern)
 
 		// Find all text nodes and search for patterns
-		p.doc.Find("*").Each(func(i int, s *goquery.Selection) {
+		p.doc.Find("*").Each(func(_ int, s *goquery.Selection) {
 			// Skip elements that are already footnotes
 			if s.Is("sup, .footnote, .footnote-ref") {
 				return
@@ -355,12 +355,12 @@ func (p *FootnoteProcessor) detectTextFootnotes(options *FootnoteProcessingOptio
 //	    }
 //	  }
 //	});
-func (p *FootnoteProcessor) detectWikipediaFootnotes(options *FootnoteProcessingOptions) []*Footnote {
+func (p *FootnoteProcessor) detectWikipediaFootnotes(_ *FootnoteProcessingOptions) []*Footnote {
 	var footnotes []*Footnote
 
 	// Find Wikipedia-style footnote lists
-	p.doc.Find("ol.references, ul.references, .footnotes ol, .footnotes ul").Each(func(i int, list *goquery.Selection) {
-		list.Find("li").Each(func(j int, li *goquery.Selection) {
+	p.doc.Find("ol.references, ul.references, .footnotes ol, .footnotes ul").Each(func(_ int, list *goquery.Selection) {
+		list.Find("li").Each(func(_ int, li *goquery.Selection) {
 			id, hasID := li.Attr("id")
 			if !hasID {
 				return
@@ -427,8 +427,8 @@ func (p *FootnoteProcessor) findFootnoteDefinition(key string) *goquery.Selectio
 	}
 
 	// Try to find in footnote sections by text content
-	p.doc.Find(".footnotes, .notes, .references, .endnotes").Each(func(i int, section *goquery.Selection) {
-		section.Find("li, div, p").Each(func(j int, el *goquery.Selection) {
+	p.doc.Find(".footnotes, .notes, .references, .endnotes").Each(func(_ int, section *goquery.Selection) {
+		section.Find("li, div, p").Each(func(_ int, el *goquery.Selection) {
 			text := el.Text()
 			// Look for patterns like "1. " or "[1] " at the beginning
 			patterns := []string{
@@ -518,7 +518,7 @@ func (p *FootnoteProcessor) linkFootnotes(footnotes []*Footnote, options *Footno
 //	    footnote.reference.textContent = footnote.number.toString();
 //	  }
 //	});
-func (p *FootnoteProcessor) numberFootnotes(footnotes []*Footnote, options *FootnoteProcessingOptions) {
+func (p *FootnoteProcessor) numberFootnotes(footnotes []*Footnote, _ *FootnoteProcessingOptions) {
 	for i, footnote := range footnotes {
 		footnote.Number = i + 1
 

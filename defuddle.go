@@ -1,3 +1,4 @@
+// Package defuddle provides web content extraction and demuddling capabilities.
 package defuddle
 
 import (
@@ -277,7 +278,7 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 //	    };
 //	  }
 //	}
-func (d *Defuddle) parseInternal(ctx context.Context, overrideOptions *Options) (*Result, error) {
+func (d *Defuddle) parseInternal(_ context.Context, overrideOptions *Options) (*Result, error) {
 	startTime := time.Now()
 
 	// Merge options with defaults
@@ -364,7 +365,7 @@ func (d *Defuddle) parseInternal(ctx context.Context, overrideOptions *Options) 
 		if d.debugger.IsEnabled() {
 			d.debugger.EndTimer("total_parsing")
 			d.debugger.AddProcessingStep("extractor", "Used site-specific extractor: "+extractor.GetName(), 1, "")
-			result.DebugInfo = d.debugger.GetDebugInfo()
+			result.DebugInfo = d.debugger.GetInfo()
 		}
 
 		return result, nil
@@ -413,7 +414,7 @@ func (d *Defuddle) parseInternal(ctx context.Context, overrideOptions *Options) 
 		if d.debugger.IsEnabled() {
 			d.debugger.EndTimer("total_parsing")
 			d.debugger.AddProcessingStep("fallback", "Used fallback body content extraction", 1, "No main content found")
-			result.DebugInfo = d.debugger.GetDebugInfo()
+			result.DebugInfo = d.debugger.GetInfo()
 		}
 
 		return result, nil
@@ -439,7 +440,7 @@ func (d *Defuddle) parseInternal(ctx context.Context, overrideOptions *Options) 
 	}
 
 	// Normalize the main content
-	standardize.StandardizeContent(mainContent, extractedMetadata, workingDoc, d.debug)
+	standardize.Content(mainContent, extractedMetadata, workingDoc, d.debug)
 
 	content, _ := mainContent.Html()
 	wordCount := d.countWords(content)
@@ -491,7 +492,7 @@ func (d *Defuddle) parseInternal(ctx context.Context, overrideOptions *Options) 
 		finalStats.RemovedElementCount = finalStats.OriginalElementCount - finalStats.FinalElementCount
 		d.debugger.SetStatistics(finalStats)
 
-		result.DebugInfo = d.debugger.GetDebugInfo()
+		result.DebugInfo = d.debugger.GetInfo()
 	}
 
 	return result, nil
@@ -582,8 +583,8 @@ func (d *Defuddle) findTableBasedContent(doc *goquery.Document) *goquery.Selecti
 	var bestElement *goquery.Selection
 	bestScore := 0.0
 
-	doc.Find("table").Each(func(i int, table *goquery.Selection) {
-		table.Find("td").Each(func(j int, cell *goquery.Selection) {
+	doc.Find("table").Each(func(_ int, table *goquery.Selection) {
+		table.Find("td").Each(func(_ int, cell *goquery.Selection) {
 			score := scoring.ScoreElement(cell)
 			if score > bestScore {
 				bestScore = score
@@ -608,7 +609,7 @@ func (d *Defuddle) findTableBasedContent(doc *goquery.Document) *goquery.Selecti
 //	}
 func (d *Defuddle) findContentByScoring(doc *goquery.Document) *goquery.Selection {
 	var candidates []*goquery.Selection
-	doc.Find("div, section, article, main").Each(func(i int, s *goquery.Selection) {
+	doc.Find("div, section, article, main").Each(func(_ int, s *goquery.Selection) {
 		candidates = append(candidates, s)
 	})
 
@@ -656,7 +657,7 @@ func (d *Defuddle) removeBySelector(doc *goquery.Document, removeExact, removePa
 		testAttributes := constants.GetTestAttributes()
 		partialSelectors := constants.GetPartialSelectors()
 
-		doc.Find("*").Each(func(i int, element *goquery.Selection) {
+		doc.Find("*").Each(func(_ int, element *goquery.Selection) {
 			for _, attr := range testAttributes {
 				value, exists := element.Attr(attr)
 				if exists && value != "" {
@@ -883,7 +884,7 @@ func (d *Defuddle) extractSchemaOrgData() interface{} {
 				slog.Debug("Failed to process schema.org JSON-LD",
 					"error", err,
 					"index", i,
-					"content_preview", cleanedContent[:min(len(cleanedContent), 100)])
+					"content_preview", cleanedContent[:minInt(len(cleanedContent), 100)])
 			}
 			return
 		}
@@ -941,7 +942,7 @@ func (d *Defuddle) cleanJSONLDContent(content string) string {
 
 	if content != "" && !isValidJSON {
 		if d.debug {
-			slog.Debug("Invalid JSON-LD format detected", "content_preview", content[:min(len(content), 50)])
+			slog.Debug("Invalid JSON-LD format detected", "content_preview", content[:minInt(len(content), 50)])
 		}
 		return ""
 	}
@@ -1055,8 +1056,8 @@ func (d *Defuddle) isValidSchemaItem(item interface{}) bool {
 	}
 
 	// Check for schema.org URL in @id
-	if itemId, exists := itemMap["@id"]; exists {
-		if idStr, ok := itemId.(string); ok {
+	if itemID, exists := itemMap["@id"]; exists {
+		if idStr, ok := itemID.(string); ok {
 			return strings.Contains(idStr, "schema.org") ||
 				strings.Contains(idStr, "http") // Any URL-like identifier
 		}
@@ -1113,7 +1114,7 @@ func (d *Defuddle) countSchemaTypes(items []interface{}) int {
 func (d *Defuddle) collectMetaTags() []MetaTag {
 	var metaTags []MetaTag
 
-	d.doc.Find("meta").Each(func(i int, s *goquery.Selection) {
+	d.doc.Find("meta").Each(func(_ int, s *goquery.Selection) {
 		name, nameExists := s.Attr("name")
 		property, propertyExists := s.Attr("property")
 		content, contentExists := s.Attr("content")
@@ -1248,7 +1249,7 @@ func (d *Defuddle) applyMobileStyles(doc *goquery.Document, mobileStyles []Style
 	appliedCount := 0
 
 	for _, change := range mobileStyles {
-		doc.Find(change.Selector).Each(func(i int, element *goquery.Selection) {
+		doc.Find(change.Selector).Each(func(_ int, element *goquery.Selection) {
 			existingStyle, _ := element.Attr("style")
 			newStyle := existingStyle + change.Styles
 			element.SetAttr("style", newStyle)
@@ -1316,7 +1317,7 @@ func (d *Defuddle) removeHiddenElements(doc *goquery.Document) {
 	count := 0
 
 	// Check inline styles for hidden elements
-	doc.Find("*").Each(func(i int, element *goquery.Selection) {
+	doc.Find("*").Each(func(_ int, element *goquery.Selection) {
 		style, exists := element.Attr("style")
 		if !exists {
 			return
@@ -1463,7 +1464,7 @@ func (d *Defuddle) findSmallImages(doc *goquery.Document) map[string]bool {
 	processedCount := 0
 
 	// Process img and svg elements
-	doc.Find("img, svg").Each(func(i int, element *goquery.Selection) {
+	doc.Find("img, svg").Each(func(_ int, element *goquery.Selection) {
 		tagName := goquery.NodeName(element)
 
 		// Get dimensions from attributes
@@ -1524,7 +1525,7 @@ func (d *Defuddle) findSmallImages(doc *goquery.Document) map[string]bool {
 func (d *Defuddle) removeSmallImages(doc *goquery.Document, smallImages map[string]bool) {
 	removedCount := 0
 
-	doc.Find("img, svg").Each(func(i int, element *goquery.Selection) {
+	doc.Find("img, svg").Each(func(_ int, element *goquery.Selection) {
 		tagName := goquery.NodeName(element)
 		identifier := d.getElementIdentifier(element, tagName)
 		if identifier != "" && smallImages[identifier] {
@@ -1543,7 +1544,7 @@ func (d *Defuddle) removeSmallImages(doc *goquery.Document, smallImages map[stri
 func (d *Defuddle) removeAllImages(doc *goquery.Document) {
 	removedCount := 0
 
-	doc.Find("img, svg, picture, video, canvas").Each(func(i int, element *goquery.Selection) {
+	doc.Find("img, svg, picture, video, canvas").Each(func(_ int, element *goquery.Selection) {
 		element.Remove()
 		removedCount++
 	})
@@ -1624,8 +1625,8 @@ func (d *Defuddle) convertHTMLToMarkdown(htmlContent string) (string, error) {
 	return markdown.ConvertHTML(htmlContent)
 }
 
-// min returns the minimum of two integers
-func min(a, b int) int {
+// minInt returns the minimum of two integers
+func minInt(a, b int) int {
 	if a < b {
 		return a
 	}
