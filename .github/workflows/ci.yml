@@ -22,20 +22,15 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
-          cache: true
 
       - name: Initialize submodules
         run: git submodule update --init --recursive
 
-      - name: Run tests
-        run: go test -coverprofile=coverage.out ./...
+      - name: Install dependencies
+        run: make deps
 
-      - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.24.7'
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.out
-          fail_ci_if_error: false
+      - name: Run tests
+        run: make test
 
   lint:
     runs-on: ubuntu-latest
@@ -46,7 +41,6 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-          cache: true
 
       - name: Initialize submodules
         run: git submodule update --init --recursive
