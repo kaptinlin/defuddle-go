@@ -1,3 +1,5 @@
+// Package debug provides debugging functionality for the defuddle content extraction system.
+// It tracks removed elements, processing steps, timing information, and parsing statistics.
 package debug
 
 import (
@@ -6,8 +8,8 @@ import (
 	"time"
 )
 
-// DebugInfo contains detailed debugging information about the parsing process
-type DebugInfo struct {
+// Info contains detailed debugging information about the parsing process
+type Info struct {
 	RemovedElements []RemovedElement `json:"removedElements"`
 	ProcessingSteps []ProcessingStep `json:"processingSteps"`
 	Timings         map[string]int64 `json:"timings"` // Duration in nanoseconds
@@ -146,8 +148,8 @@ func (d *Debugger) SetExtractorUsed(extractor string) {
 	d.extractorUsed = extractor
 }
 
-// GetDebugInfo returns the collected debug information
-func (d *Debugger) GetDebugInfo() *DebugInfo {
+// GetInfo returns the collected debug information
+func (d *Debugger) GetInfo() *Info {
 	if !d.enabled {
 		return nil
 	}
@@ -158,7 +160,7 @@ func (d *Debugger) GetDebugInfo() *DebugInfo {
 		timings[operation] = duration.Nanoseconds()
 	}
 
-	return &DebugInfo{
+	return &Info{
 		RemovedElements: d.removedElements,
 		ProcessingSteps: d.processingSteps,
 		Timings:         timings,

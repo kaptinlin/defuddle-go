@@ -360,8 +360,8 @@ func (y *YouTubeExtractor) getPublished(videoData map[string]interface{}) string
 //		return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '';
 //	}
 func (y *YouTubeExtractor) getThumbnail(videoData map[string]interface{}) string {
-	if thumbnailUrl, exists := videoData["thumbnailUrl"]; exists {
-		switch thumb := thumbnailUrl.(type) {
+	if thumbnailURL, exists := videoData["thumbnailUrl"]; exists {
+		switch thumb := thumbnailURL.(type) {
 		case []interface{}:
 			if len(thumb) > 0 {
 				if thumbStr, ok := thumb[0].(string); ok {

@@ -154,7 +154,7 @@ func (p *MathProcessor) ProcessMath(options *MathProcessingOptions) {
 	slog.Debug("using math selector", "selector", combinedSelector)
 
 	var processedCount int
-	p.doc.Find(combinedSelector).Each(func(i int, s *goquery.Selection) {
+	p.doc.Find(combinedSelector).Each(func(_ int, s *goquery.Selection) {
 		p.processMathElement(s, options)
 		processedCount++
 	})

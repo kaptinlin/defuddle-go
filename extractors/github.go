@@ -175,7 +175,7 @@ func (g *GitHubExtractor) extractIssue() *ExtractorResult {
 	commentElements := g.document.Find(`[data-wrapper-timeline-id]`)
 	processedComments := make(map[string]bool)
 
-	commentElements.Each(func(i int, commentElement *goquery.Selection) {
+	commentElements.Each(func(_ int, commentElement *goquery.Selection) {
 		commentContainer := commentElement.Find(".react-issue-comment").First()
 		if commentContainer.Length() == 0 {
 			return

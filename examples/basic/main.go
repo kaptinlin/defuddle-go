@@ -1,3 +1,4 @@
+// Package main demonstrates basic defuddle usage.
 package main
 
 import (

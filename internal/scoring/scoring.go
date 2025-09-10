@@ -1,3 +1,5 @@
+// Package scoring provides content scoring functionality for the defuddle content extraction system.
+// It implements algorithms to score DOM elements based on content quality and relevance.
 package scoring
 
 import (
@@ -323,12 +325,12 @@ func ScoreElement(element *goquery.Selection) float64 {
 
 	// Link density (penalize high link density)
 	links := element.Find("a").Length()
-	linkDensity := float64(links) / float64(max(words, 1))
+	linkDensity := float64(links) / float64(maxInt(words, 1))
 	score -= linkDensity * 5
 
 	// Image ratio (penalize high image density)
 	images := element.Find("img").Length()
-	imageDensity := float64(images) / float64(max(words, 1))
+	imageDensity := float64(images) / float64(maxInt(words, 1))
 	score -= imageDensity * 3
 
 	// Position bonus (center/right elements)
@@ -515,7 +517,7 @@ func ScoreAndRemove(doc *goquery.Document, debug bool) {
 	blockSelector := strings.Join(blockElements, ",")
 
 	// Process each block element
-	doc.Find(blockSelector).Each(func(i int, element *goquery.Selection) {
+	doc.Find(blockSelector).Each(func(_ int, element *goquery.Selection) {
 		// Skip elements that are likely to be content
 		if isLikelyContent(element) {
 			return
@@ -713,7 +715,7 @@ func scoreNonContentBlock(element *goquery.Selection) float64 {
 
 	// Check for high link density (navigation)
 	links := element.Find("a").Length()
-	linkDensity := float64(links) / float64(max(words, 1))
+	linkDensity := float64(links) / float64(maxInt(words, 1))
 	if linkDensity > 0.5 {
 		score -= 15
 	}
@@ -738,7 +740,7 @@ func scoreNonContentBlock(element *goquery.Selection) float64 {
 }
 
 // max returns the maximum of two integers
-func max(a, b int) int {
+func maxInt(a, b int) int {
 	if a > b {
 		return a
 	}

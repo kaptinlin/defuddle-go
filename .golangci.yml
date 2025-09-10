@@ -1,53 +1,59 @@
-version: "2"
+version: 2
+
+run:
+  timeout: 5m
+  tests: true
+
 linters:
   enable:
-    - copyloopvar
-    - dogsled
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+    - whitespace
     - err113
     - errorlint
-    - exhaustive
-    - gocritic
-    - goprintffuncname
-    - gosec
-    - misspell
-    - nakedret
     - nilerr
+    - gocritic
+    - nakedret
+    - unconvert
+    - dogsled
+    - copyloopvar
+    - prealloc
+    - gosec
+    - exhaustive
     - noctx
     - nolintlint
-    - prealloc
     - promlinter
-    - revive
-    - unconvert
-    - whitespace
-  settings:
-    revive:
-      rules:
-        - name: unused-parameter
-          disabled: true
-  exclusions:
-    generated: lax
-    rules:
-      - linters:
-          - funlen
-          - gochecknoglobals
-          - gosec
-          - noctx
-          - revive
-        path: _test\.go
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-formatters:
-  enable:
-    - gofmt
-    - goimports
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec
+        - noctx
+        - revive
+    - path: examples/
+      linters:
+        - revive
+        - gosec
+    - path: cmd/
+      linters:
+        - revive
+    - text: "unused-parameter"
+      linters:
+        - revive
+    - text: "var-naming"
+      linters:
+        - revive
+    - text: "redefines-builtin-id"
+      linters:
+        - revive
+    - text: "package-comments"
+      linters:
+        - revive

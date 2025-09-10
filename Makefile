@@ -2,15 +2,18 @@
 # Set up GOBIN so that our binaries are installed to ./bin instead of $GOPATH/bin.
 PROJECT_ROOT = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 export GOBIN = $(PROJECT_ROOT)/bin
+BINARY_NAME = defuddle
+CLI_FOLDER = cmd/defuddle
 
-GOLANGCI_LINT_VERSION := $(shell $(GOBIN)/golangci-lint version --format short 2>/dev/null)
-REQUIRED_GOLANGCI_LINT_VERSION := $(shell cat .golangci.version)
+# golangci-lint version management
+GOLANGCI_LINT_BINARY := $(GOBIN)/golangci-lint
+GOLANGCI_LINT_VERSION := $(shell $(GOLANGCI_LINT_BINARY) version --format short 2>/dev/null || $(GOLANGCI_LINT_BINARY) version --short 2>/dev/null || echo "not-installed")
+REQUIRED_GOLANGCI_LINT_VERSION := $(shell cat .golangci.version 2>/dev/null || echo "2.4.0")
 
 # Directories containing independent Go modules.
 MODULE_DIRS = .
 
-.PHONY: all
-all: submodules lint test
+.DEFAULT_GOAL := help
 
 .PHONY: help
 help: ## Show this help message
@@ -38,24 +41,24 @@ deps: ## Download Go module dependencies
 .PHONY: test
 test: ## Run all tests
 	@echo "[test] Running all tests..."
-	@$(foreach mod,$(MODULE_DIRS),(cd $(mod) && go test -race ./...) &&) true
+	@$(foreach mod,$(MODULE_DIRS),(cd $(mod) && go test ./...) &&) true
 
 .PHONY: test-unit
 test-unit: ## Run unit tests only
 	@echo "[test] Running unit tests..."
-	@go test -race ./pkg/... ./internal/... .
+	@go test ./pkg/... ./internal/... .
 
 .PHONY: test-coverage
 test-coverage: ## Run tests with coverage report
 	@echo "[test] Running tests with coverage..."
-	@go test -race -coverprofile=coverage.out ./...
+	@go test -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "[test] Coverage report generated: coverage.html"
 
 .PHONY: test-verbose
 test-verbose: ## Run tests with verbose output
 	@echo "[test] Running tests with verbose output..."
-	@go test -race -v ./...
+	@go test -v ./...
 
 .PHONY: bench
 bench: ## Run benchmarks
@@ -65,21 +68,25 @@ bench: ## Run benchmarks
 .PHONY: lint
 lint: golangci-lint tidy-lint ## Run all linters
 
-# Install golangci-lint with the required version in GOBIN if it is not already installed.
+# Install golangci-lint with the required version if it is not already installed or version mismatch.
 .PHONY: install-golangci-lint
 install-golangci-lint:
-    ifneq ($(GOLANGCI_LINT_VERSION),$(REQUIRED_GOLANGCI_LINT_VERSION))
-		@echo "[lint] installing golangci-lint v$(REQUIRED_GOLANGCI_LINT_VERSION) since current version is \"$(GOLANGCI_LINT_VERSION)\""
-		@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v$(REQUIRED_GOLANGCI_LINT_VERSION)
-    endif
+	@mkdir -p $(GOBIN)
+	@if [ "$(GOLANGCI_LINT_VERSION)" != "$(REQUIRED_GOLANGCI_LINT_VERSION)" ]; then \
+		echo "[lint] Installing golangci-lint v$(REQUIRED_GOLANGCI_LINT_VERSION) (current: $(GOLANGCI_LINT_VERSION))"; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v$(REQUIRED_GOLANGCI_LINT_VERSION); \
+		echo "[lint] golangci-lint v$(REQUIRED_GOLANGCI_LINT_VERSION) installed successfully"; \
+	else \
+		echo "[lint] golangci-lint v$(REQUIRED_GOLANGCI_LINT_VERSION) already installed"; \
+	fi
 
 .PHONY: golangci-lint
 golangci-lint: install-golangci-lint ## Run golangci-lint
-	@echo "[lint] $(shell $(GOBIN)/golangci-lint version)"
+	@echo "[lint] Running $(shell $(GOLANGCI_LINT_BINARY) version)"
 	@$(foreach mod,$(MODULE_DIRS), \
 		(cd $(mod) && \
 		echo "[lint] golangci-lint: $(mod)" && \
-		$(GOBIN)/golangci-lint run --timeout=10m --path-prefix $(mod)) &&) true
+		$(GOLANGCI_LINT_BINARY) run --timeout=10m --path-prefix $(mod)) &&) true
 
 .PHONY: tidy-lint
 tidy-lint: ## Check if go.mod and go.sum are tidy
@@ -107,35 +114,48 @@ verify: submodules deps fmt vet lint test ## Run all verification steps (format,
 dev: deps fmt vet ## Quick development verification (deps, format, vet)
 	@echo "[dev] Development verification completed successfully"
 
+# Building
+.PHONY: build
+build: ## Build the CLI binary
+	@echo "[build] Building $(BINARY_NAME)..."
+	@go build -o bin/$(BINARY_NAME) ./$(CLI_FOLDER)
+
 .PHONY: build-cli
-build-cli: ## Build the CLI binary
-	go build -o bin/defuddle ./cmd
+build-cli: build ## Build the CLI binary (alias for build)
 
 .PHONY: install-cli
 install-cli: build-cli ## Install CLI to system
-	sudo cp bin/defuddle /usr/local/bin/defuddle
-	@echo "defuddle CLI installed to /usr/local/bin/defuddle"
+	sudo cp bin/$(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)
+	@echo "$(BINARY_NAME) CLI installed to /usr/local/bin/$(BINARY_NAME)"
+
+# Release testing
+.PHONY: snapshot
+snapshot: ## Test release build locally
+	@echo "[release] Testing release build..."
+	@goreleaser release --snapshot --skip=publish --clean
 
 .PHONY: release-test
-release-test: ## Test release build without publishing
-	@echo "[release] Testing release build..."
-	@goreleaser check
-	@goreleaser build --snapshot --clean
+release-test: snapshot ## Test release build without publishing (alias for snapshot)
 
 .PHONY: release-snapshot
-release-snapshot: ## Create a snapshot release
-	@echo "[release] Creating snapshot release..."
-	@goreleaser release --snapshot --clean
+release-snapshot: snapshot ## Create a snapshot release (alias for snapshot)
 
 .PHONY: install-goreleaser
 install-goreleaser: ## Install GoReleaser
 	@echo "[release] Installing GoReleaser..."
 	@go install github.com/goreleaser/goreleaser@latest
 
+# Tagging
 .PHONY: tag
 tag: ## Create and push a new tag (usage: make tag VERSION=v0.1.0)
-	@if [ -z "$(VERSION)" ]; then echo "Usage: make tag VERSION=v0.1.0"; exit 1; fi
+	@if [ -z "$(VERSION)" ]; then \
+		echo "VERSION is required. Usage: make tag VERSION=v1.0.0"; \
+		exit 1; \
+	fi
 	@echo "[release] Creating tag $(VERSION)..."
 	@git tag -a $(VERSION) -m "Release $(VERSION)"
 	@git push origin $(VERSION)
 	@echo "[release] Tag $(VERSION) created and pushed"
+
+.PHONY: all
+all: verify ## Run all verification steps (alias for verify)

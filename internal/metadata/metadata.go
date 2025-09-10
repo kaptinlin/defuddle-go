@@ -1,3 +1,5 @@
+// Package metadata provides functionality for extracting and processing document metadata.
+// It extracts metadata from HTML documents including title, description, author, and Schema.org data.
 package metadata
 
 import (
@@ -322,7 +324,7 @@ func getAuthor(doc *goquery.Document, schemaOrgData interface{}, metaTags []Meta
 	}
 
 	for _, selector := range domAuthorSelectors {
-		doc.Find(selector).Each(func(i int, el *goquery.Selection) {
+		doc.Find(selector).Each(func(_ int, el *goquery.Selection) {
 			addDomAuthor(strings.TrimSpace(el.Text()))
 		})
 	}
@@ -520,7 +522,7 @@ func cleanTitle(title, siteName string) string {
 //	    ''
 //	  );
 //	}
-func getDescription(doc *goquery.Document, schemaOrgData interface{}, metaTags []MetaTag) string {
+func getDescription(_ *goquery.Document, schemaOrgData interface{}, metaTags []MetaTag) string {
 	description := getMetaContent(metaTags, "name", "description")
 	if description == "" {
 		description = getMetaContent(metaTags, "property", "description")
@@ -554,7 +556,7 @@ func getDescription(doc *goquery.Document, schemaOrgData interface{}, metaTags [
 //	    ''
 //	  );
 //	}
-func getImage(doc *goquery.Document, schemaOrgData interface{}, metaTags []MetaTag) string {
+func getImage(_ *goquery.Document, schemaOrgData interface{}, metaTags []MetaTag) string {
 	image := getMetaContent(metaTags, "property", "og:image")
 	if image == "" {
 		image = getMetaContent(metaTags, "name", "twitter:image")

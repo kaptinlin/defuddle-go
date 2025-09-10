@@ -147,17 +147,17 @@ func (p *ImageProcessor) ProcessImages(options *ImageProcessingOptions) {
 	}
 
 	// Process all img elements
-	p.doc.Find("img").Each(func(i int, s *goquery.Selection) {
+	p.doc.Find("img").Each(func(_ int, s *goquery.Selection) {
 		p.processImage(s, options)
 	})
 
 	// Process figure elements
-	p.doc.Find("figure").Each(func(i int, s *goquery.Selection) {
+	p.doc.Find("figure").Each(func(_ int, s *goquery.Selection) {
 		p.processFigure(s, options)
 	})
 
 	// Process picture elements
-	p.doc.Find("picture").Each(func(i int, s *goquery.Selection) {
+	p.doc.Find("picture").Each(func(_ int, s *goquery.Selection) {
 		p.processPicture(s, options)
 	})
 
@@ -299,7 +299,7 @@ func (p *ImageProcessor) processFigure(s *goquery.Selection, options *ImageProce
 //	}
 func (p *ImageProcessor) processPicture(s *goquery.Selection, options *ImageProcessingOptions) {
 	// Process all source elements
-	s.Find("source").Each(func(i int, source *goquery.Selection) {
+	s.Find("source").Each(func(_ int, source *goquery.Selection) {
 		p.processSource(source, options)
 	})
 
@@ -745,7 +745,7 @@ func (p *ImageProcessor) addLazyLoading(s *goquery.Selection) {
 //	    img.setAttribute('sizes', '(max-width: 768px) 100vw, 50vw');
 //	  }
 //	}
-func (p *ImageProcessor) makeResponsive(s *goquery.Selection, options *ImageProcessingOptions) {
+func (p *ImageProcessor) makeResponsive(s *goquery.Selection, _ *ImageProcessingOptions) {
 	// Add responsive styling via class
 	s.AddClass("responsive-image")
 
@@ -832,7 +832,7 @@ func (p *ImageProcessor) processFigcaption(img, caption *goquery.Selection) {
 	// Link caption to image for accessibility
 	imgID := img.AttrOr("id", "")
 	if imgID == "" {
-		imgID = fmt.Sprintf("img-%d", p.generateImageId())
+		imgID = fmt.Sprintf("img-%d", p.generateImageID())
 		img.SetAttr("id", imgID)
 	}
 	caption.SetAttr("aria-describedby", imgID)
@@ -909,7 +909,7 @@ func (p *ImageProcessor) addFigureClasses(s *goquery.Selection) {
 //	    source.setAttribute('srcset', optimizedSrcset);
 //	  }
 //	}
-func (p *ImageProcessor) processSource(s *goquery.Selection, options *ImageProcessingOptions) {
+func (p *ImageProcessor) processSource(s *goquery.Selection, _ *ImageProcessingOptions) {
 	srcset, hasSrcset := s.Attr("srcset")
 	if !hasSrcset || srcset == "" {
 		return
@@ -933,7 +933,7 @@ func (p *ImageProcessor) processSource(s *goquery.Selection, options *ImageProce
 //	  });
 //	}
 func (p *ImageProcessor) removeSmallImages(options *ImageProcessingOptions) {
-	p.doc.Find("img").Each(func(i int, s *goquery.Selection) {
+	p.doc.Find("img").Each(func(_ int, s *goquery.Selection) {
 		if p.shouldRemoveSmallImage(s, options) {
 			s.Remove()
 		}
@@ -1092,7 +1092,7 @@ func (p *ImageProcessor) findNearbyHeading(s *goquery.Selection) string {
 	parent := s.Parent()
 	var headingText string
 
-	parent.Find("h1, h2, h3, h4, h5, h6").Each(func(i int, heading *goquery.Selection) {
+	parent.Find("h1, h2, h3, h4, h5, h6").Each(func(_ int, heading *goquery.Selection) {
 		text := strings.TrimSpace(heading.Text())
 		if text != "" && len(text) < 100 {
 			headingText = text
@@ -1198,16 +1198,16 @@ func (p *ImageProcessor) isTrackingPixel(src string) bool {
 	return false
 }
 
-// generateImageId generates a unique ID for images
+// generateImageID generates a unique ID for images
 // TypeScript original code:
 //
 //	generateImageId(): string {
 //	  return `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 //	}
-func (p *ImageProcessor) generateImageId() int {
+func (p *ImageProcessor) generateImageID() int {
 	// Simple counter-based ID generation
 	var counter int
-	p.doc.Find("img[id]").Each(func(i int, s *goquery.Selection) {
+	p.doc.Find("img[id]").Each(func(_ int, _ *goquery.Selection) {
 		counter++
 	})
 	return counter + 1

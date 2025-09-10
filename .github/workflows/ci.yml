@@ -1,54 +1,48 @@
-name: Go
+name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, master ]
   pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   test:
-    name: Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
 
       - name: Initialize submodules
         run: git submodule update --init --recursive
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.22.x
+      - name: Install dependencies
+        run: make deps
 
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Run unit tests
+      - name: Run tests
         run: make test
 
   lint:
-    name: Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.22.x
+          go-version-file: go.mod
 
-      - name: Read golangci-lint version from .golangci.version
-        id: golangci-version
-        run: echo "GOLANGCI_VERSION=$(cat .golangci.version)" > $GITHUB_OUTPUT
+      - name: Initialize submodules
+        run: git submodule update --init --recursive
 
-      - uses: golangci/golangci-lint-action@v8
-        name: Install and run golangci-lint
-        with:
-          version: v${{ steps.golangci-version.outputs.GOLANGCI_VERSION }}
-          args: -h
-
-      - run: make lint
-        name: Lint
+      - name: Run linters
+        run: make lint

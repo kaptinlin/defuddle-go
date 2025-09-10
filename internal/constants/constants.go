@@ -1,3 +1,5 @@
+// Package constants provides configuration constants and selectors for the defuddle content extraction system.
+// It includes CSS selectors for finding main content, removing unwanted elements, and processing footnotes.
 package constants
 
 // EntryPointElements are the elements that will be used to find the main content

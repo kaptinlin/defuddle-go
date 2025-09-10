@@ -1,3 +1,5 @@
+// Package standardize provides content standardization functionality for the defuddle content extraction system.
+// It converts non-semantic HTML elements to semantic ones and applies standardization rules.
 package standardize
 
 import (
@@ -52,32 +54,32 @@ type StandardizationRule struct {
 //			transform: (el: Element, doc: Document): Element => { ... }
 //		}
 //	];
-var ELEMENT_STANDARDIZATION_RULES = []StandardizationRule{
+var elementStandardizationRules = []StandardizationRule{
 	// Convert divs with paragraph role to actual paragraphs
 	{
 		Selector: `div[data-testid^="paragraph"], div[role="paragraph"]`,
 		Element:  "p",
-		Transform: func(el *goquery.Selection, doc *goquery.Document) *goquery.Selection {
+		Transform: func(el *goquery.Selection, _ *goquery.Document) *goquery.Selection {
 			// Get the inner HTML and attributes
 			html, _ := el.Html()
 
 			// Build new paragraph HTML
-			newHtml := "<p"
+			newHTML := "<p"
 
 			// Copy allowed attributes (except role)
 			if el.Length() > 0 {
 				node := el.Get(0)
 				for _, attr := range node.Attr {
 					if constants.IsAllowedAttribute(attr.Key) && attr.Key != "role" {
-						newHtml += ` ` + attr.Key + `="` + attr.Val + `"`
+						newHTML += ` ` + attr.Key + `="` + attr.Val + `"`
 					}
 				}
 			}
 
-			newHtml += ">" + html + "</p>"
+			newHTML += ">" + html + "</p>"
 
 			// Replace the element with the new HTML
-			el.ReplaceWithHtml(newHtml)
+			el.ReplaceWithHtml(newHTML)
 
 			// Return nil to indicate we handled the replacement
 			return nil
@@ -96,14 +98,14 @@ var ELEMENT_STANDARDIZATION_RULES = []StandardizationRule{
 	},
 }
 
-// StandardizeContent standardizes and cleans up the main content element
+// Content standardizes and cleans up the main content element
 // JavaScript original code:
 //
 //	export function standardizeContent(element: Element, metadata: DefuddleMetadata, doc: Document, debug: boolean = false): void {
 //		standardizeSpaces(element);
 //
 //		// Remove HTML comments
-//		removeHtmlComments(element);
+//		removeHTMLComments(element);
 //
 //		// Handle H1 elements - remove first one and convert others to H2
 //		standardizeHeadings(element, metadata.title, doc);
@@ -144,11 +146,11 @@ var ELEMENT_STANDARDIZATION_RULES = []StandardizationRule{
 //			logDebug('Debug mode: Skipping div flattening to preserve structure');
 //		}
 //	}
-func StandardizeContent(element *goquery.Selection, metadata *metadata.Metadata, doc *goquery.Document, debug bool) {
+func Content(element *goquery.Selection, metadata *metadata.Metadata, doc *goquery.Document, debug bool) {
 	standardizeSpaces(element)
 
 	// Remove HTML comments
-	removeHtmlComments(element)
+	removeHTMLComments(element)
 
 	// Handle H1 elements - remove first one and convert others to H2
 	standardizeHeadings(element, metadata.Title, doc)
@@ -289,7 +291,7 @@ func standardizeSpaces(element *goquery.Selection) {
 	}
 
 	// Process all nodes in the selection
-	element.Each(func(i int, sel *goquery.Selection) {
+	element.Each(func(_ int, sel *goquery.Selection) {
 		if sel.Length() > 0 {
 			processNode(sel.Get(0))
 		}
@@ -317,7 +319,7 @@ func standardizeSpaces(element *goquery.Selection) {
 //			comment.remove();
 //		});
 //	}
-func removeHtmlComments(element *goquery.Selection) {
+func removeHTMLComments(_ *goquery.Selection) {
 	// goquery automatically handles comment removal during parsing
 	// This is a no-op in Go as comments are not preserved in the DOM tree
 }
@@ -359,7 +361,7 @@ func removeHtmlComments(element *goquery.Selection) {
 //			}
 //		}
 //	}
-func standardizeHeadings(element *goquery.Selection, title string, doc *goquery.Document) {
+func standardizeHeadings(element *goquery.Selection, title string, _ *goquery.Document) {
 	normalizeText := func(text string) string {
 		// Convert non-breaking spaces to regular spaces
 		text = strings.ReplaceAll(text, "\u00A0", " ")
@@ -370,7 +372,7 @@ func standardizeHeadings(element *goquery.Selection, title string, doc *goquery.
 	}
 
 	// Convert all H1s to H2s
-	element.Find("h1").Each(func(i int, h1 *goquery.Selection) {
+	element.Find("h1").Each(func(_ int, h1 *goquery.Selection) {
 		html, _ := h1.Html()
 
 		// Create new H2 element
@@ -436,7 +438,7 @@ func standardizeFootnotes(element *goquery.Selection) {
 	// Process inline footnote references
 	footnoteSelectors := constants.GetFootnoteInlineReferences()
 	for _, selector := range footnoteSelectors {
-		element.Find(selector).Each(func(i int, ref *goquery.Selection) {
+		element.Find(selector).Each(func(_ int, ref *goquery.Selection) {
 			// Convert to superscript if not already
 			if goquery.NodeName(ref) != "sup" {
 				html, _ := ref.Html()
@@ -480,45 +482,45 @@ func standardizeElements(element *goquery.Selection, doc *goquery.Document) {
 	processedCount := 0
 
 	// Process each standardization rule
-	for _, rule := range ELEMENT_STANDARDIZATION_RULES {
-		element.Find(rule.Selector).Each(func(i int, el *goquery.Selection) {
+	for _, rule := range elementStandardizationRules {
+		element.Find(rule.Selector).Each(func(_ int, el *goquery.Selection) {
 			if rule.Transform != nil {
 				// Use custom transform function
 				newElement := rule.Transform(el, doc)
 				if newElement != nil && newElement.Length() > 0 {
 					// Get the HTML of the new element and replace
-					newHtml, err := goquery.OuterHtml(newElement)
+						newHTML, err := goquery.OuterHtml(newElement)
 					if err == nil {
-						el.ReplaceWithHtml(newHtml)
+						el.ReplaceWithHtml(newHTML)
 						processedCount++
 					}
 				}
 			} else {
 				// Default transformation
 				html, _ := el.Html()
-				newElementHtml := "<" + rule.Element
+				newElementHTML := "<" + rule.Element
 
 				// Copy allowed attributes
 				if el.Length() > 0 {
 					node := el.Get(0)
 					for _, attr := range node.Attr {
 						if constants.IsAllowedAttribute(attr.Key) {
-							newElementHtml += ` ` + attr.Key + `="` + attr.Val + `"`
+							newElementHTML += ` ` + attr.Key + `="` + attr.Val + `"`
 						}
 					}
 				}
 
-				newElementHtml += ">" + html + "</" + rule.Element + ">"
-				el.ReplaceWithHtml(newElementHtml)
+				newElementHTML += ">" + html + "</" + rule.Element + ">"
+				el.ReplaceWithHtml(newElementHTML)
 				processedCount++
 			}
 		})
 	}
 
 	// Convert lite-youtube elements
-	element.Find("lite-youtube").Each(func(i int, el *goquery.Selection) {
-		videoId, exists := el.Attr("videoid")
-		if !exists || videoId == "" {
+	element.Find("lite-youtube").Each(func(_ int, el *goquery.Selection) {
+		videoID, exists := el.Attr("videoid")
+		if !exists || videoID == "" {
 			return
 		}
 
@@ -527,14 +529,14 @@ func standardizeElements(element *goquery.Selection, doc *goquery.Document) {
 			videoTitle = "YouTube video player"
 		}
 
-		iframeHtml := `<iframe width="560" height="315" ` +
-			`src="https://www.youtube.com/embed/` + videoId + `" ` +
+		iframeHTML := `<iframe width="560" height="315" ` +
+			`src="https://www.youtube.com/embed/` + videoID + `" ` +
 			`title="` + videoTitle + `" ` +
 			`frameborder="0" ` +
 			`allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" ` +
 			`allowfullscreen></iframe>`
 
-		el.ReplaceWithHtml(iframeHtml)
+		el.ReplaceWithHtml(iframeHTML)
 		processedCount++
 	})
 
@@ -645,7 +647,7 @@ func standardizeElements(element *goquery.Selection, doc *goquery.Document) {
 //
 //		// ... (complex processing logic continues)
 //	}
-func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
+func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 	processedCount := 0
 	startTime := time.Now()
 
@@ -655,7 +657,7 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 	// Helper function to check if an element directly contains inline content
 	hasDirectInlineContent := func(el *goquery.Selection) bool {
 		hasInlineContent := false
-		el.Contents().Each(func(i int, child *goquery.Selection) {
+		el.Contents().Each(func(_ int, child *goquery.Selection) {
 			if goquery.NodeName(child) == "#text" {
 				text := strings.TrimSpace(child.Text())
 				if text != "" {
@@ -701,7 +703,7 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 
 		// Check if element contains mixed content types that should be preserved
 		hasPreservedElements := false
-		el.Children().Each(func(i int, child *goquery.Selection) {
+		el.Children().Each(func(_ int, child *goquery.Selection) {
 			childTag := goquery.NodeName(child)
 			childRole, _ := child.Attr("role")
 			childClass := strings.ToLower(child.AttrOr("class", ""))
@@ -739,7 +741,7 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 		blockElements := constants.GetBlockElements()
 		additionalBlocks := []string{"p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "pre", "blockquote", "figure"}
 
-		children.Each(func(i int, child *goquery.Selection) {
+		children.Each(func(_ int, child *goquery.Selection) {
 			tag := goquery.NodeName(child)
 			isBlock := false
 
@@ -779,7 +781,7 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 
 		// Check if it has excessive whitespace or empty text nodes
 		hasTextContent := false
-		el.Contents().Each(func(i int, child *goquery.Selection) {
+		el.Contents().Each(func(_ int, child *goquery.Selection) {
 			if goquery.NodeName(child) == "#text" {
 				childText := strings.TrimSpace(child.Text())
 				if childText != "" {
@@ -796,7 +798,7 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 		hasOnlyBlockElements := children.Length() > 0
 		inlineElements := constants.GetInlineElements()
 
-		children.Each(func(i int, child *goquery.Selection) {
+		children.Each(func(_ int, child *goquery.Selection) {
 			tag := goquery.NodeName(child)
 			for _, inline := range inlineElements {
 				if inline == tag {
@@ -840,7 +842,7 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 			hasOnlyBlockElements := children.Length() > 0
 			inlineElements := constants.GetInlineElements()
 
-			children.Each(func(i int, child *goquery.Selection) {
+			children.Each(func(_ int, child *goquery.Selection) {
 				tag := goquery.NodeName(child)
 				for _, inline := range inlineElements {
 					if inline == tag {
@@ -865,7 +867,7 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 			onlyBlockElements := true
 			inlineElements := constants.GetInlineElements()
 
-			children.Each(func(i int, child *goquery.Selection) {
+			children.Each(func(_ int, child *goquery.Selection) {
 				tag := goquery.NodeName(child)
 				for _, inline := range inlineElements {
 					if inline == tag {
@@ -894,7 +896,7 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 		hasContent := false
 		inlineElements := constants.GetInlineElements()
 
-		el.Contents().Each(func(i int, child *goquery.Selection) {
+		el.Contents().Each(func(_ int, child *goquery.Selection) {
 			if goquery.NodeName(child) == "#text" {
 				text := strings.TrimSpace(child.Text())
 				if text != "" {
@@ -939,8 +941,8 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 			}
 
 			if isBlockChild && !shouldPreserveElement(child) {
-				childHtml, _ := child.Html()
-				el.ReplaceWithHtml("<" + childTag + ">" + childHtml + "</" + childTag + ">")
+				childHTML, _ := child.Html()
+				el.ReplaceWithHtml("<" + childTag + ">" + childHTML + "</" + childTag + ">")
 				processedCount++
 				return true
 			}
@@ -978,7 +980,7 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 		modified := false
 		blockElements := constants.GetBlockElements()
 
-		element.Children().Each(func(i int, el *goquery.Selection) {
+		element.Children().Each(func(_ int, el *goquery.Selection) {
 			tag := goquery.NodeName(el)
 			isBlock := false
 			for _, block := range blockElements {
@@ -1004,7 +1006,7 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 
 		// Get all wrapper elements and sort by depth (deepest first)
 		var allElements []*goquery.Selection
-		element.Find(blockSelector).Each(func(i int, el *goquery.Selection) {
+		element.Find(blockSelector).Each(func(_ int, el *goquery.Selection) {
 			allElements = append(allElements, el)
 		})
 
@@ -1034,12 +1036,12 @@ func flattenWrapperElements(element *goquery.Selection, doc *goquery.Document) {
 		blockElements := constants.GetBlockElements()
 		blockSelector := strings.Join(blockElements, ",")
 
-		element.Find(blockSelector).Each(func(i int, el *goquery.Selection) {
+		element.Find(blockSelector).Each(func(_ int, el *goquery.Selection) {
 			// Check if element only contains paragraphs
 			children := el.Children()
 			onlyParagraphs := children.Length() > 0
 
-			children.Each(func(j int, child *goquery.Selection) {
+			children.Each(func(_ int, child *goquery.Selection) {
 				if goquery.NodeName(child) != "p" {
 					onlyParagraphs = false
 				}
@@ -1203,7 +1205,7 @@ func stripUnwantedAttributes(element *goquery.Selection, debug bool) {
 	}
 
 	processElement(element)
-	element.Find("*").Each(func(i int, el *goquery.Selection) {
+	element.Find("*").Each(func(_ int, el *goquery.Selection) {
 		processElement(el)
 	})
 
@@ -1279,7 +1281,7 @@ func removeEmptyElements(element *goquery.Selection) {
 		// Get all elements and filter for empty ones, working from deepest first
 		var emptyElements []*goquery.Selection
 
-		element.Find("*").Each(func(i int, el *goquery.Selection) {
+		element.Find("*").Each(func(_ int, el *goquery.Selection) {
 			tagName := strings.ToLower(goquery.NodeName(el))
 
 			// Skip allowed empty elements
@@ -1294,7 +1296,7 @@ func removeEmptyElements(element *goquery.Selection) {
 
 			// Check if element has no meaningful children
 			hasNoChildren := true
-			el.Contents().Each(func(j int, child *goquery.Selection) {
+			el.Contents().Each(func(_ int, child *goquery.Selection) {
 				if goquery.NodeName(child) == "#text" {
 					nodeText := child.Text()
 					if strings.TrimSpace(nodeText) != "" || strings.Contains(nodeText, "\u00A0") {
@@ -1315,7 +1317,7 @@ func removeEmptyElements(element *goquery.Selection) {
 				children := el.Children()
 				if children.Length() > 0 {
 					hasOnlyCommaSpans := true
-					children.Each(func(k int, child *goquery.Selection) {
+					children.Each(func(_ int, child *goquery.Selection) {
 						childTag := strings.ToLower(goquery.NodeName(child))
 						if childTag != "span" {
 							hasOnlyCommaSpans = false
@@ -1382,7 +1384,7 @@ func removeTrailingHeadings(element *goquery.Selection) {
 	hasContentAfter := func(el *goquery.Selection) bool {
 		siblings := el.NextAll()
 		hasContent := false
-		siblings.Each(func(i int, sibling *goquery.Selection) {
+		siblings.Each(func(_ int, sibling *goquery.Selection) {
 			text := strings.TrimSpace(sibling.Text())
 			if text != "" {
 				hasContent = true
@@ -1391,7 +1393,7 @@ func removeTrailingHeadings(element *goquery.Selection) {
 		return hasContent
 	}
 
-	element.Find("h1, h2, h3, h4, h5, h6").Each(func(i int, heading *goquery.Selection) {
+	element.Find("h1, h2, h3, h4, h5, h6").Each(func(_ int, heading *goquery.Selection) {
 		if !hasContentAfter(heading) {
 			heading.Remove()
 		}
@@ -1430,7 +1432,7 @@ func stripExtraBrElements(element *goquery.Selection) {
 	var toRemove []*goquery.Selection
 	consecutiveCount := 0
 
-	element.Find("br").Each(func(i int, br *goquery.Selection) {
+	element.Find("br").Each(func(_ int, br *goquery.Selection) {
 		next := br.Next()
 		if next.Length() > 0 && goquery.NodeName(next) == "br" {
 			consecutiveCount++
@@ -1584,7 +1586,7 @@ func stripExtraBrElements(element *goquery.Selection) {
 //			processingTime: `${(endTime - startTime).toFixed(2)}ms`
 //		});
 //	}
-func removeEmptyLines(element *goquery.Selection, doc *goquery.Document) {
+func removeEmptyLines(element *goquery.Selection, _ *goquery.Document) {
 	removedCount := 0
 	startTime := time.Now()
 
@@ -1775,13 +1777,13 @@ func removeEmptyLines(element *goquery.Selection, doc *goquery.Document) {
 	}
 
 	// Run both passes
-	element.Each(func(i int, sel *goquery.Selection) {
+	element.Each(func(_ int, sel *goquery.Selection) {
 		if sel.Length() > 0 {
 			removeEmptyTextNodes(sel.Get(0))
 		}
 	})
 
-	element.Each(func(i int, sel *goquery.Selection) {
+	element.Each(func(_ int, sel *goquery.Selection) {
 		if sel.Length() > 0 {
 			cleanupEmptyElements(sel.Get(0))
 		}
@@ -1812,19 +1814,19 @@ func transformListElement(el *goquery.Selection, doc *goquery.Document) *goquery
 	newList := doc.Find("body").AppendHtml("<" + listTag + "></" + listTag + ">").Find(listTag).Last()
 
 	// Process each list item
-	el.Find(`div[role="listitem"]`).Each(func(i int, item *goquery.Selection) {
+	el.Find(`div[role="listitem"]`).Each(func(_ int, item *goquery.Selection) {
 		li := doc.Find("body").AppendHtml("<li></li>").Find("li").Last()
 		content := item.Find(".content").First()
 
 		if content.Length() > 0 {
 			// Convert any paragraph divs inside content
-			content.Find(`div[role="paragraph"]`).Each(func(j int, div *goquery.Selection) {
-				pHtml, _ := div.Html()
-				div.ReplaceWithHtml("<p>" + pHtml + "</p>")
+			content.Find(`div[role="paragraph"]`).Each(func(_ int, div *goquery.Selection) {
+				pHTML, _ := div.Html()
+				div.ReplaceWithHtml("<p>" + pHTML + "</p>")
 			})
 
 			// Convert any nested lists recursively
-			content.Find(`div[role="list"]`).Each(func(k int, nestedList *goquery.Selection) {
+			content.Find(`div[role="list"]`).Each(func(_ int, nestedList *goquery.Selection) {
 				firstNestedItem := nestedList.Find(`div[role="listitem"] .label`).First()
 				nestedLabel := strings.TrimSpace(firstNestedItem.Text())
 				isNestedOrdered := regexp.MustCompile(`^\d+\)`).MatchString(nestedLabel)
@@ -1837,18 +1839,18 @@ func transformListElement(el *goquery.Selection, doc *goquery.Document) *goquery
 				newNestedList := doc.Find("body").AppendHtml("<" + nestedListTag + "></" + nestedListTag + ">").Find(nestedListTag).Last()
 
 				// Process nested items
-				nestedList.Find(`div[role="listitem"]`).Each(func(l int, nestedItem *goquery.Selection) {
+				nestedList.Find(`div[role="listitem"]`).Each(func(_ int, nestedItem *goquery.Selection) {
 					nestedLi := doc.Find("body").AppendHtml("<li></li>").Find("li").Last()
 					nestedContent := nestedItem.Find(".content").First()
 
 					if nestedContent.Length() > 0 {
 						// Convert paragraph divs in nested items
-						nestedContent.Find(`div[role="paragraph"]`).Each(func(m int, div *goquery.Selection) {
-							pHtml, _ := div.Html()
-							div.ReplaceWithHtml("<p>" + pHtml + "</p>")
+						nestedContent.Find(`div[role="paragraph"]`).Each(func(_ int, div *goquery.Selection) {
+							pHTML, _ := div.Html()
+							div.ReplaceWithHtml("<p>" + pHTML + "</p>")
 						})
-						contentHtml, _ := nestedContent.Html()
-						nestedLi.SetHtml(contentHtml)
+						contentHTML, _ := nestedContent.Html()
+						nestedLi.SetHtml(contentHTML)
 					}
 
 					newNestedList.AppendSelection(nestedLi)
@@ -1857,8 +1859,8 @@ func transformListElement(el *goquery.Selection, doc *goquery.Document) *goquery
 				nestedList.ReplaceWithSelection(newNestedList)
 			})
 
-			contentHtml, _ := content.Html()
-			li.SetHtml(contentHtml)
+			contentHTML, _ := content.Html()
+			li.SetHtml(contentHTML)
 		}
 
 		newList.AppendSelection(li)
@@ -1869,16 +1871,16 @@ func transformListElement(el *goquery.Selection, doc *goquery.Document) *goquery
 
 // transformListItemElement converts div[role="listitem"] to li elements
 // JavaScript original code: (transform function for listitem)
-func transformListItemElement(el *goquery.Selection, doc *goquery.Document) *goquery.Selection {
+func transformListItemElement(el *goquery.Selection, _ *goquery.Document) *goquery.Selection {
 	content := el.Find(".content").First()
 	if content.Length() == 0 {
 		return el
 	}
 
 	// Convert any paragraph divs inside content
-	content.Find(`div[role="paragraph"]`).Each(func(i int, div *goquery.Selection) {
-		pHtml, _ := div.Html()
-		div.ReplaceWithHtml("<p>" + pHtml + "</p>")
+	content.Find(`div[role="paragraph"]`).Each(func(_ int, div *goquery.Selection) {
+		pHTML, _ := div.Html()
+		div.ReplaceWithHtml("<p>" + pHTML + "</p>")
 	})
 
 	return content

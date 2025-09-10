@@ -167,7 +167,7 @@ func (r *Registry) matchesPatterns(urlStr, domain string, patterns []interface{}
 //	  this.domainCache.clear();
 //	}
 func (r *Registry) ClearCache() *Registry {
-	r.domainCache.Range(func(key, value interface{}) bool {
+	r.domainCache.Range(func(key, _ interface{}) bool {
 		r.domainCache.Delete(key)
 		return true
 	})

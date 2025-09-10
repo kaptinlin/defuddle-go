@@ -1,3 +1,4 @@
+// Package main provides the defuddle CLI application.
 package main
 
 import (

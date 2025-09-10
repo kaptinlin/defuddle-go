@@ -1,3 +1,4 @@
+// Package extractors provides site-specific content extraction functionality.
 package extractors
 
 import (

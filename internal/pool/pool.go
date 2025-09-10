@@ -1,3 +1,5 @@
+// Package pool provides memory pooling utilities for the defuddle content extraction system.
+// It offers sync.Pool instances for commonly used objects to reduce garbage collection overhead.
 package pool
 
 import (

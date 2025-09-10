@@ -62,7 +62,7 @@ func (p *RoleProcessor) ProcessRoles(options *RoleProcessingOptions) {
 
 // convertParagraphRoles converts elements with role="paragraph" to <p> tags
 func (p *RoleProcessor) convertParagraphRoles() {
-	p.doc.Find(`[role="paragraph"]`).Each(func(i int, s *goquery.Selection) {
+	p.doc.Find(`[role="paragraph"]`).Each(func(_ int, s *goquery.Selection) {
 		p.replaceElementTag(s, "p")
 	})
 }
@@ -70,7 +70,7 @@ func (p *RoleProcessor) convertParagraphRoles() {
 // convertListRoles converts role-based lists to semantic HTML lists
 func (p *RoleProcessor) convertListRoles() {
 	// Convert role="list" to <ol> or <ul>
-	p.doc.Find(`[role="list"]`).Each(func(i int, listElement *goquery.Selection) {
+	p.doc.Find(`[role="list"]`).Each(func(_ int, listElement *goquery.Selection) {
 		// Check if it's an ordered list by looking for numbered items
 		isOrdered := p.isOrderedList(listElement)
 
@@ -82,7 +82,7 @@ func (p *RoleProcessor) convertListRoles() {
 		}
 
 		// Convert list items first
-		listElement.Find(`[role="listitem"]`).Each(func(j int, itemElement *goquery.Selection) {
+		listElement.Find(`[role="listitem"]`).Each(func(_ int, itemElement *goquery.Selection) {
 			p.convertListItem(itemElement)
 		})
 
@@ -95,7 +95,7 @@ func (p *RoleProcessor) convertListRoles() {
 func (p *RoleProcessor) isOrderedList(listElement *goquery.Selection) bool {
 	// Look for numbered labels in list items
 	hasNumbers := false
-	listElement.Find(`[role="listitem"]`).Each(func(i int, itemElement *goquery.Selection) {
+	listElement.Find(`[role="listitem"]`).Each(func(_ int, itemElement *goquery.Selection) {
 		labelElement := itemElement.Find(".label").First()
 		if labelElement.Length() > 0 {
 			labelText := strings.TrimSpace(labelElement.Text())
@@ -114,7 +114,7 @@ func (p *RoleProcessor) convertListItem(itemElement *goquery.Selection) {
 	itemElement.Find(".label").Remove()
 
 	// Convert content divs to paragraphs if they have role="paragraph"
-	itemElement.Find(`[role="paragraph"]`).Each(func(i int, s *goquery.Selection) {
+	itemElement.Find(`[role="paragraph"]`).Each(func(_ int, s *goquery.Selection) {
 		p.replaceElementTag(s, "p")
 	})
 
@@ -124,14 +124,14 @@ func (p *RoleProcessor) convertListItem(itemElement *goquery.Selection) {
 
 // convertButtonRoles converts elements with role="button" to <button> tags
 func (p *RoleProcessor) convertButtonRoles() {
-	p.doc.Find(`[role="button"]`).Each(func(i int, s *goquery.Selection) {
+	p.doc.Find(`[role="button"]`).Each(func(_ int, s *goquery.Selection) {
 		p.replaceElementTag(s, "button")
 	})
 }
 
 // convertLinkRoles converts elements with role="link" to <a> tags
 func (p *RoleProcessor) convertLinkRoles() {
-	p.doc.Find(`[role="link"]`).Each(func(i int, s *goquery.Selection) {
+	p.doc.Find(`[role="link"]`).Each(func(_ int, s *goquery.Selection) {
 		p.replaceElementTag(s, "a")
 	})
 }

@@ -80,7 +80,7 @@ type Result struct {
 	ContentMarkdown *string          `json:"contentMarkdown,omitempty"`
 	ExtractorType   *string          `json:"extractorType,omitempty"`
 	MetaTags        []MetaTag        `json:"metaTags,omitempty"`
-	DebugInfo       *debug.DebugInfo `json:"debugInfo,omitempty"`
+	DebugInfo       *debug.Info `json:"debugInfo,omitempty"`
 }
 
 // ExtractorVariables represents variables extracted by site-specific extractors

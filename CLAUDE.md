@@ -13,7 +13,7 @@ make build-cli
 make install-cli
 
 # Build with Go directly
-go build -o bin/defuddle ./cmd
+go build -o bin/defuddle ./cmd/defuddle
 ```
 
 ### Testing
