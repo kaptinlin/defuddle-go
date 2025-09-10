@@ -3,7 +3,7 @@
 PROJECT_ROOT = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 export GOBIN = $(PROJECT_ROOT)/bin
 BINARY_NAME = defuddle
-CLI_FOLDER = cmd
+CLI_FOLDER = cmd/defuddle
 
 # golangci-lint version management
 GOLANGCI_LINT_BINARY := $(GOBIN)/golangci-lint

@@ -32,7 +32,7 @@ Download the latest binary for your platform from the [releases page](https://gi
 
 #### Install with Go
 ```bash
-go install github.com/kaptinlin/defuddle-go/cmd@latest
+go install github.com/kaptinlin/defuddle-go/cmd/defuddle@latest
 ```
 
 #### Install from Source

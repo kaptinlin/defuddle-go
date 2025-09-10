@@ -13,7 +13,7 @@ before:
 
 builds:
   - id: defuddle
-    main: ./cmd
+    main: ./cmd/defuddle
     binary: defuddle
     env:
       - CGO_ENABLED=0
@@ -113,7 +113,7 @@ release:
 
     #### Install with Go
     ```bash
-    go install github.com/kaptinlin/defuddle-go/cmd@{{ .Tag }}
+    go install github.com/kaptinlin/defuddle-go/cmd/defuddle@{{ .Tag }}
     ```
 
     #### Install from Source
