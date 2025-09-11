@@ -156,6 +156,22 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 	return defuddle.Parse(ctx)
 }
 
+// ParseFromString parses HTML content directly from a string
+// This is useful when you already have the HTML content (e.g., from browser automation)
+func ParseFromString(ctx context.Context, html string, options *Options) (*Result, error) {
+	if options == nil {
+		options = &Options{}
+	}
+
+	// Create Defuddle instance and parse
+	defuddle, err := NewDefuddle(html, options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Defuddle instance: %w", err)
+	}
+
+	return defuddle.Parse(ctx)
+}
+
 // parseInternal performs the actual parsing work
 // JavaScript original code:
 //

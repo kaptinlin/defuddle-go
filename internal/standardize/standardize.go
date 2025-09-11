@@ -489,7 +489,7 @@ func standardizeElements(element *goquery.Selection, doc *goquery.Document) {
 				newElement := rule.Transform(el, doc)
 				if newElement != nil && newElement.Length() > 0 {
 					// Get the HTML of the new element and replace
-						newHTML, err := goquery.OuterHtml(newElement)
+					newHTML, err := goquery.OuterHtml(newElement)
 					if err == nil {
 						el.ReplaceWithHtml(newHTML)
 						processedCount++

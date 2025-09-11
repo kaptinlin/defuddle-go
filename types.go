@@ -76,10 +76,10 @@ type Metadata = metadata.Metadata
 //	}
 type Result struct {
 	Metadata
-	Content         string           `json:"content"`
-	ContentMarkdown *string          `json:"contentMarkdown,omitempty"`
-	ExtractorType   *string          `json:"extractorType,omitempty"`
-	MetaTags        []MetaTag        `json:"metaTags,omitempty"`
+	Content         string      `json:"content"`
+	ContentMarkdown *string     `json:"contentMarkdown,omitempty"`
+	ExtractorType   *string     `json:"extractorType,omitempty"`
+	MetaTags        []MetaTag   `json:"metaTags,omitempty"`
 	DebugInfo       *debug.Info `json:"debugInfo,omitempty"`
 }
 
