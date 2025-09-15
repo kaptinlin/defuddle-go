@@ -5,7 +5,7 @@ go 1.24.7
 require (
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.4.0
 	github.com/PuerkitoBio/goquery v1.10.3
-	github.com/kaptinlin/requests v0.2.3
+	github.com/kaptinlin/requests v0.2.4
 	github.com/piprate/json-gold v0.7.0
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
@@ -16,6 +16,7 @@ require (
 	github.com/JohannesKaufmann/dom v0.2.0 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/go-json-experiment/json v0.0.0-20250813233538-9b1f9ea2e11b // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
