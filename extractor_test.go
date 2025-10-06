@@ -2,10 +2,11 @@ package defuddle
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/kaptinlin/defuddle-go/extractors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExtractors(t *testing.T) {
@@ -36,26 +37,19 @@ func TestExtractors(t *testing.T) {
 		defuddleInstance, err := NewDefuddle(githubHTML, &Options{
 			URL: "https://github.com/kepano/defuddle/issues/123",
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		result, err := defuddleInstance.Parse(context.Background())
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		t.Logf("GitHub extraction result: %+v", result)
 
 		// Check if GitHub extractor was used
-		if result.ExtractorType == nil || *result.ExtractorType != "github" {
-			t.Errorf("Expected GitHub extractor to be used, got %v", result.ExtractorType)
-		}
+		require.NotNil(t, result.ExtractorType)
+		assert.Equal(t, "github", *result.ExtractorType)
 
 		// Check content extraction
-		if !strings.Contains(result.Content, "This is a test issue body") {
-			t.Error("Expected issue body content to be extracted")
-		}
+		assert.Contains(t, result.Content, "This is a test issue body")
 	})
 
 	t.Run("YouTube extractor with empty videoId", func(t *testing.T) {
@@ -82,23 +76,17 @@ func TestExtractors(t *testing.T) {
 		defuddleInstance, err := NewDefuddle(youtubeHTML, &Options{
 			URL: "https://youtube.com/watch?v=", // Empty video ID
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		result, err := defuddleInstance.Parse(context.Background())
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		t.Logf("YouTube extraction result: %+v", result)
 
 		// Should handle empty videoId gracefully
 		if result.ExtractorType != nil && *result.ExtractorType == "youtube" {
 			// If YouTube extractor was used, check content doesn't have empty iframe
-			if strings.Contains(result.Content, `src="https://www.youtube.com/embed/"`) {
-				t.Error("Found empty iframe src, should be handled gracefully")
-			}
+			assert.NotContains(t, result.Content, `src="https://www.youtube.com/embed/"`, "Found empty iframe src, should be handled gracefully")
 		}
 	})
 
@@ -117,22 +105,16 @@ func TestExtractors(t *testing.T) {
 		defuddleInstance, err := NewDefuddle(twitterHTML, &Options{
 			URL: "https://twitter.com/user/status/123",
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		result, err := defuddleInstance.Parse(context.Background())
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		t.Logf("Twitter extraction result: %+v", result)
 
 		// Should not crash with document undefined issues
 		if result.ExtractorType != nil && *result.ExtractorType == "twitter" {
-			if !strings.Contains(result.Content, "test tweet") {
-				t.Error("Expected tweet content to be extracted")
-			}
+			assert.Contains(t, result.Content, "test tweet", "Expected tweet content to be extracted")
 		}
 	})
 }

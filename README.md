@@ -23,6 +23,10 @@ A Go implementation of the [Defuddle](https://github.com/kepano/defuddle) TypeSc
 - ⚡ **High Performance**: Optimized for Go with efficient DOM processing
 - 🖥️ **CLI Tool**: Powerful command-line interface for extracting content
 
+## Requirements
+
+- Go 1.25 or higher
+
 ## Installation
 
 ### CLI Tool

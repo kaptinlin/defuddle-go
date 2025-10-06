@@ -3,7 +3,7 @@ package defuddle
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/go-json-experiment/json"
 	"fmt"
 	"log/slog"
 	"regexp"

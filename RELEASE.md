@@ -12,7 +12,7 @@ Defuddle Go uses automated releases through GitHub Actions and GoReleaser. The p
 
 The release process consists of:
 
-1. **Testing**: Runs comprehensive tests across Go versions 1.20 and 1.21
+1. **Testing**: Runs comprehensive tests on Go 1.25
 2. **Building**: Cross-compiles binaries for multiple platforms (Linux, macOS, Windows)
 3. **Packaging**: Creates archives with appropriate formats for each platform
 4. **Publishing**: Releases to GitHub with generated changelog and assets

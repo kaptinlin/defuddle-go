@@ -3,7 +3,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/go-json-experiment/json"
+	"github.com/go-json-experiment/json/jsontext"
 	"fmt"
 	"log/slog"
 	"os"
@@ -202,7 +203,7 @@ func executeParseContent(opts *ParseOptions) error {
 	var content string
 	switch {
 	case opts.JSON:
-		jsonData, err := json.MarshalIndent(result, "", "  ")
+		jsonData, err := json.Marshal(result, jsontext.Multiline(true))
 		if err != nil {
 			return fmt.Errorf("error marshaling JSON: %w", err)
 		}

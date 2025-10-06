@@ -762,3 +762,51 @@ func TestRemoveImages(t *testing.T) {
 		}
 	})
 }
+
+func TestParseFromString(t *testing.T) {
+	html := `
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Page</title>
+	<meta name="description" content="This is a test page">
+</head>
+<body>
+	<h1>Main Heading</h1>
+	<p>This is the main content of the test page.</p>
+	<p>Another paragraph with more content.</p>
+</body>
+</html>
+`
+
+	options := &Options{
+		Markdown: true,
+		URL:      "https://example.com/test",
+	}
+
+	result, err := ParseFromString(context.Background(), html, options)
+	require.NoError(t, err, "ParseFromString failed")
+
+	// Check basic fields
+	assert.NotEmpty(t, result.Title, "Expected title to be extracted")
+	assert.NotEmpty(t, result.Content, "Expected content to be extracted")
+
+	require.NotNil(t, result.ContentMarkdown)
+	assert.NotEmpty(t, *result.ContentMarkdown, "Expected markdown content to be generated")
+
+	// Check that domain is extracted
+	assert.Equal(t, "example.com", result.Domain)
+
+	t.Logf("Title: %s", result.Title)
+	t.Logf("Content length: %d", len(result.Content))
+	t.Logf("Markdown length: %d", len(*result.ContentMarkdown))
+}
+
+func TestParseFromStringWithoutOptions(t *testing.T) {
+	html := `<html><body><h1>Simple Test</h1><p>Content</p></body></html>`
+
+	result, err := ParseFromString(context.Background(), html, nil)
+	require.NoError(t, err, "ParseFromString with nil options failed")
+
+	assert.NotEmpty(t, result.Content, "Expected content to be extracted even with nil options")
+}
