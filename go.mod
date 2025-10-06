@@ -6,7 +6,7 @@ require (
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.4.0
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/go-json-experiment/json v0.0.0-20250910080747-cc2cfa0554c3
-	github.com/kaptinlin/requests v0.3.1
+	github.com/kaptinlin/requests v0.3.2
 	github.com/piprate/json-gold v0.7.0
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1

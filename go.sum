@@ -21,8 +21,8 @@ github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD
 github.com/google/go-querystring v1.1.0/go.mod h1:Kcdr2DB4koayq7X8pmAG4sNG59So17icRSOU623lUBU=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/kaptinlin/requests v0.3.1 h1:TYYiZcuTKNRhnf2eKm4DJw2jGjHRLRuUqhVj+z/up0k=
-github.com/kaptinlin/requests v0.3.1/go.mod h1:11ujPzl/BFpkQpwrCvCTFWHE/+mR+p48wUS4RMEgntY=
+github.com/kaptinlin/requests v0.3.2 h1:9w+s5V7E1tqJqAfJ4PE9xrumQzfMFXe/GQLtSaEc38U=
+github.com/kaptinlin/requests v0.3.2/go.mod h1:zWHh6UYAWETPJSyJ77/9xcKQVBpX9IR5U2/jNELJwRE=
 github.com/piprate/json-gold v0.7.0 h1:bEMirgA5y8Z2loTQfxyIFfY+EflxH1CTP6r/KIlcJNw=
 github.com/piprate/json-gold v0.7.0/go.mod h1:RVhE35veDX19r5gfUAR+IYHkAUuPwJO8Ie/qVeFaIzw=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
