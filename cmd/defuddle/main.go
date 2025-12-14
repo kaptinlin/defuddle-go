@@ -3,9 +3,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
-	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
