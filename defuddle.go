@@ -900,7 +900,7 @@ func (d *Defuddle) extractSchemaOrgData() interface{} {
 				slog.Debug("Failed to process schema.org JSON-LD",
 					"error", err,
 					"index", i,
-					"content_preview", cleanedContent[:minInt(len(cleanedContent), 100)])
+					"content_preview", cleanedContent[:min(len(cleanedContent), 100)])
 			}
 			return
 		}
@@ -958,7 +958,7 @@ func (d *Defuddle) cleanJSONLDContent(content string) string {
 
 	if content != "" && !isValidJSON {
 		if d.debug {
-			slog.Debug("Invalid JSON-LD format detected", "content_preview", content[:minInt(len(content), 50)])
+			slog.Debug("Invalid JSON-LD format detected", "content_preview", content[:min(len(content), 50)])
 		}
 		return ""
 	}
@@ -1639,12 +1639,4 @@ func (d *Defuddle) getElementIdentifier(element *goquery.Selection, tagName stri
 // convertHTMLToMarkdown converts HTML content to Markdown
 func (d *Defuddle) convertHTMLToMarkdown(htmlContent string) (string, error) {
 	return markdown.ConvertHTML(htmlContent)
-}
-
-// minInt returns the minimum of two integers
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

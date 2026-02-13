@@ -181,7 +181,7 @@ func (p *FootnoteProcessor) ProcessFootnotes(options *FootnoteProcessingOptions)
 //	  return footnotes;
 //	}
 func (p *FootnoteProcessor) detectFootnotes(options *FootnoteProcessingOptions) []*Footnote {
-	var footnotes []*Footnote
+	footnotes := make([]*Footnote, 0, 10)
 
 	// Detect existing footnote elements
 	existingFootnotes := p.detectExistingFootnotes(options)

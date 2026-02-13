@@ -1,5 +1,7 @@
 // Package debug provides debugging functionality for the defuddle content extraction system.
 // It tracks removed elements, processing steps, timing information, and parsing statistics.
+//
+//nolint:revive // Package name 'debug' is intentional and contextually appropriate for this library
 package debug
 
 import (
