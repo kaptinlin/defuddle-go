@@ -188,18 +188,15 @@ func (r *Registry) GetMappings() []ExtractorMapping {
 var (
 	// DefaultRegistry is the global registry instance that can be extended by users
 	DefaultRegistry = NewRegistry()
-	once            sync.Once
-)
 
-// InitializeBuiltins initializes all built-in extractors
-// TypeScript original code:
-//
-//	ExtractorRegistry.initialize();
-func InitializeBuiltins() {
-	once.Do(func() {
+	// InitializeBuiltins initializes all built-in extractors
+	// TypeScript original code:
+	//
+	//	ExtractorRegistry.initialize();
+	InitializeBuiltins = sync.OnceFunc(func() {
 		DefaultRegistry.initializeBuiltins()
 	})
-}
+)
 
 // initializeBuiltins registers all built-in extractors
 // TypeScript original code: initialize() method with all extractor registrations

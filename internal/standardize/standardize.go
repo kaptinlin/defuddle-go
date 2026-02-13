@@ -3,8 +3,10 @@
 package standardize
 
 import (
+	"cmp"
 	"log/slog"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -1010,16 +1012,10 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 			allElements = append(allElements, el)
 		})
 
-		// Sort by depth (simple approximation - count parents)
-		for i := 0; i < len(allElements); i++ {
-			for j := i + 1; j < len(allElements); j++ {
-				depthI := allElements[i].Parents().Length()
-				depthJ := allElements[j].Parents().Length()
-				if depthI < depthJ {
-					allElements[i], allElements[j] = allElements[j], allElements[i]
-				}
-			}
-		}
+		// Sort by depth descending (deepest first)
+		slices.SortFunc(allElements, func(a, b *goquery.Selection) int {
+			return cmp.Compare(b.Parents().Length(), a.Parents().Length())
+		})
 
 		for _, el := range allElements {
 			if processElement(el) {
@@ -1736,7 +1732,7 @@ func removeEmptyLines(element *goquery.Selection, _ *goquery.Document) {
 				nodeChildren = append(nodeChildren, child)
 			}
 
-			for i := 0; i < len(nodeChildren)-1; i++ {
+			for i := range len(nodeChildren) - 1 {
 				current := nodeChildren[i]
 				next := nodeChildren[i+1]
 
