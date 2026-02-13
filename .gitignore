@@ -8,82 +8,80 @@
 # Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Log files
+*.log
+
+# Output of the go coverage tool
 *.out
 
-# Dependency directories (remove the comment below to include it)
+# Dependency directories
 # vendor/
 
 # Go workspace file
 go.work
+go.work.sum
 
-# Build artifacts
-/bin/
-/dist/
-/build/
-
-# IDE and editor files
-.vscode/
+# IntelliJ files
 .idea/
-*.swp
-*.swo
-*~
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Coverage files
+cover.out
+cover.html
 
-# Logs
-*.log
-logs/
+# Local binary folder
+bin/
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+# Local build folder
+build/
 
-# Coverage directory used by tools like istanbul
-coverage/
+# Mac OS files
+**/.DS_Store
+
+# .ralphy
+.ralphy/deferred.json
+.ralphy/*.txt
+
+# todo files
+.todo
+TODO.md
+
+# Project-specific
+*.bench
+*.cache
 *.cover
 *.coverprofile
-
-# Benchmark results
-*.bench
-
-# Temporary files
-tmp/
-temp/
-.tmp/
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Documentation build
-docs/_build/
-
-# Test artifacts
-testdata/output/
-*.test.json
-
-# Profiling data
-*.prof
-*.pprof
-
-# Memory dumps
 *.mem
-
-# Local development
-local/
-.local/
-
-# Cache directories
+*.pid
+*.pid.lock
+*.pprof
+*.prof
+*.seed
+*.swo
+*.swp
+*.test.json
+*~
+.DS_Store
+.DS_Store?
+.Spotlight-V100
+.Trashes
+._*
 .cache/
-*.cache 
+.env
+.env.*.local
+.env.local
+.local/
+.tmp/
+.vscode/
+/bin/
+/build/
+/dist/
+Thumbs.db
+coverage/
+docs/_build/
+ehthumbs.db
+local/
+logs/
+pids
+temp/
+testdata/output/
+tmp/

@@ -25,7 +25,7 @@ A Go implementation of the [Defuddle](https://github.com/kepano/defuddle) TypeSc
 
 ## Requirements
 
-- Go 1.25 or higher
+- Go 1.26 or higher
 
 ## Installation
 
