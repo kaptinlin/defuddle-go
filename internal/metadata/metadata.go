@@ -258,21 +258,21 @@ func Extract(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag, baseU
 //	}
 func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
 	// Meta tags - typically expect a single string, possibly comma-separated
-	authorsString := getMetaContent(metaTags, "name", "sailthru.author")
-	if authorsString == "" {
-		authorsString = getMetaContent(metaTags, "property", "author")
+	authors := getMetaContent(metaTags, "name", "sailthru.author")
+	if authors == "" {
+		authors = getMetaContent(metaTags, "property", "author")
 	}
-	if authorsString == "" {
-		authorsString = getMetaContent(metaTags, "name", "author")
+	if authors == "" {
+		authors = getMetaContent(metaTags, "name", "author")
 	}
-	if authorsString == "" {
-		authorsString = getMetaContent(metaTags, "name", "byl")
+	if authors == "" {
+		authors = getMetaContent(metaTags, "name", "byl")
 	}
-	if authorsString == "" {
-		authorsString = getMetaContent(metaTags, "name", "authorList")
+	if authors == "" {
+		authors = getMetaContent(metaTags, "name", "authorList")
 	}
-	if authorsString != "" {
-		return authorsString
+	if authors != "" {
+		return authors
 	}
 
 	// Schema.org data - deduplicate if it's a list
@@ -301,7 +301,7 @@ func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) str
 	}
 
 	// DOM elements
-	var collectedAuthorsFromDOM []string
+	var domAuthors []string
 	addDomAuthor := func(value string) {
 		if value == "" {
 			return
@@ -311,7 +311,7 @@ func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) str
 			cleanedName := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(namePart), ","))
 			lowerCleanedName := strings.ToLower(cleanedName)
 			if cleanedName != "" && lowerCleanedName != "author" && lowerCleanedName != "authors" {
-				collectedAuthorsFromDOM = append(collectedAuthorsFromDOM, cleanedName)
+				domAuthors = append(domAuthors, cleanedName)
 			}
 		}
 	}
@@ -329,9 +329,9 @@ func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) str
 		})
 	}
 
-	if len(collectedAuthorsFromDOM) > 0 {
+	if len(domAuthors) > 0 {
 		var cleanAuthors []string
-		for _, name := range collectedAuthorsFromDOM {
+		for _, name := range domAuthors {
 			trimmed := strings.TrimSpace(name)
 			if trimmed != "" {
 				cleanAuthors = append(cleanAuthors, trimmed)
@@ -347,30 +347,30 @@ func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) str
 	}
 
 	// Fallback meta tags and schema properties
-	authorsString = getMetaContent(metaTags, "name", "copyright")
-	if authorsString == "" {
-		authorsString = getSchemaProperty(schemaOrgData, "copyrightHolder.name")
+	authors = getMetaContent(metaTags, "name", "copyright")
+	if authors == "" {
+		authors = getSchemaProperty(schemaOrgData, "copyrightHolder.name")
 	}
-	if authorsString == "" {
-		authorsString = getMetaContent(metaTags, "property", "og:site_name")
+	if authors == "" {
+		authors = getMetaContent(metaTags, "property", "og:site_name")
 	}
-	if authorsString == "" {
-		authorsString = getSchemaProperty(schemaOrgData, "publisher.name")
+	if authors == "" {
+		authors = getSchemaProperty(schemaOrgData, "publisher.name")
 	}
-	if authorsString == "" {
-		authorsString = getSchemaProperty(schemaOrgData, "sourceOrganization.name")
+	if authors == "" {
+		authors = getSchemaProperty(schemaOrgData, "sourceOrganization.name")
 	}
-	if authorsString == "" {
-		authorsString = getSchemaProperty(schemaOrgData, "isPartOf.name")
+	if authors == "" {
+		authors = getSchemaProperty(schemaOrgData, "isPartOf.name")
 	}
-	if authorsString == "" {
-		authorsString = getMetaContent(metaTags, "name", "twitter:creator")
+	if authors == "" {
+		authors = getMetaContent(metaTags, "name", "twitter:creator")
 	}
-	if authorsString == "" {
-		authorsString = getMetaContent(metaTags, "name", "application-name")
+	if authors == "" {
+		authors = getMetaContent(metaTags, "name", "application-name")
 	}
-	if authorsString != "" {
-		return authorsString
+	if authors != "" {
+		return authors
 	}
 
 	return ""

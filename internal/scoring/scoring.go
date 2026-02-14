@@ -38,6 +38,8 @@ type ContentScore struct {
 //			this.debug = debug;
 //		}
 //	}
+
+// ContentScorer handles content scoring and evaluation.
 type ContentScorer struct {
 	doc   *goquery.Document
 	debug bool
