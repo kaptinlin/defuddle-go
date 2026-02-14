@@ -17,7 +17,7 @@ type CustomBlogExtractor struct {
 }
 
 // NewCustomBlogExtractor creates a new custom blog extractor
-func NewCustomBlogExtractor(doc *goquery.Document, url string, schemaOrgData interface{}) extractors.BaseExtractor {
+func NewCustomBlogExtractor(doc *goquery.Document, url string, schemaOrgData any) extractors.BaseExtractor {
 	return &CustomBlogExtractor{
 		ExtractorBase: extractors.NewExtractorBase(doc, url, schemaOrgData),
 	}
@@ -65,7 +65,7 @@ func (e *CustomBlogExtractor) Extract() *extractors.ExtractorResult {
 func main() {
 	// Register custom extractor for blog.example.com
 	extractors.Register(extractors.ExtractorMapping{
-		Patterns:  []interface{}{"blog.example.com"},
+		Patterns:  []any{"blog.example.com"},
 		Extractor: NewCustomBlogExtractor,
 	})
 

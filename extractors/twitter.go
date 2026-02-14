@@ -90,7 +90,7 @@ type UserInfo struct {
 //			this.threadTweets = allTweets.slice(1);
 //		}
 //	}
-func NewTwitterExtractor(document *goquery.Document, url string, schemaOrgData interface{}) *TwitterExtractor {
+func NewTwitterExtractor(document *goquery.Document, url string, schemaOrgData any) *TwitterExtractor {
 	extractor := &TwitterExtractor{
 		ExtractorBase: NewExtractorBase(document, url, schemaOrgData),
 		threadTweets:  make([]*goquery.Selection, 0),
@@ -241,7 +241,7 @@ func (t *TwitterExtractor) Extract() *ExtractorResult {
 	return &ExtractorResult{
 		Content:     contentHTML.String(),
 		ContentHTML: contentHTML.String(),
-		ExtractedContent: map[string]interface{}{
+		ExtractedContent: map[string]any{
 			"tweetId":     tweetID,
 			"tweetAuthor": tweetAuthor,
 		},

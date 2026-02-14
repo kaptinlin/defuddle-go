@@ -43,7 +43,7 @@ type HackerNewsExtractor struct {
 //		this.isCommentPage = this.detectCommentPage();
 //		this.mainComment = this.isCommentPage ? this.findMainComment() : null;
 //	}
-func NewHackerNewsExtractor(document *goquery.Document, url string, schemaOrgData interface{}) *HackerNewsExtractor {
+func NewHackerNewsExtractor(document *goquery.Document, url string, schemaOrgData any) *HackerNewsExtractor {
 	extractor := &HackerNewsExtractor{
 		ExtractorBase: NewExtractorBase(document, url, schemaOrgData),
 	}
@@ -178,7 +178,7 @@ func (h *HackerNewsExtractor) Extract() *ExtractorResult {
 	return &ExtractorResult{
 		Content:     contentHTML,
 		ContentHTML: contentHTML,
-		ExtractedContent: map[string]interface{}{
+		ExtractedContent: map[string]any{
 			"postId":     postID,
 			"postAuthor": postAuthor,
 		},

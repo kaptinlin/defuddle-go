@@ -6,6 +6,7 @@ package elements
 import (
 	"log/slog"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -418,10 +419,8 @@ func (p *MathProcessor) isBlockDisplay(s *goquery.Selection) bool {
 
 	// Check CSS classes
 	blockClasses := []string{"MathJax_Display", "katex-display", "katex-block"}
-	for _, className := range blockClasses {
-		if s.HasClass(className) {
-			return true
-		}
+	if slices.ContainsFunc(blockClasses, s.HasClass) {
+		return true
 	}
 
 	// Check parent context (simplified heuristic)

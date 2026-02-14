@@ -182,7 +182,7 @@ type ChatGPTExtractor struct {
 //		this.footnotes = [];
 //		this.footnoteCounter = 0;
 //	}
-func NewChatGPTExtractor(document *goquery.Document, urlStr string, schemaOrgData interface{}) *ChatGPTExtractor {
+func NewChatGPTExtractor(document *goquery.Document, urlStr string, schemaOrgData any) *ChatGPTExtractor {
 	articles := document.Find(`article[data-testid^="conversation-turn-"]`)
 	slog.Debug("ChatGPT extractor initialized", "articlesFound", articles.Length(), "url", urlStr)
 
@@ -325,7 +325,7 @@ func (c *ChatGPTExtractor) ExtractMessages() []ConversationMessage {
 			messages = append(messages, ConversationMessage{
 				Author:  authorText,
 				Content: strings.TrimSpace(messageContent),
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"role": currentAuthorRole,
 				},
 			})

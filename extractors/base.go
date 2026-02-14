@@ -8,10 +8,10 @@ import (
 // ExtractorResult represents the result of content extraction
 // Corresponding to TypeScript interface ExtractorResult
 type ExtractorResult struct {
-	Content          string                 `json:"content"`
-	ContentHTML      string                 `json:"contentHtml"`
-	ExtractedContent map[string]interface{} `json:"extractedContent,omitempty"`
-	Variables        map[string]string      `json:"variables,omitempty"`
+	Content          string            `json:"content"`
+	ContentHTML      string            `json:"contentHtml"`
+	ExtractedContent map[string]any    `json:"extractedContent,omitempty"`
+	Variables        map[string]string `json:"variables,omitempty"`
 }
 
 // BaseExtractor defines the interface for site-specific extractors
@@ -43,7 +43,7 @@ type BaseExtractor interface {
 type ExtractorBase struct {
 	document      *goquery.Document
 	url           string
-	schemaOrgData interface{}
+	schemaOrgData any
 }
 
 // NewExtractorBase creates a new base extractor
@@ -54,7 +54,7 @@ type ExtractorBase struct {
 //		this.url = url;
 //		this.schemaOrgData = schemaOrgData;
 //	}
-func NewExtractorBase(document *goquery.Document, url string, schemaOrgData interface{}) *ExtractorBase {
+func NewExtractorBase(document *goquery.Document, url string, schemaOrgData any) *ExtractorBase {
 	return &ExtractorBase{
 		document:      document,
 		url:           url,
@@ -73,7 +73,7 @@ func (e *ExtractorBase) GetURL() string {
 }
 
 // GetSchemaOrgData returns the schema.org data
-func (e *ExtractorBase) GetSchemaOrgData() interface{} {
+func (e *ExtractorBase) GetSchemaOrgData() any {
 	return e.schemaOrgData
 }
 

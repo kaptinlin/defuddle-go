@@ -66,22 +66,23 @@ var elementStandardizationRules = []StandardizationRule{
 			html, _ := el.Html()
 
 			// Build new paragraph HTML
-			newHTML := "<p"
+			var newHTML strings.Builder
+			newHTML.WriteString("<p")
 
 			// Copy allowed attributes (except role)
 			if el.Length() > 0 {
 				node := el.Get(0)
 				for _, attr := range node.Attr {
 					if constants.IsAllowedAttribute(attr.Key) && attr.Key != "role" {
-						newHTML += ` ` + attr.Key + `="` + attr.Val + `"`
+						newHTML.WriteString(` ` + attr.Key + `="` + attr.Val + `"`)
 					}
 				}
 			}
 
-			newHTML += ">" + html + "</p>"
+			newHTML.WriteString(">" + html + "</p>")
 
 			// Replace the element with the new HTML
-			el.ReplaceWithHtml(newHTML)
+			el.ReplaceWithHtml(newHTML.String())
 
 			// Return nil to indicate we handled the replacement
 			return nil
@@ -378,20 +379,21 @@ func standardizeHeadings(element *goquery.Selection, title string, _ *goquery.Do
 		html, _ := h1.Html()
 
 		// Create new H2 element
-		newH2 := "<h2"
+		var newH2 strings.Builder
+		newH2.WriteString("<h2")
 
 		// Copy allowed attributes
 		if h1.Length() > 0 {
 			node := h1.Get(0)
 			for _, attr := range node.Attr {
 				if constants.IsAllowedAttribute(attr.Key) {
-					newH2 += ` ` + attr.Key + `="` + attr.Val + `"`
+					newH2.WriteString(` ` + attr.Key + `="` + attr.Val + `"`)
 				}
 			}
 		}
 
-		newH2 += ">" + html + "</h2>"
-		h1.ReplaceWithHtml(newH2)
+		newH2.WriteString(">" + html + "</h2>")
+		h1.ReplaceWithHtml(newH2.String())
 	})
 
 	// Remove first H2 if it matches title
@@ -500,20 +502,21 @@ func standardizeElements(element *goquery.Selection, doc *goquery.Document) {
 			} else {
 				// Default transformation
 				html, _ := el.Html()
-				newElementHTML := "<" + rule.Element
+				var newElementHTML strings.Builder
+				newElementHTML.WriteString("<" + rule.Element)
 
 				// Copy allowed attributes
 				if el.Length() > 0 {
 					node := el.Get(0)
 					for _, attr := range node.Attr {
 						if constants.IsAllowedAttribute(attr.Key) {
-							newElementHTML += ` ` + attr.Key + `="` + attr.Val + `"`
+							newElementHTML.WriteString(` ` + attr.Key + `="` + attr.Val + `"`)
 						}
 					}
 				}
 
-				newElementHTML += ">" + html + "</" + rule.Element + ">"
-				el.ReplaceWithHtml(newElementHTML)
+				newElementHTML.WriteString(">" + html + "</" + rule.Element + ">")
+				el.ReplaceWithHtml(newElementHTML.String())
 				processedCount++
 			}
 		})
@@ -668,11 +671,8 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 			} else {
 				tagName := goquery.NodeName(child)
 				inlineElements := constants.GetInlineElements()
-				for _, inline := range inlineElements {
-					if inline == tagName {
-						hasInlineContent = true
-						break
-					}
+				if slices.Contains(inlineElements, tagName) {
+					hasInlineContent = true
 				}
 			}
 		})
@@ -690,10 +690,8 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 		// Check for semantic roles
 		role, _ := el.Attr("role")
 		semanticRoles := []string{"article", "main", "navigation", "banner", "contentinfo"}
-		for _, semanticRole := range semanticRoles {
-			if role == semanticRole {
-				return true
-			}
+		if slices.Contains(semanticRoles, role) {
+			return true
 		}
 
 		// Check for semantic classes
@@ -745,23 +743,12 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 		children.Each(func(_ int, child *goquery.Selection) {
 			tag := goquery.NodeName(child)
-			isBlock := false
-
-			// Check standard block elements
-			for _, block := range blockElements {
-				if block == tag {
-					isBlock = true
-					break
-				}
-			}
+			isBlock := slices.Contains(blockElements, tag)
 
 			// Check additional block elements
 			if !isBlock {
-				for _, block := range additionalBlocks {
-					if block == tag {
-						isBlock = true
-						break
-					}
+				if slices.Contains(additionalBlocks, tag) {
+					isBlock = true
 				}
 			}
 
@@ -802,11 +789,8 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 		children.Each(func(_ int, child *goquery.Selection) {
 			tag := goquery.NodeName(child)
-			for _, inline := range inlineElements {
-				if inline == tag {
-					hasOnlyBlockElements = false
-					break
-				}
+			if slices.Contains(inlineElements, tag) {
+				hasOnlyBlockElements = false
 			}
 		})
 
@@ -824,13 +808,7 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 		// Case 1: Element is truly empty (no text content, no child elements) and not self-closing
 		allowedEmptyElements := constants.GetAllowedEmptyElements()
-		isAllowedEmpty := false
-		for _, allowed := range allowedEmptyElements {
-			if allowed == tagName {
-				isAllowedEmpty = true
-				break
-			}
-		}
+		isAllowedEmpty := slices.Contains(allowedEmptyElements, tagName)
 
 		if !isAllowedEmpty && el.Children().Length() == 0 && strings.TrimSpace(el.Text()) == "" {
 			el.Remove()
@@ -846,11 +824,8 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 			children.Each(func(_ int, child *goquery.Selection) {
 				tag := goquery.NodeName(child)
-				for _, inline := range inlineElements {
-					if inline == tag {
-						hasOnlyBlockElements = false
-						break
-					}
+				if slices.Contains(inlineElements, tag) {
+					hasOnlyBlockElements = false
 				}
 			})
 
@@ -871,11 +846,8 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 			children.Each(func(_ int, child *goquery.Selection) {
 				tag := goquery.NodeName(child)
-				for _, inline := range inlineElements {
-					if inline == tag {
-						onlyBlockElements = false
-						break
-					}
+				if slices.Contains(inlineElements, tag) {
+					onlyBlockElements = false
 				}
 			})
 
@@ -906,13 +878,7 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 				}
 			} else {
 				tag := goquery.NodeName(child)
-				isInline := false
-				for _, inline := range inlineElements {
-					if inline == tag {
-						isInline = true
-						break
-					}
-				}
+				isInline := slices.Contains(inlineElements, tag)
 				if !isInline {
 					hasOnlyInlineOrText = false
 				}
@@ -934,13 +900,7 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 			// Only unwrap if the single child is a block element and not preserved
 			blockElements := constants.GetBlockElements()
-			isBlockChild := false
-			for _, block := range blockElements {
-				if block == childTag {
-					isBlockChild = true
-					break
-				}
-			}
+			isBlockChild := slices.Contains(blockElements, childTag)
 
 			if isBlockChild && !shouldPreserveElement(child) {
 				childHTML, _ := child.Html()
@@ -957,11 +917,8 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 		for parent.Length() > 0 {
 			parentTag := goquery.NodeName(parent)
-			for _, block := range blockElements {
-				if block == parentTag {
-					nestingDepth++
-					break
-				}
+			if slices.Contains(blockElements, parentTag) {
+				nestingDepth++
 			}
 			parent = parent.Parent()
 		}
@@ -984,13 +941,7 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 		element.Children().Each(func(_ int, el *goquery.Selection) {
 			tag := goquery.NodeName(el)
-			isBlock := false
-			for _, block := range blockElements {
-				if block == tag {
-					isBlock = true
-					break
-				}
-			}
+			isBlock := slices.Contains(blockElements, tag)
 
 			if isBlock && processElement(el) {
 				modified = true
@@ -1679,22 +1630,13 @@ func removeEmptyLines(element *goquery.Selection, _ *goquery.Document) {
 
 		// Determine if this is a block element (simplified check)
 		blockElements := constants.GetBlockElements()
-		isBlockElement := false
-		for _, block := range blockElements {
-			if block == tag {
-				isBlockElement = true
-				break
-			}
-		}
+		isBlockElement := slices.Contains(blockElements, tag)
 
 		// Additional block elements
 		additionalBlocks := []string{"p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "pre", "blockquote", "figure"}
 		if !isBlockElement {
-			for _, block := range additionalBlocks {
-				if block == tag {
-					isBlockElement = true
-					break
-				}
+			if slices.Contains(additionalBlocks, tag) {
+				isBlockElement = true
 			}
 		}
 

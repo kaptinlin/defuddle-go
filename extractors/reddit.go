@@ -36,7 +36,7 @@ type RedditExtractor struct {
 //		super(document, url);
 //		this.shredditPost = document.querySelector('shreddit-post');
 //	}
-func NewRedditExtractor(document *goquery.Document, url string, schemaOrgData interface{}) *RedditExtractor {
+func NewRedditExtractor(document *goquery.Document, url string, schemaOrgData any) *RedditExtractor {
 	shredditPost := document.Find("shreddit-post").First()
 
 	slog.Debug("Reddit extractor initialized",
@@ -141,7 +141,7 @@ func (r *RedditExtractor) Extract() *ExtractorResult {
 	return &ExtractorResult{
 		Content:     contentHTML,
 		ContentHTML: contentHTML,
-		ExtractedContent: map[string]interface{}{
+		ExtractedContent: map[string]any{
 			"postId":     postID,
 			"subreddit":  subreddit,
 			"postAuthor": postAuthor,

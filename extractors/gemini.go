@@ -154,7 +154,7 @@ type GeminiExtractor struct {
 //		this.conversationContainers = document.querySelectorAll('div.conversation-container');
 //		this.footnotes = [];
 //	}
-func NewGeminiExtractor(document *goquery.Document, urlStr string, schemaOrgData interface{}) *GeminiExtractor {
+func NewGeminiExtractor(document *goquery.Document, urlStr string, schemaOrgData any) *GeminiExtractor {
 	conversationContainers := document.Find("div.conversation-container")
 	slog.Debug("Gemini extractor initialized", "containersFound", conversationContainers.Length(), "url", urlStr)
 
@@ -268,7 +268,7 @@ func (g *GeminiExtractor) ExtractMessages() []ConversationMessage {
 					messages = append(messages, ConversationMessage{
 						Author:  "You",
 						Content: strings.TrimSpace(content),
-						Metadata: map[string]interface{}{
+						Metadata: map[string]any{
 							"role": "user",
 						},
 					})
@@ -300,7 +300,7 @@ func (g *GeminiExtractor) ExtractMessages() []ConversationMessage {
 					messages = append(messages, ConversationMessage{
 						Author:  "Gemini",
 						Content: strings.TrimSpace(cleanedContent),
-						Metadata: map[string]interface{}{
+						Metadata: map[string]any{
 							"role": "assistant",
 						},
 					})

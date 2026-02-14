@@ -42,17 +42,17 @@ type MetaTag struct {
 //	  wordCount: number;
 //	}
 type Metadata struct {
-	Title         string      `json:"title"`
-	Description   string      `json:"description"`
-	Domain        string      `json:"domain"`
-	Favicon       string      `json:"favicon"`
-	Image         string      `json:"image"`
-	ParseTime     int64       `json:"parseTime"`
-	Published     string      `json:"published"`
-	Author        string      `json:"author"`
-	Site          string      `json:"site"`
-	SchemaOrgData interface{} `json:"schemaOrgData"`
-	WordCount     int         `json:"wordCount"`
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	Domain        string `json:"domain"`
+	Favicon       string `json:"favicon"`
+	Image         string `json:"image"`
+	ParseTime     int64  `json:"parseTime"`
+	Published     string `json:"published"`
+	Author        string `json:"author"`
+	Site          string `json:"site"`
+	SchemaOrgData any    `json:"schemaOrgData"`
+	WordCount     int    `json:"wordCount"`
 }
 
 // Extract extracts metadata from a document
@@ -111,7 +111,7 @@ type Metadata struct {
 //	    parseTime: 0
 //	  };
 //	}
-func Extract(doc *goquery.Document, schemaOrgData interface{}, metaTags []MetaTag, baseURL string) *Metadata {
+func Extract(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag, baseURL string) *Metadata {
 	domain := ""
 	documentURL := baseURL
 
@@ -256,7 +256,7 @@ func Extract(doc *goquery.Document, schemaOrgData interface{}, metaTags []MetaTa
 //
 //	  return '';
 //	}
-func getAuthor(doc *goquery.Document, schemaOrgData interface{}, metaTags []MetaTag) string {
+func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
 	// Meta tags - typically expect a single string, possibly comma-separated
 	authorsString := getMetaContent(metaTags, "name", "sailthru.author")
 	if authorsString == "" {
@@ -306,8 +306,8 @@ func getAuthor(doc *goquery.Document, schemaOrgData interface{}, metaTags []Meta
 		if value == "" {
 			return
 		}
-		parts := strings.Split(value, ",")
-		for _, namePart := range parts {
+		parts := strings.SplitSeq(value, ",")
+		for namePart := range parts {
 			cleanedName := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(namePart), ","))
 			lowerCleanedName := strings.ToLower(cleanedName)
 			if cleanedName != "" && lowerCleanedName != "author" && lowerCleanedName != "authors" {
@@ -393,7 +393,7 @@ func getAuthor(doc *goquery.Document, schemaOrgData interface{}, metaTags []Meta
 //	    ''
 //	  );
 //	}
-func getSite(doc *goquery.Document, schemaOrgData interface{}, metaTags []MetaTag) string {
+func getSite(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
 	site := getSchemaProperty(schemaOrgData, "publisher.name")
 	if site == "" {
 		site = getMetaContent(metaTags, "property", "og:site_name")
@@ -438,7 +438,7 @@ func getSite(doc *goquery.Document, schemaOrgData interface{}, metaTags []MetaTa
 //
 //	  return this.cleanTitle(rawTitle, this.getSite(doc, schemaOrgData, metaTags));
 //	}
-func getTitle(doc *goquery.Document, schemaOrgData interface{}, metaTags []MetaTag) string {
+func getTitle(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
 	rawTitle := getMetaContent(metaTags, "property", "og:title")
 	if rawTitle == "" {
 		rawTitle = getMetaContent(metaTags, "name", "twitter:title")
@@ -522,7 +522,7 @@ func cleanTitle(title, siteName string) string {
 //	    ''
 //	  );
 //	}
-func getDescription(_ *goquery.Document, schemaOrgData interface{}, metaTags []MetaTag) string {
+func getDescription(_ *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
 	description := getMetaContent(metaTags, "name", "description")
 	if description == "" {
 		description = getMetaContent(metaTags, "property", "description")
@@ -556,7 +556,7 @@ func getDescription(_ *goquery.Document, schemaOrgData interface{}, metaTags []M
 //	    ''
 //	  );
 //	}
-func getImage(_ *goquery.Document, schemaOrgData interface{}, metaTags []MetaTag) string {
+func getImage(_ *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
 	image := getMetaContent(metaTags, "property", "og:image")
 	if image == "" {
 		image = getMetaContent(metaTags, "name", "twitter:image")
@@ -644,7 +644,7 @@ func getFavicon(doc *goquery.Document, baseURL string, metaTags []MetaTag) strin
 //	    ''
 //	  );
 //	}
-func getPublished(doc *goquery.Document, schemaOrgData interface{}, metaTags []MetaTag) string {
+func getPublished(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
 	published := getSchemaProperty(schemaOrgData, "datePublished")
 	if published == "" {
 		published = getMetaContent(metaTags, "property", "article:published_time")
@@ -778,13 +778,13 @@ func getTimeElement(doc *goquery.Document) string {
 //	    return defaultValue;
 //	  }
 //	}
-func getSchemaProperty(schemaOrgData interface{}, property string) string {
+func getSchemaProperty(schemaOrgData any, property string) string {
 	if schemaOrgData == nil {
 		return ""
 	}
 
-	var searchSchema func(data interface{}, props []string, isExactMatch bool) []string
-	searchSchema = func(data interface{}, props []string, isExactMatch bool) []string {
+	var searchSchema func(data any, props []string, isExactMatch bool) []string
+	searchSchema = func(data any, props []string, isExactMatch bool) []string {
 		// Handle string data
 		if str, ok := data.(string); ok {
 			if len(props) == 0 {
@@ -799,7 +799,7 @@ func getSchemaProperty(schemaOrgData interface{}, property string) string {
 		}
 
 		// Handle arrays
-		if arr, ok := data.([]interface{}); ok {
+		if arr, ok := data.([]any); ok {
 			if len(props) > 0 {
 				currentProp := props[0]
 				// Handle array index notation like [0]
@@ -837,7 +837,7 @@ func getSchemaProperty(schemaOrgData interface{}, property string) string {
 		}
 
 		// Handle maps/objects
-		if obj, ok := data.(map[string]interface{}); ok {
+		if obj, ok := data.(map[string]any); ok {
 			if len(props) == 0 {
 				if str, ok := obj["name"].(string); ok {
 					return []string{str}
@@ -860,7 +860,7 @@ func getSchemaProperty(schemaOrgData interface{}, property string) string {
 			if !isExactMatch {
 				var nestedResults []string
 				for _, value := range obj {
-					if _, ok := value.(map[string]interface{}); ok {
+					if _, ok := value.(map[string]any); ok {
 						results := searchSchema(value, props, false)
 						nestedResults = append(nestedResults, results...)
 					}

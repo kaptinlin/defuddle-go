@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -719,12 +720,7 @@ func (p *CodeBlockProcessor) isCodeLanguage(lang string) bool {
 
 // hasClass checks if a class exists in the class list
 func (p *CodeBlockProcessor) hasClass(classNames []string, targetClass string) bool {
-	for _, className := range classNames {
-		if className == targetClass {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(classNames, targetClass)
 }
 
 // ProcessCodeBlocks processes all code blocks in the document (public interface)

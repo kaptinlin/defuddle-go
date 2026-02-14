@@ -15,10 +15,10 @@ var paragraphRegex = regexp.MustCompile(`<p[^>]*>[\s\S]*?</p>`)
 // ConversationMessage represents a single message in a conversation
 // Corresponding to TypeScript interface ConversationMessage
 type ConversationMessage struct {
-	Author    string                 `json:"author"`
-	Content   string                 `json:"content"`
-	Timestamp string                 `json:"timestamp,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Author    string         `json:"author"`
+	Content   string         `json:"content"`
+	Timestamp string         `json:"timestamp,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // ConversationMetadata represents metadata about the conversation
@@ -67,7 +67,7 @@ type ConversationExtractorBase struct {
 //	constructor(document: Document, url: string, schemaOrgData?: any) {
 //		super(document, url, schemaOrgData);
 //	}
-func NewConversationExtractorBase(document *goquery.Document, url string, schemaOrgData interface{}) *ConversationExtractorBase {
+func NewConversationExtractorBase(document *goquery.Document, url string, schemaOrgData any) *ConversationExtractorBase {
 	return &ConversationExtractorBase{
 		ExtractorBase: NewExtractorBase(document, url, schemaOrgData),
 	}
@@ -246,7 +246,7 @@ func (c *ConversationExtractorBase) ExtractWithDefuddle(extractor ConversationEx
 	return &ExtractorResult{
 		Content:     contentHTML,
 		ContentHTML: contentHTML,
-		ExtractedContent: map[string]interface{}{
+		ExtractedContent: map[string]any{
 			"messageCount": strconv.Itoa(len(messages)),
 		},
 		Variables: map[string]string{

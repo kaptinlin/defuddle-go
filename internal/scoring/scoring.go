@@ -5,6 +5,7 @@ package scoring
 import (
 	"log/slog"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -594,10 +595,8 @@ func isLikelyContent(element *goquery.Selection) bool {
 	role, _ := element.Attr("role")
 	if role != "" {
 		contentRoles := []string{"article", "main", "contentinfo"}
-		for _, contentRole := range contentRoles {
-			if role == contentRole {
-				return true
-			}
+		if slices.Contains(contentRoles, role) {
+			return true
 		}
 	}
 

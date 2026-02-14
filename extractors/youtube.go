@@ -65,7 +65,7 @@ type YouTubeExtractor struct {
 //		this.videoElement = document.querySelector('video');
 //		this.schemaOrgData = schemaOrgData;
 //	}
-func NewYouTubeExtractor(document *goquery.Document, url string, schemaOrgData interface{}) *YouTubeExtractor {
+func NewYouTubeExtractor(document *goquery.Document, url string, schemaOrgData any) *YouTubeExtractor {
 	extractor := &YouTubeExtractor{
 		ExtractorBase: NewExtractorBase(document, url, schemaOrgData),
 	}
@@ -161,7 +161,7 @@ func (y *YouTubeExtractor) Extract() *ExtractorResult {
 	return &ExtractorResult{
 		Content:     contentHTML,
 		ContentHTML: contentHTML,
-		ExtractedContent: map[string]interface{}{
+		ExtractedContent: map[string]any{
 			"videoId": videoID,
 			"author":  author,
 		},
@@ -188,18 +188,18 @@ func (y *YouTubeExtractor) Extract() *ExtractorResult {
 //
 //		return videoData || {};
 //	}
-func (y *YouTubeExtractor) getVideoData() map[string]interface{} {
+func (y *YouTubeExtractor) getVideoData() map[string]any {
 	if y.schemaOrgData == nil {
 		slog.Debug("YouTube extractor: no schema.org data available")
-		return make(map[string]interface{})
+		return make(map[string]any)
 	}
 
 	// Handle both single object and array of objects
 	switch data := y.schemaOrgData.(type) {
-	case []interface{}:
+	case []any:
 		// Find VideoObject in array
 		for _, item := range data {
-			if itemMap, ok := item.(map[string]interface{}); ok {
+			if itemMap, ok := item.(map[string]any); ok {
 				if itemType, exists := itemMap["@type"]; exists && itemType == "VideoObject" {
 					slog.Debug("YouTube extractor: found VideoObject in array", "hasVideoData", true)
 					return itemMap
@@ -207,7 +207,7 @@ func (y *YouTubeExtractor) getVideoData() map[string]interface{} {
 			}
 		}
 		slog.Debug("YouTube extractor: no VideoObject found in schema.org array")
-	case map[string]interface{}:
+	case map[string]any:
 		// Check if it's a VideoObject
 		if itemType, exists := data["@type"]; exists && itemType == "VideoObject" {
 			slog.Debug("YouTube extractor: found VideoObject", "hasVideoData", true)
@@ -220,7 +220,7 @@ func (y *YouTubeExtractor) getVideoData() map[string]interface{} {
 		slog.Debug("YouTube extractor: unexpected schema.org data type", "type", fmt.Sprintf("%T", data))
 	}
 
-	return make(map[string]interface{})
+	return make(map[string]any)
 }
 
 // getVideoID extracts the video ID from the URL
@@ -268,7 +268,7 @@ func (y *YouTubeExtractor) getVideoID() string {
 //		// Remove " - YouTube" suffix if present
 //		return title.replace(/ - YouTube$/, '');
 //	}
-func (y *YouTubeExtractor) getTitle(videoData map[string]interface{}) string {
+func (y *YouTubeExtractor) getTitle(videoData map[string]any) string {
 	if name, exists := videoData["name"]; exists {
 		if nameStr, ok := name.(string); ok && nameStr != "" {
 			slog.Debug("YouTube extractor: using title from schema.org", "title", nameStr)
@@ -291,7 +291,7 @@ func (y *YouTubeExtractor) getTitle(videoData map[string]interface{}) string {
 //	private getAuthor(videoData: any): string {
 //		return videoData.author || '';
 //	}
-func (y *YouTubeExtractor) getAuthor(videoData map[string]interface{}) string {
+func (y *YouTubeExtractor) getAuthor(videoData map[string]any) string {
 	if author, exists := videoData["author"]; exists {
 		if authorStr, ok := author.(string); ok {
 			return authorStr
@@ -312,7 +312,7 @@ func (y *YouTubeExtractor) getAuthor(videoData map[string]interface{}) string {
 //		const descElement = this.document.querySelector('#description');
 //		return descElement ? descElement.textContent || '' : '';
 //	}
-func (y *YouTubeExtractor) getDescription(videoData map[string]interface{}) string {
+func (y *YouTubeExtractor) getDescription(videoData map[string]any) string {
 	if description, exists := videoData["description"]; exists {
 		if descStr, ok := description.(string); ok && descStr != "" {
 			slog.Debug("YouTube extractor: using description from schema.org", "descriptionLength", len(descStr))
@@ -338,7 +338,7 @@ func (y *YouTubeExtractor) getDescription(videoData map[string]interface{}) stri
 //	private getPublished(videoData: any): string {
 //		return videoData.uploadDate || '';
 //	}
-func (y *YouTubeExtractor) getPublished(videoData map[string]interface{}) string {
+func (y *YouTubeExtractor) getPublished(videoData map[string]any) string {
 	if uploadDate, exists := videoData["uploadDate"]; exists {
 		if dateStr, ok := uploadDate.(string); ok {
 			return dateStr
@@ -359,10 +359,10 @@ func (y *YouTubeExtractor) getPublished(videoData map[string]interface{}) string
 //		const videoId = this.getVideoId();
 //		return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '';
 //	}
-func (y *YouTubeExtractor) getThumbnail(videoData map[string]interface{}) string {
+func (y *YouTubeExtractor) getThumbnail(videoData map[string]any) string {
 	if thumbnailURL, exists := videoData["thumbnailUrl"]; exists {
 		switch thumb := thumbnailURL.(type) {
-		case []interface{}:
+		case []any:
 			if len(thumb) > 0 {
 				if thumbStr, ok := thumb[0].(string); ok {
 					slog.Debug("YouTube extractor: using thumbnail from schema.org array", "thumbnailUrl", thumbStr)

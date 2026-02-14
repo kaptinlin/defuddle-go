@@ -12,7 +12,7 @@ import (
 // NodeSlicePool provides pooled slices for goquery selections
 // This helps reduce memory allocations during DOM traversal
 var NodeSlicePool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		// Pre-allocate with reasonable capacity
 		return make([]*goquery.Selection, 0, 100)
 	},
@@ -21,7 +21,7 @@ var NodeSlicePool = sync.Pool{
 // StringBuilderPool provides pooled string builders
 // This helps reduce memory allocations during string concatenation
 var StringBuilderPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &strings.Builder{}
 	},
 }
@@ -29,7 +29,7 @@ var StringBuilderPool = sync.Pool{
 // StringSlicePool provides pooled string slices
 // This helps reduce memory allocations during string processing
 var StringSlicePool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return make([]string, 0, 50)
 	},
 }

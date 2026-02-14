@@ -867,12 +867,12 @@ func (d *Defuddle) countWords(content string) int {
 //
 //	  return schemaItems;
 //	}
-func (d *Defuddle) extractSchemaOrgData() interface{} {
+func (d *Defuddle) extractSchemaOrgData() any {
 	processor := ld.NewJsonLdProcessor()
 	options := ld.NewJsonLdOptions("")
 	options.ProcessingMode = ld.JsonLd_1_1
 
-	var allSchemaItems []interface{}
+	var allSchemaItems []any
 
 	if d.debugger.IsEnabled() {
 		d.debugger.StartTimer("schema_extraction")
@@ -970,9 +970,9 @@ func (d *Defuddle) cleanJSONLDContent(content string) string {
 // JavaScript original code:
 //
 //	// Standard JSON-LD processing with context expansion and validation
-func (d *Defuddle) processSchemaOrgData(processor *ld.JsonLdProcessor, options *ld.JsonLdOptions, jsonContent string) (interface{}, error) {
+func (d *Defuddle) processSchemaOrgData(processor *ld.JsonLdProcessor, options *ld.JsonLdOptions, jsonContent string) (any, error) {
 	// Parse raw JSON first
-	var rawData interface{}
+	var rawData any
 	if err := json.Unmarshal([]byte(jsonContent), &rawData); err != nil {
 		return nil, fmt.Errorf("invalid JSON syntax: %w", err)
 	}
@@ -985,7 +985,7 @@ func (d *Defuddle) processSchemaOrgData(processor *ld.JsonLdProcessor, options *
 
 	// If expansion succeeded, try to compact with schema.org context for cleaner output
 	if len(expanded) > 0 {
-		schemaContext := map[string]interface{}{
+		schemaContext := map[string]any{
 			"@context": "https://schema.org/",
 		}
 
@@ -1008,14 +1008,14 @@ func (d *Defuddle) processSchemaOrgData(processor *ld.JsonLdProcessor, options *
 // JavaScript original code:
 //
 //	// Handle both single items and @graph arrays
-func (d *Defuddle) extractSchemaItems(data interface{}) []interface{} {
-	var items []interface{}
+func (d *Defuddle) extractSchemaItems(data any) []any {
+	var items []any
 
 	switch typedData := data.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		// Check for @graph property (common in schema.org JSON-LD)
 		if graph, exists := typedData["@graph"]; exists {
-			if graphArray, ok := graph.([]interface{}); ok {
+			if graphArray, ok := graph.([]any); ok {
 				items = append(items, graphArray...)
 			} else {
 				items = append(items, graph)
@@ -1025,7 +1025,7 @@ func (d *Defuddle) extractSchemaItems(data interface{}) []interface{} {
 			items = append(items, typedData)
 		}
 
-	case []interface{}:
+	case []any:
 		// Array of items (from JSON-LD expansion)
 		items = append(items, typedData...)
 
@@ -1035,7 +1035,7 @@ func (d *Defuddle) extractSchemaItems(data interface{}) []interface{} {
 	}
 
 	// Filter and validate schema items
-	var validItems []interface{}
+	var validItems []any
 	for _, item := range items {
 		if d.isValidSchemaItem(item) {
 			validItems = append(validItems, item)
@@ -1049,14 +1049,14 @@ func (d *Defuddle) extractSchemaItems(data interface{}) []interface{} {
 // JavaScript original code:
 //
 //	// Check for @type or other schema.org indicators
-func (d *Defuddle) isValidSchemaItem(item interface{}) bool {
-	itemMap, ok := item.(map[string]interface{})
+func (d *Defuddle) isValidSchemaItem(item any) bool {
+	itemMap, ok := item.(map[string]any)
 	if !ok {
 		return false
 	}
 
 	// Check for @type or type property (required for schema.org items)
-	var itemType interface{}
+	var itemType any
 	var exists bool
 	if itemType, exists = itemMap["@type"]; !exists {
 		itemType, exists = itemMap["type"]
@@ -1066,7 +1066,7 @@ func (d *Defuddle) isValidSchemaItem(item interface{}) bool {
 		switch typedValue := itemType.(type) {
 		case string:
 			return typedValue != ""
-		case []interface{}:
+		case []any:
 			return len(typedValue) > 0
 		}
 	}
@@ -1096,13 +1096,13 @@ func (d *Defuddle) isValidSchemaItem(item interface{}) bool {
 // JavaScript original code:
 //
 //	// Helper for debugging and logging
-func (d *Defuddle) countSchemaTypes(items []interface{}) int {
+func (d *Defuddle) countSchemaTypes(items []any) int {
 	typeSet := make(map[string]bool)
 
 	for _, item := range items {
-		if itemMap, ok := item.(map[string]interface{}); ok {
+		if itemMap, ok := item.(map[string]any); ok {
 			// Check both @type and type (after JSON-LD processing)
-			var itemType interface{}
+			var itemType any
 			var exists bool
 			if itemType, exists = itemMap["@type"]; !exists {
 				itemType, exists = itemMap["type"]
@@ -1112,7 +1112,7 @@ func (d *Defuddle) countSchemaTypes(items []interface{}) int {
 				switch typedValue := itemType.(type) {
 				case string:
 					typeSet[typedValue] = true
-				case []interface{}:
+				case []any:
 					for _, t := range typedValue {
 						if typeStr, ok := t.(string); ok {
 							typeSet[typeStr] = true

@@ -42,7 +42,7 @@ type GitHubExtractor struct {
 }
 
 // NewGitHubExtractor creates a new GitHub extractor
-func NewGitHubExtractor(document *goquery.Document, url string, schemaOrgData interface{}) *GitHubExtractor {
+func NewGitHubExtractor(document *goquery.Document, url string, schemaOrgData any) *GitHubExtractor {
 	extractor := &GitHubExtractor{
 		ExtractorBase: NewExtractorBase(document, url, schemaOrgData),
 	}
@@ -232,7 +232,7 @@ func (g *GitHubExtractor) extractIssue() *ExtractorResult {
 	return &ExtractorResult{
 		Content:     contentHTML,
 		ContentHTML: contentHTML,
-		ExtractedContent: map[string]interface{}{
+		ExtractedContent: map[string]any{
 			"type":        "issue",
 			"issueNumber": issueNumber,
 			"repository":  repoInfo["repo"],

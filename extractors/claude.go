@@ -120,7 +120,7 @@ type ClaudeExtractor struct {
 //		// Find all message blocks - both user and assistant messages
 //		this.articles = document.querySelectorAll('div[data-testid="user-message"], div[data-testid="assistant-message"], div.font-claude-message');
 //	}
-func NewClaudeExtractor(document *goquery.Document, urlStr string, schemaOrgData interface{}) *ClaudeExtractor {
+func NewClaudeExtractor(document *goquery.Document, urlStr string, schemaOrgData any) *ClaudeExtractor {
 	// Primary selectors from TypeScript reference
 	articles := document.Find(`div[data-testid="user-message"], div[data-testid="assistant-message"], div.font-claude-message`)
 
@@ -267,7 +267,7 @@ func (c *ClaudeExtractor) ExtractMessages() []ConversationMessage {
 			messages = append(messages, ConversationMessage{
 				Author:  author,
 				Content: strings.TrimSpace(content),
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"role": role,
 				},
 			})

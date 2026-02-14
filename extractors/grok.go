@@ -48,7 +48,7 @@ type GrokExtractor struct {
 //		this.footnotes = [];
 //		this.footnoteCounter = 0;
 //	}
-func NewGrokExtractor(document *goquery.Document, urlStr string, schemaOrgData interface{}) *GrokExtractor {
+func NewGrokExtractor(document *goquery.Document, urlStr string, schemaOrgData any) *GrokExtractor {
 	// Note: This selector relies heavily on CSS utility classes and may break if Grok's UI changes.
 	messageContainerSelector := ".relative.group.flex.flex-col.justify-center.w-full"
 	messageBubbles := document.Find(messageContainerSelector)
@@ -242,7 +242,7 @@ func (g *GrokExtractor) ExtractMessages() []ConversationMessage {
 			messages = append(messages, ConversationMessage{
 				Author:  author,
 				Content: strings.TrimSpace(content),
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"role": role,
 				},
 			})
