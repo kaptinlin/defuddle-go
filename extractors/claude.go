@@ -169,7 +169,7 @@ func (c *ClaudeExtractor) CanExtract() bool {
 	return canExtract
 }
 
-// GetName returns the name of the extractor
+// Name returns the name of the extractor
 func (c *ClaudeExtractor) Name() string {
 	return "ClaudeExtractor"
 }

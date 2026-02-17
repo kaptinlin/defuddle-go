@@ -212,7 +212,7 @@ func (c *ChatGPTExtractor) CanExtract() bool {
 	return canExtract
 }
 
-// GetName returns the name of the extractor
+// Name returns the name of the extractor
 func (c *ChatGPTExtractor) Name() string {
 	return "ChatGPTExtractor"
 }

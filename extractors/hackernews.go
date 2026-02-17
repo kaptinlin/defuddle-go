@@ -124,7 +124,7 @@ func (h *HackerNewsExtractor) CanExtract() bool {
 	return canExtract
 }
 
-// GetName returns the name of the extractor
+// Name returns the name of the extractor
 func (h *HackerNewsExtractor) Name() string {
 	return "HackerNewsExtractor"
 }

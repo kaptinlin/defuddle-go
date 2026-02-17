@@ -91,7 +91,7 @@ func (r *RedditExtractor) CanExtract() bool {
 	return false
 }
 
-// GetName returns the name of the extractor
+// Name returns the name of the extractor
 func (r *RedditExtractor) Name() string {
 	return "RedditExtractor"
 }

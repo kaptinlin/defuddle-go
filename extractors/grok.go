@@ -14,7 +14,7 @@ import (
 var (
 	grokTitleSuffixRe = regexp.MustCompile(`\s-\s*Grok$`)
 	grokLinkRe        = regexp.MustCompile(`(?i)<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>(.*?)</a>`)
-	grokHttpRe        = regexp.MustCompile(`(?i)^https?://`)
+	grokHTTPRe        = regexp.MustCompile(`(?i)^https?://`)
 )
 
 // GrokExtractor handles Grok (X.AI) conversation content extraction
@@ -110,7 +110,7 @@ func (g *GrokExtractor) CanExtract() bool {
 	return canExtract
 }
 
-// GetName returns the name of the extractor
+// Name returns the name of the extractor
 func (g *GrokExtractor) Name() string {
 	return "GrokExtractor"
 }
@@ -419,7 +419,7 @@ func (g *GrokExtractor) processFootnotes(content string) string {
 			return match
 		}
 
-		if !grokHttpRe.MatchString(urlStr) {
+		if !grokHTTPRe.MatchString(urlStr) {
 			return match
 		}
 

@@ -171,7 +171,7 @@ func (t *TwitterExtractor) CanExtract() bool {
 	return t.mainTweet != nil && t.mainTweet.Length() > 0
 }
 
-// GetName returns the name of the extractor
+// Name returns the name of the extractor
 func (t *TwitterExtractor) Name() string {
 	return "TwitterExtractor"
 }

@@ -119,7 +119,7 @@ func (g *GitHubExtractor) CanExtract() bool {
 	return canExtract
 }
 
-// GetName returns the name of the extractor
+// Name returns the name of the extractor
 func (g *GitHubExtractor) Name() string {
 	return "GitHubExtractor"
 }
