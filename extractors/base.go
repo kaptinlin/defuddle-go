@@ -35,7 +35,7 @@ type ExtractorResult struct {
 type BaseExtractor interface {
 	CanExtract() bool
 	Extract() *ExtractorResult
-	GetName() string
+	Name() string
 }
 
 // ExtractorBase provides common functionality for extractors

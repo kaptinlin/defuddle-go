@@ -10,6 +10,9 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Pre-compiled regex pattern for Hacker News extraction.
+var hnPostIDRe = regexp.MustCompile(`id=(\d+)`)
+
 // HackerNewsExtractor handles Hacker News content extraction
 // TypeScript original code:
 // import { BaseExtractor } from './_base';
@@ -122,7 +125,7 @@ func (h *HackerNewsExtractor) CanExtract() bool {
 }
 
 // GetName returns the name of the extractor
-func (h *HackerNewsExtractor) GetName() string {
+func (h *HackerNewsExtractor) Name() string {
 	return "HackerNewsExtractor"
 }
 
@@ -548,8 +551,7 @@ func (h *HackerNewsExtractor) processComments(comments []*goquery.Selection) str
 //		return match?.[1] || '';
 //	}
 func (h *HackerNewsExtractor) getPostID() string {
-	re := regexp.MustCompile(`id=(\d+)`)
-	matches := re.FindStringSubmatch(h.url)
+	matches := hnPostIDRe.FindStringSubmatch(h.url)
 	if len(matches) > 1 {
 		return matches[1]
 	}

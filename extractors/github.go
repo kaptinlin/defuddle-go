@@ -10,6 +10,15 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Pre-compiled regex patterns for GitHub extraction.
+var (
+	githubUserRe       = regexp.MustCompile(`github\.com/([^/?#]+)`)
+	githubRepoRe       = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)`)
+	githubTitleRepoRe  = regexp.MustCompile(`([^/\s]+)/([^/\s]+)`)
+	githubIssueRe      = regexp.MustCompile(`/issues/(\d+)`)
+	githubWhitespaceRe = regexp.MustCompile(`\s+`)
+)
+
 // GitHubExtractor handles GitHub content extraction
 // TypeScript original code:
 //
@@ -111,7 +120,7 @@ func (g *GitHubExtractor) CanExtract() bool {
 }
 
 // GetName returns the name of the extractor
-func (g *GitHubExtractor) GetName() string {
+func (g *GitHubExtractor) Name() string {
 	return "GitHubExtractor"
 }
 
@@ -277,8 +286,7 @@ func (g *GitHubExtractor) extractAuthor(container *goquery.Selection, selectors 
 				if strings.HasPrefix(href, "/") {
 					return href[1:]
 				} else if strings.Contains(href, "github.com/") {
-					re := regexp.MustCompile(`github\.com/([^/?#]+)`)
-					matches := re.FindStringSubmatch(href)
+					matches := githubUserRe.FindStringSubmatch(href)
 					if len(matches) > 1 && matches[1] != "" {
 						return matches[1]
 					}
@@ -342,8 +350,7 @@ func (g *GitHubExtractor) cleanBodyContent(bodyElement *goquery.Selection) strin
 //	}
 func (g *GitHubExtractor) extractRepoInfo() map[string]string {
 	// Try URL first (most reliable)
-	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)`)
-	matches := re.FindStringSubmatch(g.url)
+	matches := githubRepoRe.FindStringSubmatch(g.url)
 	if len(matches) >= 3 {
 		return map[string]string{
 			"owner": matches[1],
@@ -353,8 +360,7 @@ func (g *GitHubExtractor) extractRepoInfo() map[string]string {
 
 	// Fallback to HTML extraction
 	title := g.document.Find("title").Text()
-	titleRe := regexp.MustCompile(`([^/\s]+)/([^/\s]+)`)
-	titleMatches := titleRe.FindStringSubmatch(title)
+	titleMatches := githubTitleRepoRe.FindStringSubmatch(title)
 	if len(titleMatches) >= 3 {
 		return map[string]string{
 			"owner": titleMatches[1],
@@ -376,8 +382,7 @@ func (g *GitHubExtractor) extractRepoInfo() map[string]string {
 //		return match ? match[1] : '';
 //	}
 func (g *GitHubExtractor) extractIssueNumber() string {
-	re := regexp.MustCompile(`/issues/(\d+)`)
-	matches := re.FindStringSubmatch(g.url)
+	matches := githubIssueRe.FindStringSubmatch(g.url)
 	if len(matches) > 1 {
 		issueNumber := matches[1]
 		slog.Debug("GitHub extractor: extracted issue number", "issueNumber", issueNumber)
@@ -420,8 +425,7 @@ func (g *GitHubExtractor) createDescription(content string) string {
 	}
 
 	// Replace multiple spaces with single space
-	re := regexp.MustCompile(`\s+`)
-	text = re.ReplaceAllString(text, " ")
+	text = githubWhitespaceRe.ReplaceAllString(text, " ")
 
 	slog.Debug("GitHub extractor: created description", "descriptionLength", len(text))
 	return text

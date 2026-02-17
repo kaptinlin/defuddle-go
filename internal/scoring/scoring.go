@@ -14,6 +14,12 @@ import (
 	"github.com/kaptinlin/defuddle-go/internal/constants"
 )
 
+// Pre-compiled regex patterns for content scoring.
+var (
+	dateRe   = regexp.MustCompile(`(?i)\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b`)
+	authorRe = regexp.MustCompile(`(?i)\b(?:by|written by|author:)\s+[A-Za-z\s]+\b`)
+)
+
 // ContentScore represents a scored element
 // JavaScript original code:
 //
@@ -347,13 +353,11 @@ func ScoreElement(element *goquery.Selection) float64 {
 	}
 
 	// Content indicators
-	dateRegex := regexp.MustCompile(`(?i)\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b`)
-	if dateRegex.MatchString(text) {
+	if dateRe.MatchString(text) {
 		score += 10
 	}
 
-	authorRegex := regexp.MustCompile(`(?i)\b(?:by|written by|author:)\s+[A-Za-z\s]+\b`)
-	if authorRegex.MatchString(text) {
+	if authorRe.MatchString(text) {
 		score += 10
 	}
 

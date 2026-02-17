@@ -8,6 +8,13 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Pre-compiled regex patterns for Twitter extraction.
+var (
+	twitterImageNameRe  = regexp.MustCompile(`&name=\w+$`)
+	twitterWhitespaceRe = regexp.MustCompile(`\s+`)
+	twitterStatusRe     = regexp.MustCompile(`status/(\d+)`)
+)
+
 // TwitterExtractor handles Twitter/X content extraction
 // TypeScript original code:
 // import { BaseExtractor } from './_base';
@@ -165,7 +172,7 @@ func (t *TwitterExtractor) CanExtract() bool {
 }
 
 // GetName returns the name of the extractor
-func (t *TwitterExtractor) GetName() string {
+func (t *TwitterExtractor) Name() string {
 	return "TwitterExtractor"
 }
 
@@ -638,10 +645,10 @@ func (t *TwitterExtractor) extractImages(tweet *goquery.Selection) []string {
 			if goquery.NodeName(img) == "img" {
 				if src, exists := img.Attr("src"); exists {
 					// Improve image quality
-					highQualitySrc := regexp.MustCompile(`&name=\w+$`).ReplaceAllString(src, "&name=large")
+					highQualitySrc := twitterImageNameRe.ReplaceAllString(src, "&name=large")
 
 					alt := img.AttrOr("alt", "")
-					cleanAlt := strings.TrimSpace(regexp.MustCompile(`\s+`).ReplaceAllString(alt, " "))
+					cleanAlt := strings.TrimSpace(twitterWhitespaceRe.ReplaceAllString(alt, " "))
 
 					images = append(images, fmt.Sprintf(`<img src="%s" alt="%s" />`, highQualitySrc, cleanAlt))
 				}
@@ -660,8 +667,7 @@ func (t *TwitterExtractor) extractImages(tweet *goquery.Selection) []string {
 //		return match ? match[1] : '';
 //	}
 func (t *TwitterExtractor) getTweetID() string {
-	re := regexp.MustCompile(`status/(\d+)`)
-	matches := re.FindStringSubmatch(t.url)
+	matches := twitterStatusRe.FindStringSubmatch(t.url)
 	if len(matches) > 1 {
 		return matches[1]
 	}
@@ -743,6 +749,6 @@ func (t *TwitterExtractor) createDescription(tweet *goquery.Selection) string {
 	}
 
 	// Replace multiple spaces with single space
-	text = regexp.MustCompile(`\s+`).ReplaceAllString(text, " ")
+	text = twitterWhitespaceRe.ReplaceAllString(text, " ")
 	return text
 }

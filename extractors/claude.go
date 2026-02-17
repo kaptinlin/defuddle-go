@@ -9,6 +9,9 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Pre-compiled regex patterns for Claude extraction.
+var claudeTitleSuffixRe = regexp.MustCompile(` - Claude$`)
+
 // ClaudeExtractor handles Claude conversation content extraction
 // TypeScript original code:
 // import { ConversationExtractor } from './_conversation';
@@ -167,7 +170,7 @@ func (c *ClaudeExtractor) CanExtract() bool {
 }
 
 // GetName returns the name of the extractor
-func (c *ClaudeExtractor) GetName() string {
+func (c *ClaudeExtractor) Name() string {
 	return "ClaudeExtractor"
 }
 
@@ -351,8 +354,7 @@ func (c *ClaudeExtractor) getTitle() string {
 	pageTitle := strings.TrimSpace(c.document.Find("title").Text())
 	if pageTitle != "" && pageTitle != "Claude" {
 		// Remove ' - Claude' suffix if present
-		re := regexp.MustCompile(` - Claude$`)
-		return re.ReplaceAllString(pageTitle, "")
+		return claudeTitleSuffixRe.ReplaceAllString(pageTitle, "")
 	}
 
 	// Try to get title from header

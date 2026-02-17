@@ -11,6 +11,13 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Pre-compiled regex patterns for Reddit extraction.
+var (
+	redditCommentsRe   = regexp.MustCompile(`comments/([a-zA-Z0-9]+)`)
+	redditSubredditRe  = regexp.MustCompile(`/r/([^/]+)`)
+	redditWhitespaceRe = regexp.MustCompile(`\s+`)
+)
+
 // RedditExtractor handles Reddit post and comment content extraction
 // TypeScript original code:
 // import { BaseExtractor } from './_base';
@@ -85,7 +92,7 @@ func (r *RedditExtractor) CanExtract() bool {
 }
 
 // GetName returns the name of the extractor
-func (r *RedditExtractor) GetName() string {
+func (r *RedditExtractor) Name() string {
 	return "RedditExtractor"
 }
 
@@ -481,8 +488,7 @@ func (r *RedditExtractor) processComments(comments []*goquery.Selection) string 
 //		return match?.[1] || '';
 //	}
 func (r *RedditExtractor) getPostID() string {
-	re := regexp.MustCompile(`comments/([a-zA-Z0-9]+)`)
-	matches := re.FindStringSubmatch(r.url)
+	matches := redditCommentsRe.FindStringSubmatch(r.url)
 	if len(matches) > 1 {
 		return matches[1]
 	}
@@ -497,8 +503,7 @@ func (r *RedditExtractor) getPostID() string {
 //		return match?.[1] || '';
 //	}
 func (r *RedditExtractor) getSubreddit() string {
-	re := regexp.MustCompile(`/r/([^/]+)`)
-	matches := re.FindStringSubmatch(r.url)
+	matches := redditSubredditRe.FindStringSubmatch(r.url)
 	if len(matches) > 1 {
 		return matches[1]
 	}
@@ -566,8 +571,7 @@ func (r *RedditExtractor) createDescription(postContent string) string {
 	textContent := strings.TrimSpace(tempDoc.Text())
 
 	// Replace multiple whitespace with single space
-	re := regexp.MustCompile(`\s+`)
-	textContent = re.ReplaceAllString(textContent, " ")
+	textContent = redditWhitespaceRe.ReplaceAllString(textContent, " ")
 
 	// Limit to 140 characters
 	if len(textContent) > 140 {

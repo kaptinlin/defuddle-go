@@ -16,6 +16,30 @@ import (
 	"golang.org/x/net/html"
 )
 
+// Pre-compiled regex patterns used across standardization functions.
+var (
+	nbspRe             = regexp.MustCompile(`\xA0+`)
+	wordCharRe         = regexp.MustCompile(`\w`)
+	whitespaceRe       = regexp.MustCompile(`\s+`)
+	semanticClassRe    = regexp.MustCompile(`(?:article|main|content|footnote|reference|bibliography)`)
+	wrapperClassRe     = regexp.MustCompile(`(?:wrapper|container|layout|row|col|grid|flex|outer|inner|content-area)`)
+	emptyTextRe        = regexp.MustCompile(`^[\x{200C}\x{200B}\x{200D}\x{200E}\x{200F}\x{FEFF}\x{A0}\s]*$`)
+	threeNewlinesRe    = regexp.MustCompile(`\n{3,}`)
+	leadingNewlinesRe  = regexp.MustCompile(`^[\n\r\t]+`)
+	trailingNewlinesRe = regexp.MustCompile(`[\n\r\t]+$`)
+	spacesAroundNlRe   = regexp.MustCompile(`[ \t]*\n[ \t]*`)
+	threeSpacesRe      = regexp.MustCompile(`[ \t]{3,}`)
+	onlySpacesRe       = regexp.MustCompile(`^[ ]+$`)
+	spaceBeforePunctRe = regexp.MustCompile(`\s+([,.!?:;])`)
+	zeroWidthCharsRe   = regexp.MustCompile(`[\x{200C}\x{200B}\x{200D}\x{200E}\x{200F}\x{FEFF}]+`)
+	multiNbspRe        = regexp.MustCompile(`(?:\xA0){2,}`)
+	blockStartSpaceRe  = regexp.MustCompile(`^[\n\r\t \x{200C}\x{200B}\x{200D}\x{200E}\x{200F}\x{FEFF}\x{A0}]*$`)
+	inlineStartSpaceRe = regexp.MustCompile(`^[\n\r\t\x{200C}\x{200B}\x{200D}\x{200E}\x{200F}\x{FEFF}]*$`)
+	startsWithPunctRe  = regexp.MustCompile(`^[,.!?:;)\]]`)
+	endsWithPunctRe    = regexp.MustCompile(`[,.!?:;(\[]\s*$`)
+	orderedListLabelRe = regexp.MustCompile(`^\d+\)`)
+)
+
 // StandardizationRule represents element standardization rules
 // JavaScript original code:
 //
@@ -252,8 +276,7 @@ func standardizeSpaces(element *goquery.Selection) {
 		if node.Type == html.TextNode {
 			text := node.Data
 			// Replace &nbsp; with regular spaces, except when it's a single &nbsp; between words
-			nbspRegex := regexp.MustCompile(`\xA0+`)
-			newText := nbspRegex.ReplaceAllStringFunc(text, func(match string) string {
+			newText := nbspRe.ReplaceAllStringFunc(text, func(match string) string {
 				// If it's a single &nbsp; between word characters, preserve it
 				if len(match) == 1 {
 					// Check previous sibling
@@ -275,7 +298,7 @@ func standardizeSpaces(element *goquery.Selection) {
 					}
 
 					// If between word characters, preserve the &nbsp;
-					if regexp.MustCompile(`\w`).MatchString(prev) && regexp.MustCompile(`\w`).MatchString(next) {
+					if wordCharRe.MatchString(prev) && wordCharRe.MatchString(next) {
 						return "\xA0"
 					}
 				}
@@ -369,7 +392,7 @@ func standardizeHeadings(element *goquery.Selection, title string, _ *goquery.Do
 		// Convert non-breaking spaces to regular spaces
 		text = strings.ReplaceAll(text, "\u00A0", " ")
 		// Normalize all whitespace to single spaces
-		text = regexp.MustCompile(`\s+`).ReplaceAllString(text, " ")
+		text = whitespaceRe.ReplaceAllString(text, " ")
 		// Trim and convert to lowercase
 		return strings.ToLower(strings.TrimSpace(text))
 	}
@@ -696,8 +719,7 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 		// Check for semantic classes
 		className := strings.ToLower(el.AttrOr("class", ""))
-		semanticPattern := regexp.MustCompile(`(?:article|main|content|footnote|reference|bibliography)`)
-		if semanticPattern.MatchString(className) {
+		if semanticClassRe.MatchString(className) {
 			return true
 		}
 
@@ -710,7 +732,7 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 			if constants.IsPreserveElement(childTag) ||
 				childRole == "article" ||
-				semanticPattern.MatchString(childClass) {
+				semanticClassRe.MatchString(childClass) {
 				hasPreservedElements = true
 			}
 		})
@@ -763,8 +785,7 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 		// Check for common wrapper patterns
 		className := strings.ToLower(el.AttrOr("class", ""))
-		wrapperPattern := regexp.MustCompile(`(?:wrapper|container|layout|row|col|grid|flex|outer|inner|content-area)`)
-		if wrapperPattern.MatchString(className) {
+		if wrapperClassRe.MatchString(className) {
 			return true
 		}
 
@@ -1561,8 +1582,7 @@ func removeEmptyLines(element *goquery.Selection, _ *goquery.Document) {
 		if node.Type == html.TextNode {
 			text := node.Data
 			// If it's completely empty or just special characters/whitespace, remove it
-			emptyPattern := regexp.MustCompile(`^[\x{200C}\x{200B}\x{200D}\x{200E}\x{200F}\x{FEFF}\x{A0}\s]*$`)
-			if text == "" || emptyPattern.MatchString(text) {
+			if text == "" || emptyTextRe.MatchString(text) {
 				if node.Parent != nil {
 					node.Parent.RemoveChild(node)
 					removedCount++
@@ -1572,29 +1592,29 @@ func removeEmptyLines(element *goquery.Selection, _ *goquery.Document) {
 				newText := text
 
 				// More than 2 newlines -> 2 newlines
-				newText = regexp.MustCompile(`\n{3,}`).ReplaceAllString(newText, "\n\n")
+				newText = threeNewlinesRe.ReplaceAllString(newText, "\n\n")
 
 				// Remove leading newlines/tabs (preserve spaces)
-				newText = regexp.MustCompile(`^[\n\r\t]+`).ReplaceAllString(newText, "")
+				newText = leadingNewlinesRe.ReplaceAllString(newText, "")
 
 				// Remove trailing newlines/tabs (preserve spaces)
-				newText = regexp.MustCompile(`[\n\r\t]+$`).ReplaceAllString(newText, "")
+				newText = trailingNewlinesRe.ReplaceAllString(newText, "")
 
 				// Remove spaces around newlines
-				newText = regexp.MustCompile(`[ \t]*\n[ \t]*`).ReplaceAllString(newText, "\n")
+				newText = spacesAroundNlRe.ReplaceAllString(newText, "\n")
 
 				// 3+ spaces -> 1 space
-				newText = regexp.MustCompile(`[ \t]{3,}`).ReplaceAllString(newText, " ")
+				newText = threeSpacesRe.ReplaceAllString(newText, " ")
 
 				// Multiple spaces between elements -> single space
-				newText = regexp.MustCompile(`^[ ]+$`).ReplaceAllString(newText, " ")
+				newText = onlySpacesRe.ReplaceAllString(newText, " ")
 
 				// Remove spaces before punctuation
-				newText = regexp.MustCompile(`\s+([,.!?:;])`).ReplaceAllString(newText, "$1")
+				newText = spaceBeforePunctRe.ReplaceAllString(newText, "$1")
 
 				// Clean up zero-width characters and multiple non-breaking spaces
-				newText = regexp.MustCompile(`[\x{200C}\x{200B}\x{200D}\x{200E}\x{200F}\x{FEFF}]+`).ReplaceAllString(newText, "")
-				newText = regexp.MustCompile(`(?:\xA0){2,}`).ReplaceAllString(newText, "\xA0")
+				newText = zeroWidthCharsRe.ReplaceAllString(newText, "")
+				newText = multiNbspRe.ReplaceAllString(newText, "\xA0")
 
 				if newText != text {
 					node.Data = newText
@@ -1644,11 +1664,11 @@ func removeEmptyLines(element *goquery.Selection, _ *goquery.Document) {
 		// For block elements, also remove spaces
 		var startPattern, endPattern *regexp.Regexp
 		if isBlockElement {
-			startPattern = regexp.MustCompile(`^[\n\r\t \x{200C}\x{200B}\x{200D}\x{200E}\x{200F}\x{FEFF}\x{A0}]*$`)
-			endPattern = regexp.MustCompile(`^[\n\r\t \x{200C}\x{200B}\x{200D}\x{200E}\x{200F}\x{FEFF}\x{A0}]*$`)
+			startPattern = blockStartSpaceRe
+			endPattern = blockStartSpaceRe
 		} else {
-			startPattern = regexp.MustCompile(`^[\n\r\t\x{200C}\x{200B}\x{200D}\x{200E}\x{200F}\x{FEFF}]*$`)
-			endPattern = regexp.MustCompile(`^[\n\r\t\x{200C}\x{200B}\x{200D}\x{200E}\x{200F}\x{FEFF}]*$`)
+			startPattern = inlineStartSpaceRe
+			endPattern = inlineStartSpaceRe
 		}
 
 		// Remove empty text nodes at start
@@ -1693,8 +1713,8 @@ func removeEmptyLines(element *goquery.Selection, _ *goquery.Document) {
 					// 1. Next content starts with punctuation or closing parenthesis
 					// 2. Current content ends with punctuation or opening parenthesis
 					// 3. There's already a space
-					nextStartsWithPunctuation := regexp.MustCompile(`^[,.!?:;)\]]`).MatchString(nextContent)
-					currentEndsWithPunctuation := regexp.MustCompile(`[,.!?:;(\[]\s*$`).MatchString(currentContent)
+					nextStartsWithPunctuation := startsWithPunctRe.MatchString(nextContent)
+					currentEndsWithPunctuation := endsWithPunctRe.MatchString(currentContent)
 
 					hasSpace := (current.Type == html.TextNode && strings.HasSuffix(current.Data, " ")) ||
 						(next.Type == html.TextNode && strings.HasPrefix(next.Data, " "))
@@ -1740,7 +1760,7 @@ func transformListElement(el *goquery.Selection, doc *goquery.Document) *goquery
 	// First determine if this is an ordered list
 	firstItem := el.Find(`div[role="listitem"] .label`).First()
 	label := strings.TrimSpace(firstItem.Text())
-	isOrdered := regexp.MustCompile(`^\d+\)`).MatchString(label)
+	isOrdered := orderedListLabelRe.MatchString(label)
 
 	// Create the appropriate list type
 	listTag := "ul"
@@ -1767,7 +1787,7 @@ func transformListElement(el *goquery.Selection, doc *goquery.Document) *goquery
 			content.Find(`div[role="list"]`).Each(func(_ int, nestedList *goquery.Selection) {
 				firstNestedItem := nestedList.Find(`div[role="listitem"] .label`).First()
 				nestedLabel := strings.TrimSpace(firstNestedItem.Text())
-				isNestedOrdered := regexp.MustCompile(`^\d+\)`).MatchString(nestedLabel)
+				isNestedOrdered := orderedListLabelRe.MatchString(nestedLabel)
 
 				nestedListTag := "ul"
 				if isNestedOrdered {

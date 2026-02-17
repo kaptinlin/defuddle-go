@@ -94,7 +94,7 @@ func (y *YouTubeExtractor) CanExtract() bool {
 }
 
 // GetName returns the name of the extractor
-func (y *YouTubeExtractor) GetName() string {
+func (y *YouTubeExtractor) Name() string {
 	return "YouTubeExtractor"
 }
 

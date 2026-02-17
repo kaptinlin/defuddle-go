@@ -10,6 +10,13 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Pre-compiled regex patterns for Grok extraction.
+var (
+	grokTitleSuffixRe = regexp.MustCompile(`\s-\s*Grok$`)
+	grokLinkRe        = regexp.MustCompile(`(?i)<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>(.*?)</a>`)
+	grokHttpRe        = regexp.MustCompile(`(?i)^https?://`)
+)
+
 // GrokExtractor handles Grok (X.AI) conversation content extraction
 // TypeScript original code:
 // import { ConversationExtractor } from './_conversation';
@@ -104,7 +111,7 @@ func (g *GrokExtractor) CanExtract() bool {
 }
 
 // GetName returns the name of the extractor
-func (g *GrokExtractor) GetName() string {
+func (g *GrokExtractor) Name() string {
 	return "GrokExtractor"
 }
 
@@ -324,8 +331,7 @@ func (g *GrokExtractor) getTitle() string {
 	pageTitle := strings.TrimSpace(g.document.Find("title").Text())
 	if pageTitle != "" && pageTitle != "Grok" && !strings.HasPrefix(pageTitle, "Grok by ") {
 		// Remove ' - Grok' suffix if present
-		re := regexp.MustCompile(`\s-\s*Grok$`)
-		title := strings.TrimSpace(re.ReplaceAllString(pageTitle, ""))
+		title := strings.TrimSpace(grokTitleSuffixRe.ReplaceAllString(pageTitle, ""))
 		if title != "" {
 			return title
 		}
@@ -399,10 +405,8 @@ func (g *GrokExtractor) getTitle() string {
 //	}
 func (g *GrokExtractor) processFootnotes(content string) string {
 	// Regex to find <a> tags, capture href and link text
-	linkPattern := regexp.MustCompile(`(?i)<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>(.*?)</a>`)
-
-	return linkPattern.ReplaceAllStringFunc(content, func(match string) string {
-		matches := linkPattern.FindStringSubmatch(match)
+	return grokLinkRe.ReplaceAllStringFunc(content, func(match string) string {
+		matches := grokLinkRe.FindStringSubmatch(match)
 		if len(matches) < 3 {
 			return match
 		}
@@ -415,8 +419,7 @@ func (g *GrokExtractor) processFootnotes(content string) string {
 			return match
 		}
 
-		httpPattern := regexp.MustCompile(`(?i)^https?://`)
-		if !httpPattern.MatchString(urlStr) {
+		if !grokHttpRe.MatchString(urlStr) {
 			return match
 		}
 

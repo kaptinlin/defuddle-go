@@ -29,7 +29,7 @@ func (e *CustomBlogExtractor) CanExtract() bool {
 }
 
 // GetName returns the name of this extractor
-func (e *CustomBlogExtractor) GetName() string {
+func (e *CustomBlogExtractor) Name() string {
 	return "CustomBlogExtractor"
 }
 

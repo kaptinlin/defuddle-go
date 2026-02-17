@@ -9,6 +9,12 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Pre-compiled regex patterns for ChatGPT extraction.
+var (
+	chatgptEmptyParagraphRe = regexp.MustCompile(`<p[^>]*>\s*</p>`)
+	chatgptCitationRe       = regexp.MustCompile(`(&ZeroWidthSpace;)?(<span[^>]*?>\s*<a[^>]*?href="([^"]+)"[^>]*?target="_blank"[^>]*?rel="noopener"[^>]*?>[\s\S]*?</a>\s*</span>)`)
+)
+
 // ChatGPTExtractor handles ChatGPT conversation content extraction
 // TypeScript original code:
 // import { ConversationExtractor } from './_conversation';
@@ -207,7 +213,7 @@ func (c *ChatGPTExtractor) CanExtract() bool {
 }
 
 // GetName returns the name of the extractor
-func (c *ChatGPTExtractor) GetName() string {
+func (c *ChatGPTExtractor) Name() string {
 	return "ChatGPTExtractor"
 }
 
@@ -318,8 +324,7 @@ func (c *ChatGPTExtractor) ExtractMessages() []ConversationMessage {
 		messageContent = c.processFootnotes(messageContent)
 
 		// Clean up any stray empty paragraph tags
-		emptyParagraphRegex := regexp.MustCompile(`<p[^>]*>\s*</p>`)
-		messageContent = emptyParagraphRegex.ReplaceAllString(messageContent, "")
+		messageContent = chatgptEmptyParagraphRe.ReplaceAllString(messageContent, "")
 
 		if strings.TrimSpace(messageContent) != "" {
 			messages = append(messages, ConversationMessage{
@@ -474,9 +479,7 @@ func (c *ChatGPTExtractor) getTitle() string {
 func (c *ChatGPTExtractor) processFootnotes(content string) string {
 	// Simplified pattern without Perl lookaheads
 	// Matches: <span...><a href="..." target="_blank" rel="noopener">...</a></span>
-	citationPattern := regexp.MustCompile(`(&ZeroWidthSpace;)?(<span[^>]*?>\s*<a[^>]*?href="([^"]+)"[^>]*?target="_blank"[^>]*?rel="noopener"[^>]*?>[\s\S]*?</a>\s*</span>)`)
-
-	matches := citationPattern.FindAllStringSubmatch(content, -1)
+	matches := chatgptCitationRe.FindAllStringSubmatch(content, -1)
 	processedContent := content
 
 	for _, match := range matches {
