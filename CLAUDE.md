@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Building and Installation
 ```bash
 # Build the CLI binary
-make build-cli
+task build-cli
 
 # Install CLI to system
 make install-cli
@@ -19,28 +19,28 @@ go build -o bin/defuddle ./cmd/defuddle
 ### Testing
 ```bash
 # Run all tests
-make test
+task test
 
 # Run tests with coverage report
-make test-coverage
+task test-coverage
 
 # Run tests with race detector
 go test -race ./...
 
 # Run unit tests only
-make test-unit
+task test-unit
 
 # Run benchmarks
 make bench
 
 # Verbose test output
-make test-verbose
+task test-verbose
 ```
 
 ### Code Quality
 ```bash
 # Run all linters
-make lint
+task lint
 
 # Format code
 make fmt
@@ -49,16 +49,16 @@ make fmt
 make vet
 
 # Complete verification (format, vet, lint, test)
-make verify
+task verify
 
 # Quick development verification
-make dev
+task dev
 ```
 
 ### Dependencies
 ```bash
 # Download and tidy dependencies
-make deps
+task deps
 
 # Initialize git submodules (required for reference library)
 make submodules
@@ -67,10 +67,10 @@ make submodules
 ### Development Workflow
 ```bash
 # Quick development cycle
-make dev && make test
+task dev && task test
 
 # Full verification before commit
-make verify
+task verify
 ```
 
 ## Code Architecture

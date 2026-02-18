@@ -1,0 +1,204 @@
+version: '3'
+
+vars:
+  PROJECT_ROOT:
+    sh: pwd
+  GOBIN: '{{.PROJECT_ROOT}}/bin'
+  BINARY_NAME: defuddle
+  CLI_FOLDER: cmd/defuddle
+  GOLANGCI_LINT_BINARY: '{{.GOBIN}}/golangci-lint'
+  REQUIRED_GOLANGCI_LINT_VERSION:
+    sh: cat .golangci.version 2>/dev/null || echo "2.9.0"
+  GOLANGCI_LINT_VERSION:
+    sh: '{{.GOLANGCI_LINT_BINARY}} version --format short 2>/dev/null || {{.GOLANGCI_LINT_BINARY}} version --short 2>/dev/null || echo "not-installed"'
+
+env:
+  GOBIN: '{{.GOBIN}}'
+
+tasks:
+  default:
+    desc: Run lint and test
+    cmds:
+      - task: lint
+      - task: test
+
+  help:
+    desc: Show this help message
+    cmds:
+      - echo "defuddle-go - Web content extraction library"
+      - echo "Available targets:"
+      - task --list
+    silent: true
+
+  clean:
+    desc: Clean build artifacts and caches
+    cmds:
+      - echo "Cleaning build artifacts..."
+      - rm -rf {{.GOBIN}}
+      - go clean -cache -testcache || true
+
+  submodules:
+    desc: Initialize and update git submodules (required for reference library)
+    cmds:
+      - echo "Initializing git submodules..."
+      - git submodule update --init --recursive
+
+  deps:
+    desc: Download Go module dependencies
+    cmds:
+      - echo "Downloading dependencies..."
+      - go mod download
+      - go mod tidy
+
+  test:
+    desc: Run all tests with race detection
+    cmds:
+      - echo "Running all tests..."
+      - go test -race ./...
+
+  test-unit:
+    desc: Run unit tests only
+    cmds:
+      - echo "Running unit tests..."
+      - go test -race ./pkg/... ./internal/... .
+
+  test-coverage:
+    desc: Run tests with coverage report
+    cmds:
+      - echo "Running tests with coverage..."
+      - go test -race -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+      - echo "Coverage report generated at coverage.html"
+
+  test-verbose:
+    desc: Run tests with verbose output
+    cmds:
+      - echo "Running tests with verbose output..."
+      - go test -race -v ./...
+
+  bench:
+    desc: Run benchmarks
+    cmds:
+      - echo "Running benchmarks..."
+      - go test -bench=. -benchmem ./...
+
+  lint:
+    desc: Run all linters
+    deps:
+      - golangci-lint
+      - tidy-lint
+
+  install-golangci-lint:
+    desc: Install golangci-lint with the required version
+    cmds:
+      - mkdir -p {{.GOBIN}}
+      - |
+        if [ "{{.GOLANGCI_LINT_VERSION}}" != "{{.REQUIRED_GOLANGCI_LINT_VERSION}}" ]; then
+          echo "Installing golangci-lint v{{.REQUIRED_GOLANGCI_LINT_VERSION}} (current: {{.GOLANGCI_LINT_VERSION}})..."
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b {{.GOBIN}} v{{.REQUIRED_GOLANGCI_LINT_VERSION}}
+          echo "golangci-lint v{{.REQUIRED_GOLANGCI_LINT_VERSION}} installed successfully"
+        fi
+    status:
+      - test "{{.GOLANGCI_LINT_VERSION}}" = "{{.REQUIRED_GOLANGCI_LINT_VERSION}}"
+
+  golangci-lint:
+    desc: Run golangci-lint
+    deps:
+      - install-golangci-lint
+    cmds:
+      - '{{.GOLANGCI_LINT_BINARY}} version'
+      - echo "Running golangci-lint..."
+      - '{{.GOLANGCI_LINT_BINARY}} run --timeout=10m --path-prefix .'
+
+  tidy-lint:
+    desc: Check if go.mod and go.sum are tidy
+    cmds:
+      - echo "Checking go.mod and go.sum are tidy..."
+      - go mod tidy
+      - git diff --exit-code -- go.mod go.sum
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - echo "Formatting Go code..."
+      - go fmt ./...
+
+  vet:
+    desc: Run go vet
+    cmds:
+      - echo "Running go vet..."
+      - go vet ./...
+
+  verify:
+    desc: Run all verification steps (submodules, deps, format, vet, lint, test)
+    cmds:
+      - task: submodules
+      - task: deps
+      - task: fmt
+      - task: vet
+      - task: lint
+      - task: test
+      - echo "All verification steps completed successfully ✅"
+
+  dev:
+    desc: Quick development verification (deps, format, vet)
+    cmds:
+      - task: deps
+      - task: fmt
+      - task: vet
+      - echo "Development verification completed successfully"
+
+  build:
+    desc: Build the CLI binary
+    cmds:
+      - echo "Building {{.BINARY_NAME}}..."
+      - go build -o {{.GOBIN}}/{{.BINARY_NAME}} ./{{.CLI_FOLDER}}
+      - echo "Binary built at {{.GOBIN}}/{{.BINARY_NAME}}"
+
+  build-cli:
+    desc: Build the CLI binary (alias for build)
+    cmds:
+      - task: build
+
+  install-cli:
+    desc: Install CLI to system
+    deps:
+      - build-cli
+    cmds:
+      - sudo cp {{.GOBIN}}/{{.BINARY_NAME}} /usr/local/bin/{{.BINARY_NAME}}
+      - echo "{{.BINARY_NAME}} CLI installed to /usr/local/bin/{{.BINARY_NAME}}"
+
+  snapshot:
+    desc: Test release build locally
+    cmds:
+      - echo "Testing release build..."
+      - goreleaser release --snapshot --skip=publish --clean
+
+  release-test:
+    desc: Test release build without publishing (alias for snapshot)
+    cmds:
+      - task: snapshot
+
+  release-snapshot:
+    desc: Create a snapshot release (alias for snapshot)
+    cmds:
+      - task: snapshot
+
+  install-goreleaser:
+    desc: Install GoReleaser
+    cmds:
+      - echo "Installing GoReleaser..."
+      - go install github.com/goreleaser/goreleaser@latest
+
+  tag:
+    desc: Create and push a new tag (usage - task tag VERSION=v0.1.0)
+    cmds:
+      - |
+        if [ -z "{{.VERSION}}" ]; then
+          echo "VERSION is required. Usage: task tag VERSION=v1.0.0"
+          exit 1
+        fi
+      - echo "Creating tag {{.VERSION}}..."
+      - git tag -a {{.VERSION}} -m "Release {{.VERSION}}"
+      - git push origin {{.VERSION}}
+      - echo "Tag {{.VERSION}} created and pushed"
