@@ -60,10 +60,10 @@ git checkout main
 git pull origin main
 
 # Run tests locally
-make test
+task test
 
 # Test CLI build
-make build-cli
+task build-cli
 ./bin/defuddle --version
 ```
 
@@ -148,8 +148,8 @@ GoReleaser will automatically mark versions with `-alpha`, `-beta`, `-rc` as pre
 
 ### Before Release
 
-- [ ] All tests passing locally (`make test`)
-- [ ] CLI builds successfully (`make build-cli`)
+- [ ] All tests passing locally (`task test`)
+- [ ] CLI builds successfully (`task build-cli`)
 - [ ] Version updated in `cmd/main.go` (if needed)
 - [ ] CHANGELOG.md updated (optional, auto-generated)
 - [ ] README.md examples tested

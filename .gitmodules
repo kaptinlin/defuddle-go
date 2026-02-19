@@ -4,6 +4,3 @@
 [submodule ".reference/defuddle-cli"]
 	path = .reference/defuddle-cli
 	url = https://github.com/kepano/defuddle-cli
-[submodule ".agents/skills"]
-	path = .agents/skills
-	url = https://github.com/agentable/golang-skills.git

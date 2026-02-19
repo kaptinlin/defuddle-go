@@ -12,6 +12,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        submodules: false
 
     - name: Set up Go
       uses: actions/setup-go@v6
@@ -26,8 +28,10 @@ jobs:
         version: 3.x
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Initialize submodules
-      run: git submodule update --init --recursive
+    - name: Initialize reference submodules
+      run: |
+        git submodule update --init .reference/defuddle
+        git submodule update --init .reference/defuddle-cli
 
     - name: Install dependencies
       run: task deps
