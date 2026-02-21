@@ -139,11 +139,14 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 	}
 
 	// Create HTTP client and make request
-	client := requests.URL(url)
-	resp, err := client.Get("").
-		UserAgent("Mozilla/5.0 (compatible; Defuddle/1.0; +https://github.com/kaptinlin/defuddle-go)").
-		Timeout(30 * time.Second).
-		Send(ctx)
+	client := options.Client
+	if client == nil {
+		client = requests.New(
+			requests.WithUserAgent("Mozilla/5.0 (compatible; Defuddle/1.0; +https://github.com/kaptinlin/defuddle-go)"),
+			requests.WithTimeout(30*time.Second),
+		)
+	}
+	resp, err := client.Get(url).Send(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch URL %s: %w", url, err)
 	}

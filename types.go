@@ -4,6 +4,7 @@ import (
 	"github.com/kaptinlin/defuddle-go/internal/debug"
 	"github.com/kaptinlin/defuddle-go/internal/elements"
 	"github.com/kaptinlin/defuddle-go/internal/metadata"
+	"github.com/kaptinlin/requests"
 )
 
 // MetaTag represents a meta tag item from HTML
@@ -59,6 +60,10 @@ type Options struct {
 	MathOptions      *elements.MathProcessingOptions      `json:"mathOptions,omitempty"`
 	FootnoteOptions  *elements.FootnoteProcessingOptions  `json:"footnoteOptions,omitempty"`
 	RoleOptions      *elements.RoleProcessingOptions      `json:"roleOptions,omitempty"`
+
+	// Client is a custom HTTP client for fetching URLs.
+	// If nil, a default client with standard User-Agent and 30s timeout is created.
+	Client *requests.Client `json:"-"`
 }
 
 // Metadata represents extracted metadata from a document
