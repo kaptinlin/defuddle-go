@@ -43,7 +43,7 @@ builds:
 
 archives:
   - id: defuddle
-    builds:
+    ids:
       - defuddle
     name_template: >-
       {{ .ProjectName }}_
@@ -57,13 +57,13 @@ archives:
       - LICENSE*
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
 
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc
