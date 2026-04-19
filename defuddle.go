@@ -23,6 +23,14 @@ import (
 	"github.com/piprate/json-gold/ld"
 )
 
+// Pre-compiled regex patterns for JSON-LD content cleaning.
+var (
+	htmlCommentRe   = regexp.MustCompile(`<!--[\s\S]*?-->`)
+	jsCommentRe     = regexp.MustCompile(`/\*[\s\S]*?\*/|^\s*//.*$`)
+	cdataRe         = regexp.MustCompile(`^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$`)
+	commentMarkerRe = regexp.MustCompile(`^\s*(\*/|/\*)\s*|\s*(\*/|/\*)\s*$`)
+)
+
 // Defuddle represents a document parser instance
 type Defuddle struct {
 	doc      *goquery.Document
@@ -131,11 +139,14 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 	}
 
 	// Create HTTP client and make request
-	client := requests.URL(url)
-	resp, err := client.Get("").
-		UserAgent("Mozilla/5.0 (compatible; Defuddle/1.0; +https://github.com/kaptinlin/defuddle-go)").
-		Timeout(30 * time.Second).
-		Send(ctx)
+	client := options.Client
+	if client == nil {
+		client = requests.New(
+			requests.WithUserAgent("Mozilla/5.0 (compatible; Defuddle/1.0; +https://github.com/kaptinlin/defuddle-go)"),
+			requests.WithTimeout(30*time.Second),
+		)
+	}
+	resp, err := client.Get(url).Send(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch URL %s: %w", url, err)
 	}
@@ -324,7 +335,7 @@ func (d *Defuddle) parseInternal(_ context.Context, overrideOptions *Options) (*
 	url := options.URL
 	extractor := extractors.FindExtractor(d.doc, url, schemaOrgData)
 	if extractor != nil && extractor.CanExtract() {
-		d.debugger.SetExtractorUsed(extractor.GetName())
+		d.debugger.SetExtractorUsed(extractor.Name())
 		extracted := extractor.Extract()
 		parseTime := time.Since(startTime).Milliseconds()
 
@@ -337,7 +348,7 @@ func (d *Defuddle) parseInternal(_ context.Context, overrideOptions *Options) (*
 		}
 
 		// Create extractor type name (remove "Extractor" suffix)
-		extractorType := strings.ToLower(strings.TrimSuffix(extractor.GetName(), "Extractor"))
+		extractorType := strings.ToLower(strings.TrimSuffix(extractor.Name(), "Extractor"))
 
 		result := &Result{
 			Metadata: Metadata{
@@ -380,7 +391,7 @@ func (d *Defuddle) parseInternal(_ context.Context, overrideOptions *Options) (*
 		// Add debug info if enabled
 		if d.debugger.IsEnabled() {
 			d.debugger.EndTimer("total_parsing")
-			d.debugger.AddProcessingStep("extractor", "Used site-specific extractor: "+extractor.GetName(), 1, "")
+			d.debugger.AddProcessingStep("extractor", "Used site-specific extractor: "+extractor.Name(), 1, "")
 			result.DebugInfo = d.debugger.GetInfo()
 		}
 
@@ -932,22 +943,18 @@ func (d *Defuddle) extractSchemaOrgData() any {
 //	// Remove comments, CDATA, and other non-JSON content
 func (d *Defuddle) cleanJSONLDContent(content string) string {
 	// Remove HTML comments
-	commentRegex := regexp.MustCompile(`<!--[\s\S]*?-->`)
-	content = commentRegex.ReplaceAllString(content, "")
+	content = htmlCommentRe.ReplaceAllString(content, "")
 
 	// Remove JavaScript-style comments
-	jsCommentRegex := regexp.MustCompile(`/\*[\s\S]*?\*/|^\s*//.*$`)
-	content = jsCommentRegex.ReplaceAllString(content, "")
+	content = jsCommentRe.ReplaceAllString(content, "")
 
 	// Handle CDATA sections
-	cdataRegex := regexp.MustCompile(`^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$`)
-	if matches := cdataRegex.FindStringSubmatch(content); len(matches) > 1 {
+	if matches := cdataRe.FindStringSubmatch(content); len(matches) > 1 {
 		content = matches[1]
 	}
 
 	// Remove comment markers that might be left
-	commentMarkerRegex := regexp.MustCompile(`^\s*(\*/|/\*)\s*|\s*(\*/|/\*)\s*$`)
-	content = commentMarkerRegex.ReplaceAllString(content, "")
+	content = commentMarkerRe.ReplaceAllString(content, "")
 
 	// Remove leading/trailing whitespace
 	content = strings.TrimSpace(content)

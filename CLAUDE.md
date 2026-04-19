@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Building and Installation
 ```bash
 # Build the CLI binary
-make build-cli
+task build-cli
 
 # Install CLI to system
 make install-cli
@@ -19,28 +19,28 @@ go build -o bin/defuddle ./cmd/defuddle
 ### Testing
 ```bash
 # Run all tests
-make test
+task test
 
 # Run tests with coverage report
-make test-coverage
+task test-coverage
 
 # Run tests with race detector
 go test -race ./...
 
 # Run unit tests only
-make test-unit
+task test-unit
 
 # Run benchmarks
 make bench
 
 # Verbose test output
-make test-verbose
+task test-verbose
 ```
 
 ### Code Quality
 ```bash
 # Run all linters
-make lint
+task lint
 
 # Format code
 make fmt
@@ -49,16 +49,16 @@ make fmt
 make vet
 
 # Complete verification (format, vet, lint, test)
-make verify
+task verify
 
 # Quick development verification
-make dev
+task dev
 ```
 
 ### Dependencies
 ```bash
 # Download and tidy dependencies
-make deps
+task deps
 
 # Initialize git submodules (required for reference library)
 make submodules
@@ -67,10 +67,10 @@ make submodules
 ### Development Workflow
 ```bash
 # Quick development cycle
-make dev && make test
+task dev && task test
 
 # Full verification before commit
-make verify
+task verify
 ```
 
 ## Code Architecture
@@ -139,3 +139,23 @@ This Go implementation maintains complete compatibility with the original TypeSc
 - Cursor rules available in `.cursor/defuddle-go-rules.mdc`
 - Follows strict Go best practices and TypeScript API compatibility
 - All comments must be in English with original JavaScript code included for reference
+
+
+## Agent Skills
+
+This package indexes agent skills from its own .agents/skills directory (defuddle-go/.agents/skills/):
+
+| Skill | When to Use |
+|-------|-------------|
+| [agent-md-creating](.agents/skills/agent-md-creating/) | Create or update CLAUDE.md and AGENTS.md instructions for this Go package. |
+| [code-simplifying](.agents/skills/code-simplifying/) | Refine recently changed Go code for clarity and consistency without behavior changes. |
+| [committing](.agents/skills/committing/) | Prepare conventional commit messages for this Go package. |
+| [dependency-selecting](.agents/skills/dependency-selecting/) | Evaluate and choose Go dependencies with alternatives and risk tradeoffs. |
+| [go-best-practices](.agents/skills/go-best-practices/) | Apply Google Go style and architecture best practices to code changes. |
+| [linting](.agents/skills/linting/) | Configure or run golangci-lint and fix lint issues in this package. |
+| [modernizing](.agents/skills/modernizing/) | Adopt newer Go language and toolchain features safely. |
+| [ralphy-initializing](.agents/skills/ralphy-initializing/) | Initialize or repair the .ralphy workflow configuration. |
+| [ralphy-todo-creating](.agents/skills/ralphy-todo-creating/) | Generate or refine TODO tracking via the Ralphy workflow. |
+| [readme-creating](.agents/skills/readme-creating/) | Create or rewrite README.md for this package. |
+| [releasing](.agents/skills/releasing/) | Prepare release and semantic version workflows for this package. |
+| [testing](.agents/skills/testing/) | Design or update tests (table-driven, fuzz, benchmark, and edge-case coverage). |

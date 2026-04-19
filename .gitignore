@@ -85,3 +85,16 @@ pids
 temp/
 testdata/output/
 tmp/
+
+# Scratch/planning docs
+.plans/
+reports/
+PLAN*.md
+IMPROVE.md
+IMPROVE*.md
+REFACTOR.md
+REFACTOR*.md
+ANALYSIS.md
+
+# Meeting records
+.meetings/

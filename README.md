@@ -43,8 +43,8 @@ go install github.com/kaptinlin/defuddle-go/cmd/defuddle@latest
 ```bash
 git clone https://github.com/kaptinlin/defuddle-go.git
 cd defuddle-go
-make build-cli
-sudo make install-cli
+task build-cli
+sudo task install-cli
 ```
 
 ### Go Library

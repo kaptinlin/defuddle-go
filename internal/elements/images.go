@@ -13,6 +13,14 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Pre-compiled regex patterns for image filename processing.
+var (
+	fileExtRe       = regexp.MustCompile(`\.[^.]+$`)
+	separatorsRe    = regexp.MustCompile(`[-_]`)
+	camelCaseRe     = regexp.MustCompile(`([a-z])([A-Z])`)
+	imgWhitespaceRe = regexp.MustCompile(`\s+`)
+)
+
 /*
 TypeScript source code (images.ts, 977 lines):
 
@@ -632,17 +640,17 @@ func (p *ImageProcessor) getAltFromFilename(src string) string {
 	}
 
 	// Remove file extension
-	nameWithoutExt := regexp.MustCompile(`\.[^.]+$`).ReplaceAllString(filename, "")
+	nameWithoutExt := fileExtRe.ReplaceAllString(filename, "")
 
 	// Convert to readable format
 	// Replace common separators with spaces
-	readable := regexp.MustCompile(`[-_]`).ReplaceAllString(nameWithoutExt, " ")
+	readable := separatorsRe.ReplaceAllString(nameWithoutExt, " ")
 
 	// Handle camelCase
-	readable = regexp.MustCompile(`([a-z])([A-Z])`).ReplaceAllString(readable, "$1 $2")
+	readable = camelCaseRe.ReplaceAllString(readable, "$1 $2")
 
 	// Clean up multiple spaces
-	readable = regexp.MustCompile(`\s+`).ReplaceAllString(readable, " ")
+	readable = imgWhitespaceRe.ReplaceAllString(readable, " ")
 	readable = strings.TrimSpace(readable)
 
 	// Capitalize first letter

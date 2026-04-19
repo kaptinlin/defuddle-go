@@ -178,8 +178,8 @@ func (g *GeminiExtractor) CanExtract() bool {
 	return canExtract
 }
 
-// GetName returns the name of the extractor
-func (g *GeminiExtractor) GetName() string {
+// Name returns the name of the extractor
+func (g *GeminiExtractor) Name() string {
 	return "GeminiExtractor"
 }
 

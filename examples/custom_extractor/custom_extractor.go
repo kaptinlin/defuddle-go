@@ -28,8 +28,8 @@ func (e *CustomBlogExtractor) CanExtract() bool {
 	return e.GetDocument().Find(".blog-post, .post-content").Length() > 0
 }
 
-// GetName returns the name of this extractor
-func (e *CustomBlogExtractor) GetName() string {
+// Name returns the name of this extractor.
+func (e *CustomBlogExtractor) Name() string {
 	return "CustomBlogExtractor"
 }
 

@@ -3,6 +3,7 @@
 package metadata
 
 import (
+	"cmp"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -257,29 +258,23 @@ func Extract(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag, baseU
 //	  return '';
 //	}
 func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
-	// Meta tags - typically expect a single string, possibly comma-separated
-	authors := getMetaContent(metaTags, "name", "sailthru.author")
-	if authors == "" {
-		authors = getMetaContent(metaTags, "property", "author")
-	}
-	if authors == "" {
-		authors = getMetaContent(metaTags, "name", "author")
-	}
-	if authors == "" {
-		authors = getMetaContent(metaTags, "name", "byl")
-	}
-	if authors == "" {
-		authors = getMetaContent(metaTags, "name", "authorList")
-	}
+	// Meta tags - use cmp.Or for cleaner fallback chain (Go 1.22+)
+	authors := cmp.Or(
+		getMetaContent(metaTags, "name", "sailthru.author"),
+		getMetaContent(metaTags, "property", "author"),
+		getMetaContent(metaTags, "name", "author"),
+		getMetaContent(metaTags, "name", "byl"),
+		getMetaContent(metaTags, "name", "authorList"),
+	)
 	if authors != "" {
 		return authors
 	}
 
 	// Schema.org data - deduplicate if it's a list
-	schemaAuthors := getSchemaProperty(schemaOrgData, "author.name")
-	if schemaAuthors == "" {
-		schemaAuthors = getSchemaProperty(schemaOrgData, "author.[].name")
-	}
+	schemaAuthors := cmp.Or(
+		getSchemaProperty(schemaOrgData, "author.name"),
+		getSchemaProperty(schemaOrgData, "author.[].name"),
+	)
 
 	if schemaAuthors != "" {
 		parts := strings.Split(schemaAuthors, ",")
@@ -306,8 +301,7 @@ func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) str
 		if value == "" {
 			return
 		}
-		parts := strings.SplitSeq(value, ",")
-		for namePart := range parts {
+		for namePart := range strings.SplitSeq(value, ",") {
 			cleanedName := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(namePart), ","))
 			lowerCleanedName := strings.ToLower(cleanedName)
 			if cleanedName != "" && lowerCleanedName != "author" && lowerCleanedName != "authors" {
@@ -346,34 +340,17 @@ func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) str
 		}
 	}
 
-	// Fallback meta tags and schema properties
-	authors = getMetaContent(metaTags, "name", "copyright")
-	if authors == "" {
-		authors = getSchemaProperty(schemaOrgData, "copyrightHolder.name")
-	}
-	if authors == "" {
-		authors = getMetaContent(metaTags, "property", "og:site_name")
-	}
-	if authors == "" {
-		authors = getSchemaProperty(schemaOrgData, "publisher.name")
-	}
-	if authors == "" {
-		authors = getSchemaProperty(schemaOrgData, "sourceOrganization.name")
-	}
-	if authors == "" {
-		authors = getSchemaProperty(schemaOrgData, "isPartOf.name")
-	}
-	if authors == "" {
-		authors = getMetaContent(metaTags, "name", "twitter:creator")
-	}
-	if authors == "" {
-		authors = getMetaContent(metaTags, "name", "application-name")
-	}
-	if authors != "" {
-		return authors
-	}
-
-	return ""
+	// Fallback meta tags and schema properties - use cmp.Or (Go 1.22+)
+	return cmp.Or(
+		getMetaContent(metaTags, "name", "copyright"),
+		getSchemaProperty(schemaOrgData, "copyrightHolder.name"),
+		getMetaContent(metaTags, "property", "og:site_name"),
+		getSchemaProperty(schemaOrgData, "publisher.name"),
+		getSchemaProperty(schemaOrgData, "sourceOrganization.name"),
+		getSchemaProperty(schemaOrgData, "isPartOf.name"),
+		getMetaContent(metaTags, "name", "twitter:creator"),
+		getMetaContent(metaTags, "name", "application-name"),
+	)
 }
 
 // getSite extracts site name
@@ -394,32 +371,18 @@ func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) str
 //	  );
 //	}
 func getSite(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
-	site := getSchemaProperty(schemaOrgData, "publisher.name")
-	if site == "" {
-		site = getMetaContent(metaTags, "property", "og:site_name")
-	}
-	if site == "" {
-		site = getSchemaProperty(schemaOrgData, "WebSite.name")
-	}
-	if site == "" {
-		site = getSchemaProperty(schemaOrgData, "sourceOrganization.name")
-	}
-	if site == "" {
-		site = getMetaContent(metaTags, "name", "copyright")
-	}
-	if site == "" {
-		site = getSchemaProperty(schemaOrgData, "copyrightHolder.name")
-	}
-	if site == "" {
-		site = getSchemaProperty(schemaOrgData, "isPartOf.name")
-	}
-	if site == "" {
-		site = getMetaContent(metaTags, "name", "application-name")
-	}
-	if site == "" {
-		site = getAuthor(doc, schemaOrgData, metaTags)
-	}
-	return site
+	// Use cmp.Or for cleaner fallback chain (Go 1.22+)
+	return cmp.Or(
+		getSchemaProperty(schemaOrgData, "publisher.name"),
+		getMetaContent(metaTags, "property", "og:site_name"),
+		getSchemaProperty(schemaOrgData, "WebSite.name"),
+		getSchemaProperty(schemaOrgData, "sourceOrganization.name"),
+		getMetaContent(metaTags, "name", "copyright"),
+		getSchemaProperty(schemaOrgData, "copyrightHolder.name"),
+		getSchemaProperty(schemaOrgData, "isPartOf.name"),
+		getMetaContent(metaTags, "name", "application-name"),
+		getAuthor(doc, schemaOrgData, metaTags),
+	)
 }
 
 // getTitle extracts title
@@ -439,6 +402,7 @@ func getSite(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) strin
 //	  return this.cleanTitle(rawTitle, this.getSite(doc, schemaOrgData, metaTags));
 //	}
 func getTitle(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
+	// Use cmp.Or for cleaner fallback chain
 	rawTitle := getMetaContent(metaTags, "property", "og:title")
 	if rawTitle == "" {
 		rawTitle = getMetaContent(metaTags, "name", "twitter:title")
@@ -523,23 +487,15 @@ func cleanTitle(title, siteName string) string {
 //	  );
 //	}
 func getDescription(_ *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
-	description := getMetaContent(metaTags, "name", "description")
-	if description == "" {
-		description = getMetaContent(metaTags, "property", "description")
-	}
-	if description == "" {
-		description = getMetaContent(metaTags, "property", "og:description")
-	}
-	if description == "" {
-		description = getSchemaProperty(schemaOrgData, "description")
-	}
-	if description == "" {
-		description = getMetaContent(metaTags, "name", "twitter:description")
-	}
-	if description == "" {
-		description = getMetaContent(metaTags, "name", "sailthru.description")
-	}
-	return description
+	// Use cmp.Or for cleaner fallback chain (Go 1.22+)
+	return cmp.Or(
+		getMetaContent(metaTags, "name", "description"),
+		getMetaContent(metaTags, "property", "description"),
+		getMetaContent(metaTags, "property", "og:description"),
+		getSchemaProperty(schemaOrgData, "description"),
+		getMetaContent(metaTags, "name", "twitter:description"),
+		getMetaContent(metaTags, "name", "sailthru.description"),
+	)
 }
 
 // getImage extracts image URL
@@ -557,23 +513,15 @@ func getDescription(_ *goquery.Document, schemaOrgData any, metaTags []MetaTag) 
 //	  );
 //	}
 func getImage(_ *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
-	image := getMetaContent(metaTags, "property", "og:image")
-	if image == "" {
-		image = getMetaContent(metaTags, "name", "twitter:image")
-	}
-	if image == "" {
-		image = getSchemaProperty(schemaOrgData, "image.url")
-	}
-	if image == "" {
-		image = getSchemaProperty(schemaOrgData, "image")
-	}
-	if image == "" {
-		image = getMetaContent(metaTags, "name", "sailthru.image.full")
-	}
-	if image == "" {
-		image = getMetaContent(metaTags, "name", "sailthru.image.thumb")
-	}
-	return image
+	// Use cmp.Or for cleaner fallback chain (Go 1.22+)
+	return cmp.Or(
+		getMetaContent(metaTags, "property", "og:image"),
+		getMetaContent(metaTags, "name", "twitter:image"),
+		getSchemaProperty(schemaOrgData, "image.url"),
+		getSchemaProperty(schemaOrgData, "image"),
+		getMetaContent(metaTags, "name", "sailthru.image.full"),
+		getMetaContent(metaTags, "name", "sailthru.image.thumb"),
+	)
 }
 
 // getFavicon extracts favicon URL
@@ -645,20 +593,14 @@ func getFavicon(doc *goquery.Document, baseURL string, metaTags []MetaTag) strin
 //	  );
 //	}
 func getPublished(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
-	published := getSchemaProperty(schemaOrgData, "datePublished")
-	if published == "" {
-		published = getMetaContent(metaTags, "property", "article:published_time")
-	}
-	if published == "" {
-		published = getMetaContent(metaTags, "name", "sailthru.date")
-	}
-	if published == "" {
-		published = getMetaContent(metaTags, "name", "date")
-	}
-	if published == "" {
-		published = getTimeElement(doc)
-	}
-	return published
+	// Use cmp.Or for cleaner fallback chain (Go 1.22+)
+	return cmp.Or(
+		getSchemaProperty(schemaOrgData, "datePublished"),
+		getMetaContent(metaTags, "property", "article:published_time"),
+		getMetaContent(metaTags, "name", "sailthru.date"),
+		getMetaContent(metaTags, "name", "date"),
+		getTimeElement(doc),
+	)
 }
 
 // getMetaContent finds meta tag content by attribute and value

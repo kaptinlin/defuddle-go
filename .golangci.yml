@@ -28,6 +28,11 @@ linters:
     - noctx
     - nolintlint
     - promlinter
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -QF1012
 
 issues:
   max-issues-per-linter: 0

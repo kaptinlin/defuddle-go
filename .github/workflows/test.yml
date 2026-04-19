@@ -12,27 +12,38 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        submodules: false
 
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
-          cache: true
-          cache-dependency-path: go.sum
+        cache: true
+        cache-dependency-path: go.sum
 
-    - name: Initialize submodules
-      run: git submodule update --init --recursive
+    - name: Install Task
+      uses: go-task/setup-task@v2
+      with:
+        version: 3.x
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Initialize reference submodules
+      run: |
+        git submodule update --init .reference/defuddle
+        git submodule update --init .reference/defuddle-cli
 
     - name: Install dependencies
-      run: make deps
+      run: task deps
 
     - name: Run tests
-      run: make test
+      run: task test
 
     - name: Build CLI
-      run: make build-cli
+      run: task build-cli
 
     - name: Test CLI basic functionality
       run: |
         ./bin/defuddle --version
         ./bin/defuddle --help
+

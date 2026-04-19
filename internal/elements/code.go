@@ -13,6 +13,48 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Pre-compiled regex patterns for language detection and code normalization.
+var (
+	highlighterPatterns = []*regexp.Regexp{
+		regexp.MustCompile(`^language-(\w+)$`),
+		regexp.MustCompile(`^lang-(\w+)$`),
+		regexp.MustCompile(`^(\w+)-code$`),
+		regexp.MustCompile(`^code-(\w+)$`),
+		regexp.MustCompile(`^syntax-(\w+)$`),
+		regexp.MustCompile(`^code-snippet__(\w+)$`),
+		regexp.MustCompile(`^highlight-(\w+)$`),
+		regexp.MustCompile(`^(\w+)-snippet$`),
+		regexp.MustCompile(`(?:^|\s)(?:language|lang|brush|syntax)-(\w+)(?:\s|$)`),
+	}
+
+	codeThreeNewlinesRe = regexp.MustCompile(`\n{3,}`)
+	codeLeadingNlRe     = regexp.MustCompile(`^\n+`)
+	codeTrailingNlRe    = regexp.MustCompile(`\n+$`)
+
+	codeLanguages = map[string]bool{
+		"abap": true, "actionscript": true, "ada": true, "adoc": true, "agda": true, "antlr4": true,
+		"applescript": true, "arduino": true, "armasm": true, "asciidoc": true, "aspnet": true, "atom": true,
+		"bash": true, "batch": true, "c": true, "clojure": true, "cmake": true, "cobol": true,
+		"coffeescript": true, "cpp": true, "c++": true, "crystal": true, "csharp": true, "cs": true,
+		"dart": true, "django": true, "dockerfile": true, "dotnet": true, "elixir": true, "elm": true,
+		"erlang": true, "fortran": true, "fsharp": true, "gdscript": true, "gitignore": true, "glsl": true,
+		"golang": true, "go": true, "gradle": true, "graphql": true, "groovy": true, "haskell": true,
+		"hs": true, "haxe": true, "hlsl": true, "html": true, "idris": true, "java": true,
+		"javascript": true, "js": true, "jsx": true, "jsdoc": true, "json": true, "jsonp": true,
+		"julia": true, "kotlin": true, "latex": true, "lisp": true, "elisp": true, "livescript": true,
+		"lua": true, "makefile": true, "markdown": true, "md": true, "markup": true, "masm": true,
+		"mathml": true, "matlab": true, "mongodb": true, "mysql": true, "nasm": true, "nginx": true,
+		"nim": true, "nix": true, "objc": true, "ocaml": true, "pascal": true, "perl": true,
+		"php": true, "postgresql": true, "powershell": true, "prolog": true, "puppet": true, "python": true,
+		"regex": true, "rss": true, "ruby": true, "rb": true, "rust": true, "scala": true,
+		"scheme": true, "shell": true, "sh": true, "solidity": true, "sparql": true, "sql": true,
+		"ssml": true, "svg": true, "swift": true, "tcl": true, "terraform": true, "tex": true,
+		"toml": true, "typescript": true, "ts": true, "tsx": true, "unrealscript": true, "verilog": true,
+		"vhdl": true, "webassembly": true, "wasm": true, "xml": true, "yaml": true, "yml": true,
+		"zig": true,
+	}
+)
+
 /*
 TypeScript source code (code.ts, 319 lines):
 
@@ -314,7 +356,7 @@ func (p *CodeBlockProcessor) getCodeLanguage(s *goquery.Selection) string {
 	classNames := strings.Fields(class)
 
 	// Check for syntax highlighter specific format
-	if p.hasClass(classNames, "syntaxhighlighter") {
+	if slices.Contains(classNames, "syntaxhighlighter") {
 		for _, className := range classNames {
 			if className != "syntaxhighlighter" && className != "nogutter" {
 				langLower := strings.ToLower(className)
@@ -326,22 +368,9 @@ func (p *CodeBlockProcessor) getCodeLanguage(s *goquery.Selection) string {
 	}
 
 	// Check highlighter patterns (same as TypeScript)
-	patterns := []string{
-		`^language-(\w+)$`,      // language-javascript
-		`^lang-(\w+)$`,          // lang-javascript
-		`^(\w+)-code$`,          // javascript-code
-		`^code-(\w+)$`,          // code-javascript
-		`^syntax-(\w+)$`,        // syntax-javascript
-		`^code-snippet__(\w+)$`, // code-snippet__javascript
-		`^highlight-(\w+)$`,     // highlight-javascript
-		`^(\w+)-snippet$`,       // javascript-snippet
-		`(?:^|\s)(?:language|lang|brush|syntax)-(\w+)(?:\s|$)`, // fallback
-	}
-
 	for _, className := range classNames {
 		classLower := strings.ToLower(className)
-		for _, pattern := range patterns {
-			re := regexp.MustCompile(pattern)
+		for _, re := range highlighterPatterns {
 			if matches := re.FindStringSubmatch(classLower); len(matches) > 1 {
 				lang := matches[1]
 				if p.isCodeLanguage(lang) {
@@ -631,12 +660,11 @@ func (p *CodeBlockProcessor) normalizeCodeContent(content string) string {
 	content = strings.ReplaceAll(content, "\u00a0", " ")
 
 	// Normalize multiple newlines
-	re := regexp.MustCompile(`\n{3,}`)
-	content = re.ReplaceAllString(content, "\n\n")
+	content = codeThreeNewlinesRe.ReplaceAllString(content, "\n\n")
 
 	// Remove extra newlines at start and end
-	content = regexp.MustCompile(`^\n+`).ReplaceAllString(content, "")
-	content = regexp.MustCompile(`\n+$`).ReplaceAllString(content, "")
+	content = codeLeadingNlRe.ReplaceAllString(content, "")
+	content = codeTrailingNlRe.ReplaceAllString(content, "")
 
 	return content
 }
@@ -665,7 +693,7 @@ func (p *CodeBlockProcessor) formatCodeBlock(s *goquery.Selection, language, con
 	preHTML.WriteString("<code")
 
 	if language != "" {
-		preHTML.WriteString(fmt.Sprintf(` data-lang="%s" class="language-%s"`, language, language))
+		fmt.Fprintf(&preHTML, ` data-lang="%s" class="language-%s"`, language, language)
 	}
 
 	preHTML.WriteString(">")
@@ -692,35 +720,7 @@ func (p *CodeBlockProcessor) formatCodeBlock(s *goquery.Selection, language, con
 //
 // ]);
 func (p *CodeBlockProcessor) isCodeLanguage(lang string) bool {
-	languages := map[string]bool{
-		"abap": true, "actionscript": true, "ada": true, "adoc": true, "agda": true, "antlr4": true,
-		"applescript": true, "arduino": true, "armasm": true, "asciidoc": true, "aspnet": true, "atom": true,
-		"bash": true, "batch": true, "c": true, "clojure": true, "cmake": true, "cobol": true,
-		"coffeescript": true, "cpp": true, "c++": true, "crystal": true, "csharp": true, "cs": true,
-		"dart": true, "django": true, "dockerfile": true, "dotnet": true, "elixir": true, "elm": true,
-		"erlang": true, "fortran": true, "fsharp": true, "gdscript": true, "gitignore": true, "glsl": true,
-		"golang": true, "go": true, "gradle": true, "graphql": true, "groovy": true, "haskell": true,
-		"hs": true, "haxe": true, "hlsl": true, "html": true, "idris": true, "java": true,
-		"javascript": true, "js": true, "jsx": true, "jsdoc": true, "json": true, "jsonp": true,
-		"julia": true, "kotlin": true, "latex": true, "lisp": true, "elisp": true, "livescript": true,
-		"lua": true, "makefile": true, "markdown": true, "md": true, "markup": true, "masm": true,
-		"mathml": true, "matlab": true, "mongodb": true, "mysql": true, "nasm": true, "nginx": true,
-		"nim": true, "nix": true, "objc": true, "ocaml": true, "pascal": true, "perl": true,
-		"php": true, "postgresql": true, "powershell": true, "prolog": true, "puppet": true, "python": true,
-		"regex": true, "rss": true, "ruby": true, "rb": true, "rust": true, "scala": true,
-		"scheme": true, "shell": true, "sh": true, "solidity": true, "sparql": true, "sql": true,
-		"ssml": true, "svg": true, "swift": true, "tcl": true, "terraform": true, "tex": true,
-		"toml": true, "typescript": true, "ts": true, "tsx": true, "unrealscript": true, "verilog": true,
-		"vhdl": true, "webassembly": true, "wasm": true, "xml": true, "yaml": true, "yml": true,
-		"zig": true,
-	}
-
-	return languages[lang]
-}
-
-// hasClass checks if a class exists in the class list
-func (p *CodeBlockProcessor) hasClass(classNames []string, targetClass string) bool {
-	return slices.Contains(classNames, targetClass)
+	return codeLanguages[lang]
 }
 
 // ProcessCodeBlocks processes all code blocks in the document (public interface)
