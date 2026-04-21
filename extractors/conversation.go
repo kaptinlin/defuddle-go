@@ -139,7 +139,7 @@ func (c *ConversationExtractorBase) CreateContentHTML(messages []ConversationMes
 		var dataAttributes strings.Builder
 		if message.Metadata != nil {
 			for key, value := range message.Metadata {
-				dataAttributes.WriteString(fmt.Sprintf(` data-%s="%v"`, key, value))
+				fmt.Fprintf(&dataAttributes, ` data-%s="%v"`, key, value)
 			}
 		}
 

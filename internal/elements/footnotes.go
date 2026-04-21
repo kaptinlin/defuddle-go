@@ -591,9 +591,9 @@ func (p *FootnoteProcessor) generateFootnoteSection(footnotes []*Footnote, optio
 
 	// Create footnote section HTML
 	var sectionHTML strings.Builder
-	sectionHTML.WriteString(fmt.Sprintf(`<div class="footnotes">
+	fmt.Fprintf(&sectionHTML, `<div class="footnotes">
 <h2>%s</h2>
-<ol>`, options.SectionTitle))
+<ol>`, options.SectionTitle)
 
 	for _, footnote := range footnotes {
 		if footnote.Content == "" {
@@ -603,10 +603,10 @@ func (p *FootnoteProcessor) generateFootnoteSection(footnotes []*Footnote, optio
 		defID := fmt.Sprintf("%s:%d", options.FootnotePrefix, footnote.Number)
 		refID := fmt.Sprintf("%sref:%d", options.FootnotePrefix, footnote.Number)
 
-		sectionHTML.WriteString(fmt.Sprintf(`
+		fmt.Fprintf(&sectionHTML, `
 <li id="%s" class="footnote">
 <p>%s <a href="#%s" class="footnote-backref" title="return to article">↩</a></p>
-</li>`, defID, footnote.Content, refID))
+</li>`, defID, footnote.Content, refID)
 	}
 
 	sectionHTML.WriteString(`

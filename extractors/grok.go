@@ -443,10 +443,10 @@ func (g *GrokExtractor) processFootnotes(content string) string {
 			var domainText string
 			if parsedURL, err := url.Parse(urlStr); err == nil {
 				domain := strings.TrimPrefix(parsedURL.Hostname(), "www.")
-				domainText = fmt.Sprintf(`<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>`, urlStr, domain)
+				domainText = fmt.Sprintf(`<a href=%q target="_blank" rel="noopener noreferrer">%s</a>`, urlStr, domain)
 			} else {
 				// Use full URL if parsing fails
-				domainText = fmt.Sprintf(`<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>`, urlStr, urlStr)
+				domainText = fmt.Sprintf(`<a href=%q target="_blank" rel="noopener noreferrer">%s</a>`, urlStr, urlStr)
 				slog.Warn("GrokExtractor: Could not parse URL for footnote", "url", urlStr, "error", err)
 			}
 

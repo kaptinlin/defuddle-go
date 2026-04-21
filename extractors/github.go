@@ -169,14 +169,14 @@ func (g *GitHubExtractor) extractIssue() *ExtractorResult {
 			bodyContent := g.cleanBodyContent(issueBodyElement)
 
 			// Add the main issue
-			content.WriteString(fmt.Sprintf(`<div class="issue-author"><strong>%s</strong>`, issueAuthor))
+			fmt.Fprintf(&content, `<div class="issue-author"><strong>%s</strong>`, issueAuthor)
 			if issueTimestamp != "" {
 				if date, err := time.Parse(time.RFC3339, issueTimestamp); err == nil {
-					content.WriteString(fmt.Sprintf(` opened this issue on %s`, date.Format("January 2, 2006")))
+					fmt.Fprintf(&content, ` opened this issue on %s`, date.Format("January 2, 2006"))
 				}
 			}
 			content.WriteString("</div>\n\n")
-			content.WriteString(fmt.Sprintf(`<div class="issue-body">%s</div>\n\n`, bodyContent))
+			fmt.Fprintf(&content, `<div class="issue-body">%s</div>\n\n`, bodyContent)
 		}
 	}
 
@@ -215,14 +215,14 @@ func (g *GitHubExtractor) extractIssue() *ExtractorResult {
 			bodyContent := g.cleanBodyContent(bodyElement)
 			if bodyContent != "" {
 				content.WriteString(`<div class="comment">\n`)
-				content.WriteString(fmt.Sprintf(`<div class="comment-header"><strong>%s</strong>`, author))
+				fmt.Fprintf(&content, `<div class="comment-header"><strong>%s</strong>`, author)
 				if timestamp != "" {
 					if date, err := time.Parse(time.RFC3339, timestamp); err == nil {
-						content.WriteString(fmt.Sprintf(` commented on %s`, date.Format("January 2, 2006")))
+						fmt.Fprintf(&content, ` commented on %s`, date.Format("January 2, 2006"))
 					}
 				}
 				content.WriteString(`</div>\n`)
-				content.WriteString(fmt.Sprintf(`<div class="comment-body">%s</div>\n`, bodyContent))
+				fmt.Fprintf(&content, `<div class="comment-body">%s</div>\n`, bodyContent)
 				content.WriteString(`</div>\n\n`)
 			}
 		}

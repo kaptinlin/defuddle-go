@@ -310,19 +310,19 @@ func (h *HackerNewsExtractor) getPostContent() string {
 		var content strings.Builder
 		content.WriteString(`<div class="comment main-comment">`)
 		content.WriteString(`<div class="comment-metadata">`)
-		content.WriteString(fmt.Sprintf(`<span class="comment-author"><strong>%s</strong></span> •`, author))
-		content.WriteString(fmt.Sprintf(` <span class="comment-date">%s</span>`, date))
+		fmt.Fprintf(&content, `<span class="comment-author"><strong>%s</strong></span> •`, author)
+		fmt.Fprintf(&content, ` <span class="comment-date">%s</span>`, date)
 
 		if points != "" {
-			content.WriteString(fmt.Sprintf(` • <span class="comment-points">%s</span>`, points))
+			fmt.Fprintf(&content, ` • <span class="comment-points">%s</span>`, points)
 		}
 
 		if parentURL != "" {
-			content.WriteString(fmt.Sprintf(` • <a href="https://news.ycombinator.com/%s" class="parent-link">parent</a>`, parentURL))
+			fmt.Fprintf(&content, ` • <a href=%q class="parent-link">parent</a>`, "https://news.ycombinator.com/"+parentURL)
 		}
 
 		content.WriteString(`</div>`)
-		content.WriteString(fmt.Sprintf(`<div class="comment-content">%s</div>`, commentText))
+		fmt.Fprintf(&content, `<div class="comment-content">%s</div>`, commentText)
 		content.WriteString(`</div>`)
 
 		slog.Debug("HackerNews extractor: extracted comment page content", "author", author, "hasPoints", points != "", "hasParentURL", parentURL != "")
@@ -335,13 +335,13 @@ func (h *HackerNewsExtractor) getPostContent() string {
 
 	var content strings.Builder
 	if url != "" {
-		content.WriteString(fmt.Sprintf(`<p><a href="%s" target="_blank">%s</a></p>`, url, url))
+		fmt.Fprintf(&content, `<p><a href=%q target="_blank">%s</a></p>`, url, url)
 	}
 
 	text := h.mainPost.Find(".toptext")
 	if text.Length() > 0 {
 		textHTML, _ := text.Html()
-		content.WriteString(fmt.Sprintf(`<div class="post-text">%s</div>`, textHTML))
+		fmt.Fprintf(&content, `<div class="post-text">%s</div>`, textHTML)
 	}
 
 	slog.Debug("HackerNews extractor: extracted regular post content", "hasUrl", url != "", "hasText", text.Length() > 0)
@@ -519,15 +519,15 @@ func (h *HackerNewsExtractor) processComments(comments []*goquery.Selection) str
 
 		html.WriteString(`<div class="comment">`)
 		html.WriteString(`<div class="comment-metadata">`)
-		html.WriteString(fmt.Sprintf(`<span class="comment-author"><strong>%s</strong></span> •`, author))
-		html.WriteString(fmt.Sprintf(` <a href="%s" class="comment-link">%s</a> •`, commentURL, date))
+		fmt.Fprintf(&html, `<span class="comment-author"><strong>%s</strong></span> •`, author)
+		fmt.Fprintf(&html, ` <a href=%q class="comment-link">%s</a> •`, commentURL, date)
 
 		if points != "" {
-			html.WriteString(fmt.Sprintf(` • <span class="comment-points">%s</span>`, points))
+			fmt.Fprintf(&html, ` • <span class="comment-points">%s</span>`, points)
 		}
 
 		html.WriteString(`</div>`)
-		html.WriteString(fmt.Sprintf(`<div class="comment-content">%s</div>`, commentContent))
+		fmt.Fprintf(&html, `<div class="comment-content">%s</div>`, commentContent)
 		html.WriteString(`</div>`)
 
 		currentDepth = depth

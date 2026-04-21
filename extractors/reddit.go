@@ -190,7 +190,7 @@ func (r *RedditExtractor) getPostContent() string {
 		if mediaBody.Length() > 0 {
 			mediaBodyHTML, _ := mediaBody.Html()
 			// Use innerHTML equivalent since TypeScript uses outerHTML
-			content.WriteString(fmt.Sprintf(`<div id="post-image">%s</div>`, mediaBodyHTML))
+			fmt.Fprintf(&content, `<div id="post-image">%s</div>`, mediaBodyHTML)
 		}
 	} else {
 		// Fallback method: Look for alternative selectors
@@ -460,11 +460,11 @@ func (r *RedditExtractor) processComments(comments []*goquery.Selection) string 
 
 		html.WriteString(`<div class="comment">`)
 		html.WriteString(`<div class="comment-metadata">`)
-		html.WriteString(fmt.Sprintf(`<span class="comment-author"><strong>%s</strong></span> •`, author))
-		html.WriteString(fmt.Sprintf(` <a href="https://reddit.com%s" class="comment-link">%s points</a> •`, permalink, score))
-		html.WriteString(fmt.Sprintf(` <span class="comment-date">%s</span>`, date))
+		fmt.Fprintf(&html, `<span class="comment-author"><strong>%s</strong></span> •`, author)
+		fmt.Fprintf(&html, ` <a href=%q class="comment-link">%s points</a> •`, "https://reddit.com"+permalink, score)
+		fmt.Fprintf(&html, ` <span class="comment-date">%s</span>`, date)
 		html.WriteString(`</div>`)
-		html.WriteString(fmt.Sprintf(`<div class="comment-content">%s</div>`, content))
+		fmt.Fprintf(&html, `<div class="comment-content">%s</div>`, content)
 		html.WriteString(`</div>`)
 
 		currentDepth = depth

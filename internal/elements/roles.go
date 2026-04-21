@@ -156,7 +156,7 @@ func (p *RoleProcessor) replaceElementTag(s *goquery.Selection, newTagName strin
 	// Build attribute string
 	attrStrings := make([]string, 0, len(attrs)) // Pre-allocate with capacity
 	for key, value := range attrs {
-		attrStrings = append(attrStrings, fmt.Sprintf(`%s="%s"`, key, value))
+		attrStrings = append(attrStrings, fmt.Sprintf(`%s=%q`, key, value))
 	}
 
 	var attrString string
