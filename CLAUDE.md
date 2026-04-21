@@ -1,161 +1,74 @@
-# CLAUDE.md
+# defuddle-go
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Go library and CLI for extracting readable content from HTML documents and web pages. The root package owns parsing orchestration, `extractors/` owns site-specific extension points, and `cmd/defuddle` is a thin CLI adapter over the same engine.
 
-## Common Development Commands
+For installation and usage examples, see [README.md](README.md). For monorepo-wide workflow rules, see [../CLAUDE.md](../CLAUDE.md).
 
-### Building and Installation
+## Commands
+
+Run from this directory.
+
 ```bash
-# Build the CLI binary
-task build-cli
-
-# Install CLI to system
-make install-cli
-
-# Build with Go directly
-go build -o bin/defuddle ./cmd/defuddle
+task test          # Run go test -race ./...
+task lint          # Run golangci-lint and tidy checks
+task markdownlint  # Run markdownlint on Markdown files
+task verify        # Run deps + fmt + vet + lint + test + vuln
 ```
 
-### Testing
-```bash
-# Run all tests
-task test
+## Architecture
 
-# Run tests with coverage report
-task test-coverage
-
-# Run tests with race detector
-go test -race ./...
-
-# Run unit tests only
-task test-unit
-
-# Run benchmarks
-make bench
-
-# Verbose test output
-task test-verbose
+```text
+defuddle-go/
+├── defuddle.go             # Root parser orchestration and URL fetch helpers
+├── types.go                # Public options, results, and compatibility helpers
+├── extractors/             # Public site-specific extractor interfaces and registry
+├── internal/metadata/      # Metadata extraction
+├── internal/scoring/       # Heuristic scoring and content removal
+├── internal/standardize/   # Content normalization and cleanup
+├── internal/elements/      # Optional element processors and experiments
+├── internal/debug/         # Debug timers and statistics
+├── cmd/defuddle/           # CLI wrapper over the root package
+└── SPECS/                  # Canonical design and contract documents
 ```
 
-### Code Quality
-```bash
-# Run all linters
-task lint
+## Agent Workflow
 
-# Format code
-make fmt
+### Read Code First, Then the Relevant Spec
 
-# Run go vet
-make vet
+When changing code, read the target implementation and tests first. Use the matching `SPECS/` file when the task affects public contracts, data shapes, pipeline behavior, or repository rules.
 
-# Complete verification (format, vet, lint, test)
-task verify
+If `SPECS/` and the current code diverge, verify whether the spec describes shipped behavior or intended behavior. Shipped behavior in `README.md` must match the code. Intended behavior may stay in `SPECS/` only when it is marked with an explicit status note.
 
-# Quick development verification
-task dev
-```
+### Documentation Boundaries
 
-### Dependencies
-```bash
-# Download and tidy dependencies
-task deps
+- `README.md` documents shipped usage.
+- `SPECS/` documents contracts and explicit intended-state gaps.
+- This file stays concise and points to the right spec.
+- `AGENTS.md` is a symlink to this file.
 
-# Initialize git submodules (required for reference library)
-make submodules
-```
+## SPECS Index
 
-### Development Workflow
-```bash
-# Quick development cycle
-task dev && task test
+| File | Purpose | Status |
+| --- | --- | --- |
+| `SPECS/00-overview.md` | Library scope, default usage stories, and spec map | Current |
+| `SPECS/20-api-specs.md` | Root-package API, extractor extension API, and CLI contract notes | Current with explicit gap notes |
+| `SPECS/30-data-model-specs.md` | `Options`, `Result`, metadata, and extractor payload shapes | Current with explicit gap notes |
+| `SPECS/40-architecture-specs.md` | Package boundaries, parse pipeline, and extractor topology | Current with explicit gap notes |
+| `SPECS/50-coding-standards.md` | Tooling, testing, compatibility, and documentation rules | Current |
 
-# Full verification before commit
-task verify
-```
+## Design Notes
 
-## Code Architecture
+- Keep the root API small: construct, parse, or fetch-and-parse.
+- Prefer extractor registration over root-package special cases.
+- Keep TypeScript-compatible field names where the root parser mirrors the original Defuddle contract.
+- Do not present parsed-but-unwired flags or exported-but-unwired options as shipped behavior.
 
-### Core Structure
-- **`defuddle.go`** - Main entry point and orchestration logic
-- **`types.go`** - Core data structures and type definitions
-- **`cmd/main.go`** - CLI application entry point
-- **`extractors/`** - Site-specific content extractors (ChatGPT, GitHub, Reddit, Twitter/X, YouTube, etc.)
-- **`internal/`** - Internal implementation packages
+## Testing
 
-### Key Architectural Components
-
-#### Extraction Pipeline
-1. **Schema.org Processing** - JSON-LD structured data extraction
-2. **Site-Specific Detection** - Specialized extractors for platforms
-3. **Content Scoring** - Algorithm to identify main content areas
-4. **Clutter Removal** - Removes ads, navigation, sidebars
-5. **Element Processing** - Handles code blocks, images, math, footnotes
-6. **Standardization** - Normalizes HTML structure
-7. **Markdown Conversion** - Optional HTML-to-Markdown transformation
-
-#### Internal Packages
-- **`internal/elements/`** - Element-specific processing (code, images, headings, math, footnotes, roles)
-- **`internal/scoring/`** - Content relevance scoring algorithms
-- **`internal/metadata/`** - Metadata extraction from HTML
-- **`internal/standardize/`** - HTML structure normalization
-- **`internal/markdown/`** - HTML to Markdown conversion
-- **`internal/debug/`** - Debug logging and processing information
-- **`internal/pool/`** - Object pooling for performance optimization
-
-#### Extractor System
-Site-specific extractors implement the `BaseExtractor` interface:
-- **Registry-based** - Extractors register themselves for URL patterns
-- **Modular Design** - Each extractor handles platform-specific content
-- **Fallback Mechanism** - Falls back to general extraction if no specific extractor matches
-- **Built-in Support** - ChatGPT, GitHub (issues), Reddit, Twitter/X, YouTube, Hacker News, Grok, Claude, and Gemini
-
-### Key Dependencies
-- **goquery** - HTML parsing and DOM manipulation
-- **requests** - HTTP client for URL fetching (mandatory for compatibility)
-- **html-to-markdown** - HTML to Markdown conversion
-- **json-gold** - JSON-LD processing for Schema.org data
-- **cobra** - CLI framework
-
-## API Compatibility
-This Go implementation maintains complete compatibility with the original TypeScript Defuddle library:
-- Identical method signatures and return structures
-- Same input produces same output across platforms
-- Field names aligned with JavaScript version
-
-## Performance Features
-- Object pooling with `sync.Pool` to minimize allocations
-- Optimized string building with `strings.Builder`
-- Concurrent-safe processing for multiple documents
-- Structured logging with `slog`
-
-## Testing Strategy
-- Uses `testify` for test assertions
-- Target coverage >90%
-- Benchmark tests with allocation reporting
-- Race condition detection enabled
-- TypeScript compatibility validation with identical inputs
-
-## Configuration Notes
-- Cursor rules available in `.cursor/defuddle-go-rules.mdc`
-- Follows strict Go best practices and TypeScript API compatibility
-- All comments must be in English with original JavaScript code included for reference
-
+- Run `task lint` and `task test` before committing.
+- Keep markdownlint green for `SPECS/**`, `README.md`, and this file.
+- Add or update tests when parser behavior, extractor routing, or exported contracts change.
 
 ## Agent Skills
 
-This package indexes agent skills from its own .agents/skills directory (defuddle-go/.agents/skills/):
-
-| Skill | When to Use |
-|-------|-------------|
-| [agent-md-creating](.agents/skills/agent-md-creating/) | Create or update CLAUDE.md and AGENTS.md instructions for this Go package. |
-| [code-simplifying](.agents/skills/code-simplifying/) | Refine recently changed Go code for clarity and consistency without behavior changes. |
-| [committing](.agents/skills/committing/) | Prepare conventional commit messages for this Go package. |
-| [dependency-selecting](.agents/skills/dependency-selecting/) | Evaluate and choose Go dependencies with alternatives and risk tradeoffs. |
-| [go-best-practices](.agents/skills/go-best-practices/) | Apply Google Go style and architecture best practices to code changes. |
-| [linting](.agents/skills/linting/) | Configure or run golangci-lint and fix lint issues in this package. |
-| [modernizing](.agents/skills/modernizing/) | Adopt newer Go language and toolchain features safely. |
-| [ralphy-initializing](.agents/skills/ralphy-initializing/) | Initialize or repair the .ralphy workflow configuration. |
-| [ralphy-todo-creating](.agents/skills/ralphy-todo-creating/) | Generate or refine TODO tracking via the Ralphy workflow. |
-| [readme-creating](.agents/skills/readme-creating/) | Create or rewrite README.md for this package. |
-| [releasing](.agents/skills/releasing/) | Prepare release and semantic version workflows for this package. |
-| [testing](.agents/skills/testing/) | Design or update tests (table-driven, fuzz, benchmark, and edge-case coverage). |
+This package indexes agent skills from its own `.agents/skills` directory. Use the matching local skill when one explicitly applies to the task; otherwise follow the repository rules above.
