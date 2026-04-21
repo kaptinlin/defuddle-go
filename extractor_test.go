@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kaptinlin/defuddle-go/extractors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kaptinlin/defuddle-go/extractors"
 )
 
 func TestExtractors(t *testing.T) {

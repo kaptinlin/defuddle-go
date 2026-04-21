@@ -1,10 +1,11 @@
 package defuddle
 
 import (
+	"github.com/kaptinlin/requests"
+
 	"github.com/kaptinlin/defuddle-go/internal/debug"
 	"github.com/kaptinlin/defuddle-go/internal/elements"
 	"github.com/kaptinlin/defuddle-go/internal/metadata"
-	"github.com/kaptinlin/requests"
 )
 
 // MetaTag represents a meta tag item from HTML

@@ -25,6 +25,7 @@ go.work.sum
 .idea/
 
 # Coverage files
+.cov.*
 cover.out
 cover.html
 
@@ -38,12 +39,11 @@ build/
 **/.DS_Store
 
 # .ralphy
-.ralphy/deferred.json
+.ralphy/*.json
 .ralphy/*.txt
 
 # todo files
 .todo
-TODO.md
 
 # Project-specific
 *.bench
@@ -87,14 +87,17 @@ testdata/output/
 tmp/
 
 # Scratch/planning docs
+.plan/*.md
 .plans/
 reports/
+plan*.md
 PLAN*.md
-IMPROVE.md
+improve*.md
 IMPROVE*.md
-REFACTOR.md
+refactor*.md
 REFACTOR*.md
 ANALYSIS.md
+TODO*.md
 
 # Meeting records
 .meetings/

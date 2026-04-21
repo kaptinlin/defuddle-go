@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kaptinlin/defuddle-go/internal/scoring"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kaptinlin/defuddle-go/internal/scoring"
 )
 
 func TestNewDefuddle(t *testing.T) {

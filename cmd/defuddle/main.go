@@ -4,17 +4,19 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/go-json-experiment/json"
-	"github.com/go-json-experiment/json/jsontext"
 	"log/slog"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-json-experiment/json"
+	"github.com/go-json-experiment/json/jsontext"
+
+	"github.com/spf13/cobra"
+
 	"github.com/kaptinlin/defuddle-go"
 	"github.com/kaptinlin/defuddle-go/extractors"
-	"github.com/spf13/cobra"
 )
 
 const version = "0.1.3"

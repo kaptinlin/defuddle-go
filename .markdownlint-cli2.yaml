@@ -20,3 +20,4 @@ ignores:
   - ".agents/**"
   - ".claude/**"
   - ".research/**"
+  - "SPECS/**"

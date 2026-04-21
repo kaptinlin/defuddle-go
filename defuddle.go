@@ -4,14 +4,18 @@ package defuddle
 import (
 	"context"
 	"fmt"
-	"github.com/go-json-experiment/json"
 	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-json-experiment/json"
+
 	"github.com/PuerkitoBio/goquery"
+	"github.com/kaptinlin/requests"
+	"github.com/piprate/json-gold/ld"
+
 	"github.com/kaptinlin/defuddle-go/extractors"
 	"github.com/kaptinlin/defuddle-go/internal/constants"
 	"github.com/kaptinlin/defuddle-go/internal/debug"
@@ -19,8 +23,6 @@ import (
 	"github.com/kaptinlin/defuddle-go/internal/metadata"
 	"github.com/kaptinlin/defuddle-go/internal/scoring"
 	"github.com/kaptinlin/defuddle-go/internal/standardize"
-	"github.com/kaptinlin/requests"
-	"github.com/piprate/json-gold/ld"
 )
 
 // Pre-compiled regex patterns for JSON-LD content cleaning.

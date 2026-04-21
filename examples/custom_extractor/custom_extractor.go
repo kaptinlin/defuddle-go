@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/PuerkitoBio/goquery"
+
 	"github.com/kaptinlin/defuddle-go"
 	"github.com/kaptinlin/defuddle-go/extractors"
 )

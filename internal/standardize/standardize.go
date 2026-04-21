@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/html"
+
 	"github.com/kaptinlin/defuddle-go/internal/constants"
 	"github.com/kaptinlin/defuddle-go/internal/metadata"
-	"golang.org/x/net/html"
 )
 
 // Pre-compiled regex patterns used across standardization functions.
