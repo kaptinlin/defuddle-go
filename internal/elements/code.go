@@ -1,6 +1,4 @@
-// Package elements provides enhanced element processing functionality
-// This module handles code block processing including syntax highlighting,
-// language detection, and code formatting
+// Package elements provides helpers for normalizing and enriching extracted HTML elements.
 package elements
 
 import (

@@ -1,6 +1,3 @@
-// Package elements provides enhanced element processing functionality
-// This module handles mathematical formula processing including MathML extraction,
-// LaTeX conversion, and math display normalization
 package elements
 
 import (

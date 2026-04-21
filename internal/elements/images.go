@@ -1,6 +1,3 @@
-// Package elements provides enhanced element processing functionality
-// This module handles image processing including optimization, lazy loading,
-// responsive processing, and Alt text generation
 package elements
 
 import (

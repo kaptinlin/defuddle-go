@@ -1,6 +1,3 @@
-// Package elements provides enhanced element processing functionality
-// This module handles footnote processing including detection, linking,
-// and accessibility improvements
 package elements
 
 import (

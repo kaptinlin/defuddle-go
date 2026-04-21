@@ -1,8 +1,5 @@
 package extractors
 
-// TypeScript original code - ExtractorRegistry functionality
-// Reference: extractor-registry.ts
-
 import (
 	"net/url"
 	"regexp"

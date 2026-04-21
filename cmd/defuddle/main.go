@@ -21,14 +21,15 @@ import (
 
 const version = "0.1.3"
 
-// Define static errors to avoid dynamic error creation
-var (
-	ErrInvalidHeaderFormat = fmt.Errorf("invalid header format (expected 'Key: Value')")
-	ErrDirectoryTraversal  = fmt.Errorf("invalid file path: directory traversal detected")
-	ErrPropertyNotFound    = fmt.Errorf("property not found in response")
-)
+// ErrInvalidHeaderFormat is returned when a header flag is not in Key: Value form.
+var ErrInvalidHeaderFormat = fmt.Errorf("invalid header format (expected 'Key: Value')")
 
-// Define custom type for context key to avoid collisions
+// ErrDirectoryTraversal is returned when a file path contains a parent-directory segment.
+var ErrDirectoryTraversal = fmt.Errorf("invalid file path: directory traversal detected")
+
+// ErrPropertyNotFound is returned when a requested output property is missing.
+var ErrPropertyNotFound = fmt.Errorf("property not found in response")
+
 type contextKey string
 
 const optionsKey contextKey = "options"
@@ -50,6 +51,7 @@ You can output the content in different formats and extract specific properties.
 	RunE: parseContent,
 }
 
+// ParseOptions configures the parse command.
 type ParseOptions struct {
 	Source    string
 	JSON      bool
@@ -64,7 +66,6 @@ type ParseOptions struct {
 }
 
 func init() {
-	// Initialize built-in extractors
 	extractors.InitializeBuiltins()
 
 	parseCmd.Flags().BoolP("json", "j", false, "Output as JSON with metadata and content")
@@ -102,7 +103,6 @@ func parseContent(cmd *cobra.Command, args []string) error {
 	debug, _ := cmd.Flags().GetBool("debug")
 	proxy, _ := cmd.Flags().GetString("proxy")
 
-	// Handle markdown alias
 	if mdAlias {
 		markdown = true
 	}
@@ -120,7 +120,6 @@ func parseContent(cmd *cobra.Command, args []string) error {
 		Proxy:     proxy,
 	}
 
-	// Set context with custom key type
 	cmd.SetContext(context.WithValue(cmd.Context(), optionsKey, opts))
 
 	if debug {
@@ -131,7 +130,6 @@ func parseContent(cmd *cobra.Command, args []string) error {
 }
 
 func executeParseContent(opts *ParseOptions) error {
-	// Parse headers
 	headerMap := make(map[string]string)
 	for _, header := range opts.Headers {
 		key, value, err := parseHeader(header)
@@ -141,7 +139,6 @@ func executeParseContent(opts *ParseOptions) error {
 		headerMap[key] = value
 	}
 
-	// Create defuddle options
 	defuddleOpts := &defuddle.Options{
 		Debug:            opts.Debug,
 		URL:              opts.Source,
@@ -152,9 +149,7 @@ func executeParseContent(opts *ParseOptions) error {
 	var result *defuddle.Result
 	var err error
 
-	// Parse content based on source type
 	if strings.HasPrefix(opts.Source, "http://") || strings.HasPrefix(opts.Source, "https://") {
-		// Parse from URL
 		ctx := context.Background()
 		if opts.Timeout > 0 {
 			var cancel context.CancelFunc
@@ -163,7 +158,6 @@ func executeParseContent(opts *ParseOptions) error {
 		}
 		result, err = defuddle.ParseFromURL(ctx, opts.Source, defuddleOpts)
 	} else {
-		// Parse from file
 		htmlContent, fileErr := readFile(opts.Source)
 		if fileErr != nil {
 			return fmt.Errorf("error reading file: %w", fileErr)
@@ -187,12 +181,10 @@ func executeParseContent(opts *ParseOptions) error {
 		return fmt.Errorf("error loading content: %w", err)
 	}
 
-	// If in debug mode, don't show content output (matching TypeScript behavior)
 	if opts.Debug {
 		return nil
 	}
 
-	// Handle property extraction
 	if opts.Property != "" {
 		value := getProperty(result, opts.Property)
 		if value == "" {
@@ -201,7 +193,6 @@ func executeParseContent(opts *ParseOptions) error {
 		return writeOutput(opts.Output, value)
 	}
 
-	// Handle different output formats
 	var content string
 	switch {
 	case opts.JSON:

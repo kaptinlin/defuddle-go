@@ -34,7 +34,7 @@ func (e *CustomBlogExtractor) Name() string {
 	return "CustomBlogExtractor"
 }
 
-// Extract performs the custom extraction logic
+// Extract returns the matched blog post content.
 func (e *CustomBlogExtractor) Extract() *extractors.ExtractorResult {
 	doc := e.GetDocument()
 

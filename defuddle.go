@@ -68,7 +68,7 @@ func NewDefuddle(html string, options *Options) (*Defuddle, error) {
 	}, nil
 }
 
-// Parse extracts the main content from the document
+// Parse extracts content from the configured document and returns a normalized result.
 // JavaScript original code:
 //
 //	parse(): DefuddleResponse {

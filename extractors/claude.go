@@ -174,7 +174,7 @@ func (c *ClaudeExtractor) Name() string {
 	return "ClaudeExtractor"
 }
 
-// Extract extracts the Claude conversation
+// Extract returns the Claude conversation in defuddle format.
 // TypeScript original code:
 //
 //	extract(): ExtractorResult {

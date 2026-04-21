@@ -176,7 +176,7 @@ func (t *TwitterExtractor) Name() string {
 	return "TwitterExtractor"
 }
 
-// Extract extracts the Twitter content
+// Extract returns the main tweet and any thread replies.
 // TypeScript original code:
 //
 //	extract(): ExtractorResult {

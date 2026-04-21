@@ -62,17 +62,17 @@ func NewExtractorBase(document *goquery.Document, url string, schemaOrgData any)
 	}
 }
 
-// GetDocument returns the document
+// GetDocument returns the extractor document.
 func (e *ExtractorBase) GetDocument() *goquery.Document {
 	return e.document
 }
 
-// GetURL returns the URL
+// GetURL returns the extractor URL.
 func (e *ExtractorBase) GetURL() string {
 	return e.url
 }
 
-// GetSchemaOrgData returns the schema.org data
+// GetSchemaOrgData returns the extractor schema.org payload.
 func (e *ExtractorBase) GetSchemaOrgData() any {
 	return e.schemaOrgData
 }

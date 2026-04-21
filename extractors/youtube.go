@@ -98,7 +98,7 @@ func (y *YouTubeExtractor) Name() string {
 	return "YouTubeExtractor"
 }
 
-// Extract extracts the YouTube content
+// Extract returns the embedded video and extracted metadata.
 // TypeScript original code:
 //
 //	extract(): ExtractorResult {

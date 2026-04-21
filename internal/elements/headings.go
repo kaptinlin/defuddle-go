@@ -1,6 +1,3 @@
-// Package elements provides enhanced element processing functionality
-// This module handles heading processing including navigation element removal,
-// anchor link cleanup, and text content extraction
 package elements
 
 import (

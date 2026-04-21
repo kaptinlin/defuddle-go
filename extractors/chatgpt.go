@@ -217,7 +217,7 @@ func (c *ChatGPTExtractor) Name() string {
 	return "ChatGPTExtractor"
 }
 
-// Extract extracts the ChatGPT conversation
+// Extract returns the ChatGPT conversation in defuddle format.
 // TypeScript original code:
 //
 //	extract(): ExtractorResult {

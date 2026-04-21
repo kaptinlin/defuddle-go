@@ -183,7 +183,7 @@ func (g *GeminiExtractor) Name() string {
 	return "GeminiExtractor"
 }
 
-// Extract extracts the Gemini conversation
+// Extract returns the Gemini conversation in defuddle format.
 func (g *GeminiExtractor) Extract() *ExtractorResult {
 	slog.Debug("Gemini extractor starting extraction", "url", g.url)
 	return g.ExtractWithDefuddle(g)

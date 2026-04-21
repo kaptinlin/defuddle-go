@@ -96,7 +96,7 @@ func (r *RedditExtractor) Name() string {
 	return "RedditExtractor"
 }
 
-// Extract extracts the Reddit post and comments
+// Extract returns the Reddit post content and comments.
 // TypeScript original code:
 //
 //	extract(): ExtractorResult {

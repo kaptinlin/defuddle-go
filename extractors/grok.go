@@ -115,7 +115,7 @@ func (g *GrokExtractor) Name() string {
 	return "GrokExtractor"
 }
 
-// Extract extracts the Grok conversation
+// Extract returns the Grok conversation in defuddle format.
 // TypeScript original code:
 //
 //	extract(): ExtractorResult {

@@ -58,7 +58,7 @@ type Metadata struct {
 	WordCount     int    `json:"wordCount"`
 }
 
-// Extract extracts metadata from a document
+// Extract builds metadata from the document, structured data, meta tags, and base URL.
 // JavaScript original code:
 //
 //	static extract(doc: Document, schemaOrgData: any, metaTags: MetaTagItem[]): DefuddleMetadata {

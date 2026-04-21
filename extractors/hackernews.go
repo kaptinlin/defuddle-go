@@ -129,7 +129,7 @@ func (h *HackerNewsExtractor) Name() string {
 	return "HackerNewsExtractor"
 }
 
-// Extract extracts the HackerNews content
+// Extract returns the Hacker News post content and comments.
 // TypeScript original code:
 //
 //	extract(): ExtractorResult {

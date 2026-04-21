@@ -124,7 +124,7 @@ func (g *GitHubExtractor) Name() string {
 	return "GitHubExtractor"
 }
 
-// Extract extracts the GitHub content
+// Extract returns the issue body and comments from a GitHub page.
 // TypeScript original code:
 //
 //	extract(): ExtractorResult {
