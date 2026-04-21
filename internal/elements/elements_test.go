@@ -160,6 +160,21 @@ func TestFootnoteProcessing(t *testing.T) {
 	}
 }
 
+func TestFootnoteProcessingTextPatternsDoNotPanic(t *testing.T) {
+	html := `<p>Alpha [1] beta (2) gamma *3 delta †4 epsilon [note].</p>`
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
+	require.NoError(t, err)
+
+	processor := NewFootnoteProcessor(doc)
+	options := DefaultFootnoteProcessingOptions()
+
+	assert.NotPanics(t, func() {
+		footnotes := processor.detectTextFootnotes(options)
+		assert.NotEmpty(t, footnotes)
+	})
+}
+
 func TestPublicInterfaces(t *testing.T) {
 	html := `
 	<div>

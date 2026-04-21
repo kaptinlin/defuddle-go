@@ -12,6 +12,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+var arrayIndexPattern = regexp.MustCompile(`^\[\d+\]$`)
+
 // MetaTag represents a meta tag item from HTML
 // JavaScript original code:
 //
@@ -462,7 +464,10 @@ func cleanTitle(title, siteName string) string {
 	}
 
 	for _, pattern := range patterns {
-		regex := regexp.MustCompile(`(?i)` + pattern)
+		regex, err := regexp.Compile(`(?i)` + pattern)
+		if err != nil {
+			continue
+		}
 		if regex.MatchString(title) {
 			title = regex.ReplaceAllString(title, "")
 			break
@@ -745,7 +750,7 @@ func getSchemaProperty(schemaOrgData any, property string) string {
 			if len(props) > 0 {
 				currentProp := props[0]
 				// Handle array index notation like [0]
-				if matched, _ := regexp.MatchString(`^\[\d+\]$`, currentProp); matched {
+				if arrayIndexPattern.MatchString(currentProp) {
 					indexStr := currentProp[1 : len(currentProp)-1]
 					if index, err := strconv.Atoi(indexStr); err == nil && index < len(arr) {
 						return searchSchema(arr[index], props[1:], isExactMatch)

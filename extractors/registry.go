@@ -12,6 +12,21 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+var (
+	twitterStatusPattern     = regexp.MustCompile(`twitter\.com/.*/status/.*`)
+	xStatusPattern           = regexp.MustCompile(`x\.com/.*/status/.*`)
+	youtubeWatchPattern      = regexp.MustCompile(`youtube\.com/watch\?v=.*`)
+	youtuBePattern           = regexp.MustCompile(`youtu\.be/.*`)
+	redditCommentsPattern    = regexp.MustCompile(`reddit\.com/r/.*/comments/.*`)
+	hackerNewsItemPattern    = regexp.MustCompile(`news\.ycombinator\.com/item\?id=.*`)
+	chatGPTSharePattern      = regexp.MustCompile(`^https?://chatgpt\.com/(c|share)/.*`)
+	claudeSharePattern       = regexp.MustCompile(`^https?://claude\.ai/(chat|share)/.*`)
+	grokSharePattern         = regexp.MustCompile(`^https?://grok\.x\.ai.*`)
+	xAISharePattern          = regexp.MustCompile(`^https?://x\.ai.*`)
+	geminiSharePattern       = regexp.MustCompile(`^https?://gemini\.google\.com/.*`)
+	githubIssueOrPullPattern = regexp.MustCompile(`^https?://github\.com/.*/(issues|pull)/.*`)
+)
+
 // ExtractorConstructor represents a function that creates an extractor
 // TypeScript original code:
 //
@@ -211,8 +226,8 @@ func (r *Registry) initializeBuiltins() {
 		Patterns: []any{
 			"twitter.com",
 			"x.com",
-			regexp.MustCompile(`twitter\.com/.*/status/.*`),
-			regexp.MustCompile(`x\.com/.*/status/.*`),
+			twitterStatusPattern,
+			xStatusPattern,
 		},
 		Extractor: func(doc *goquery.Document, url string, schemaOrgData any) BaseExtractor {
 			return NewTwitterExtractor(doc, url, schemaOrgData)
@@ -229,8 +244,8 @@ func (r *Registry) initializeBuiltins() {
 		Patterns: []any{
 			"youtube.com",
 			"youtu.be",
-			regexp.MustCompile(`youtube\.com/watch\?v=.*`),
-			regexp.MustCompile(`youtu\.be/.*`),
+			youtubeWatchPattern,
+			youtuBePattern,
 		},
 		Extractor: func(doc *goquery.Document, url string, schemaOrgData any) BaseExtractor {
 			return NewYouTubeExtractor(doc, url, schemaOrgData)
@@ -248,7 +263,7 @@ func (r *Registry) initializeBuiltins() {
 			"reddit.com",
 			"old.reddit.com",
 			"new.reddit.com",
-			regexp.MustCompile(`reddit\.com/r/.*/comments/.*`),
+			redditCommentsPattern,
 		},
 		Extractor: func(doc *goquery.Document, url string, schemaOrgData any) BaseExtractor {
 			return NewRedditExtractor(doc, url, schemaOrgData)
@@ -263,7 +278,7 @@ func (r *Registry) initializeBuiltins() {
 	//   });
 	r.Register(ExtractorMapping{
 		Patterns: []any{
-			regexp.MustCompile(`news\.ycombinator\.com/item\?id=.*`),
+			hackerNewsItemPattern,
 		},
 		Extractor: func(doc *goquery.Document, url string, schemaOrgData any) BaseExtractor {
 			return NewHackerNewsExtractor(doc, url, schemaOrgData)
@@ -278,7 +293,7 @@ func (r *Registry) initializeBuiltins() {
 	//   });
 	r.Register(ExtractorMapping{
 		Patterns: []any{
-			regexp.MustCompile(`^https?://chatgpt\.com/(c|share)/.*`),
+			chatGPTSharePattern,
 		},
 		Extractor: func(doc *goquery.Document, url string, schemaOrgData any) BaseExtractor {
 			return NewChatGPTExtractor(doc, url, schemaOrgData)
@@ -293,7 +308,7 @@ func (r *Registry) initializeBuiltins() {
 	//   });
 	r.Register(ExtractorMapping{
 		Patterns: []any{
-			regexp.MustCompile(`^https?://claude\.ai/(chat|share)/.*`),
+			claudeSharePattern,
 		},
 		Extractor: func(doc *goquery.Document, url string, schemaOrgData any) BaseExtractor {
 			return NewClaudeExtractor(doc, url, schemaOrgData)
@@ -310,8 +325,8 @@ func (r *Registry) initializeBuiltins() {
 		Patterns: []any{
 			"grok.x.ai",
 			"x.ai",
-			regexp.MustCompile(`^https?://grok\.x\.ai.*`),
-			regexp.MustCompile(`^https?://x\.ai.*`),
+			grokSharePattern,
+			xAISharePattern,
 		},
 		Extractor: func(doc *goquery.Document, url string, schemaOrgData any) BaseExtractor {
 			return NewGrokExtractor(doc, url, schemaOrgData)
@@ -327,7 +342,7 @@ func (r *Registry) initializeBuiltins() {
 	r.Register(ExtractorMapping{
 		Patterns: []any{
 			"gemini.google.com",
-			regexp.MustCompile(`^https?://gemini\.google\.com/.*`),
+			geminiSharePattern,
 		},
 		Extractor: func(doc *goquery.Document, url string, schemaOrgData any) BaseExtractor {
 			return NewGeminiExtractor(doc, url, schemaOrgData)
@@ -343,7 +358,7 @@ func (r *Registry) initializeBuiltins() {
 	r.Register(ExtractorMapping{
 		Patterns: []any{
 			"github.com",
-			regexp.MustCompile(`^https?://github\.com/.*/(issues|pull)/.*`),
+			githubIssueOrPullPattern,
 		},
 		Extractor: func(doc *goquery.Document, url string, schemaOrgData any) BaseExtractor {
 			return NewGitHubExtractor(doc, url, schemaOrgData)

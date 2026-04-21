@@ -12,6 +12,14 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+var textFootnotePatterns = []*regexp.Regexp{
+	regexp.MustCompile(`\[(\d+)\]`),
+	regexp.MustCompile(`\((\d+)\)`),
+	regexp.MustCompile(`\*(\d+)`),
+	regexp.MustCompile(`†(\d+)`),
+	regexp.MustCompile(`\[([a-zA-Z]+)\]`),
+}
+
 /*
 TypeScript source code (footnotes.ts, 387 lines):
 
@@ -280,18 +288,7 @@ func (p *FootnoteProcessor) detectExistingFootnotes(_ *FootnoteProcessingOptions
 func (p *FootnoteProcessor) detectTextFootnotes(options *FootnoteProcessingOptions) []*Footnote {
 	var footnotes []*Footnote
 
-	// Common footnote patterns
-	patterns := []string{
-		`\[(\d+)\]`,       // [1], [2], etc.
-		`\((\d+)\)`,       // (1), (2), etc.
-		`\*(\d+)`,         // *1, *2, etc.
-		`†(\d+)`,          // †1, †2, etc.
-		`\[([a-zA-Z]+)\]`, // [a], [b], [note], etc.
-	}
-
-	for _, pattern := range patterns {
-		re := regexp.MustCompile(pattern)
-
+	for _, re := range textFootnotePatterns {
 		// Find all text nodes and search for patterns
 		p.doc.Find("*").Each(func(_ int, s *goquery.Selection) {
 			// Skip elements that are already footnotes
