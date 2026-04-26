@@ -87,6 +87,12 @@ testdata/output/
 tmp/
 
 # Scratch/planning docs
+/.workspace/
+/task.md
+/.cov.before
+/.cov.after
+/.fix.before*
+/.fix.after*
 .plan/*.md
 .plans/
 reports/
