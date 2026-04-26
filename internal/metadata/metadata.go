@@ -118,24 +118,15 @@ func Extract(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag, baseU
 	domain := ""
 	documentURL := baseURL
 
-	// If no base URL provided, try to extract from meta tags and canonical links
 	if documentURL == "" {
-		documentURL = getMetaContent(metaTags, "property", "og:url")
-		if documentURL == "" {
-			documentURL = getMetaContent(metaTags, "property", "twitter:url")
-		}
-		if documentURL == "" {
-			documentURL = getSchemaProperty(schemaOrgData, "url")
-		}
-		if documentURL == "" {
-			documentURL = getSchemaProperty(schemaOrgData, "mainEntityOfPage.url")
-		}
-		if documentURL == "" {
-			documentURL = getSchemaProperty(schemaOrgData, "mainEntity.url")
-		}
-		if documentURL == "" {
-			documentURL = getSchemaProperty(schemaOrgData, "WebSite.url")
-		}
+		documentURL = cmp.Or(
+			getMetaContent(metaTags, "property", "og:url"),
+			getMetaContent(metaTags, "property", "twitter:url"),
+			getSchemaProperty(schemaOrgData, "url"),
+			getSchemaProperty(schemaOrgData, "mainEntityOfPage.url"),
+			getSchemaProperty(schemaOrgData, "mainEntity.url"),
+			getSchemaProperty(schemaOrgData, "WebSite.url"),
+		)
 		if documentURL == "" {
 			canonical := doc.Find(`link[rel="canonical"]`).First()
 			if canonical.Length() > 0 {
@@ -144,7 +135,6 @@ func Extract(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag, baseU
 		}
 	}
 
-	// Extract domain from URL
 	if documentURL != "" {
 		if parsedURL, err := url.Parse(documentURL); err == nil {
 			domain = strings.TrimPrefix(parsedURL.Hostname(), "www.")
@@ -260,7 +250,6 @@ func Extract(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag, baseU
 //	  return '';
 //	}
 func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
-	// Meta tags - use cmp.Or for cleaner fallback chain (Go 1.22+)
 	authors := cmp.Or(
 		getMetaContent(metaTags, "name", "sailthru.author"),
 		getMetaContent(metaTags, "property", "author"),
@@ -272,37 +261,16 @@ func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) str
 		return authors
 	}
 
-	// Schema.org data - deduplicate if it's a list
 	schemaAuthors := cmp.Or(
 		getSchemaProperty(schemaOrgData, "author.name"),
 		getSchemaProperty(schemaOrgData, "author.[].name"),
 	)
-
-	if schemaAuthors != "" {
-		parts := strings.Split(schemaAuthors, ",")
-		var cleanParts []string
-		for _, part := range parts {
-			cleaned := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(part), ","))
-			if cleaned != "" {
-				cleanParts = append(cleanParts, cleaned)
-			}
-		}
-		if len(cleanParts) > 0 {
-			// Remove duplicates
-			uniqueAuthors := removeDuplicates(cleanParts)
-			if len(uniqueAuthors) > 10 {
-				uniqueAuthors = uniqueAuthors[:10]
-			}
-			return strings.Join(uniqueAuthors, ", ")
-		}
+	if formatted := formatAuthorList(strings.Split(schemaAuthors, ",")); formatted != "" {
+		return formatted
 	}
 
-	// DOM elements
 	var domAuthors []string
 	addDomAuthor := func(value string) {
-		if value == "" {
-			return
-		}
 		for namePart := range strings.SplitSeq(value, ",") {
 			cleanedName := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(namePart), ","))
 			lowerCleanedName := strings.ToLower(cleanedName)
@@ -321,28 +289,14 @@ func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) str
 
 	for _, selector := range domAuthorSelectors {
 		doc.Find(selector).Each(func(_ int, el *goquery.Selection) {
-			addDomAuthor(strings.TrimSpace(el.Text()))
+			addDomAuthor(el.Text())
 		})
 	}
 
-	if len(domAuthors) > 0 {
-		var cleanAuthors []string
-		for _, name := range domAuthors {
-			trimmed := strings.TrimSpace(name)
-			if trimmed != "" {
-				cleanAuthors = append(cleanAuthors, trimmed)
-			}
-		}
-		uniqueAuthors := removeDuplicates(cleanAuthors)
-		if len(uniqueAuthors) > 0 {
-			if len(uniqueAuthors) > 10 {
-				uniqueAuthors = uniqueAuthors[:10]
-			}
-			return strings.Join(uniqueAuthors, ", ")
-		}
+	if formatted := formatAuthorList(domAuthors); formatted != "" {
+		return formatted
 	}
 
-	// Fallback meta tags and schema properties - use cmp.Or (Go 1.22+)
 	return cmp.Or(
 		getMetaContent(metaTags, "name", "copyright"),
 		getSchemaProperty(schemaOrgData, "copyrightHolder.name"),
@@ -373,7 +327,6 @@ func getAuthor(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) str
 //	  );
 //	}
 func getSite(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
-	// Use cmp.Or for cleaner fallback chain (Go 1.22+)
 	return cmp.Or(
 		getSchemaProperty(schemaOrgData, "publisher.name"),
 		getMetaContent(metaTags, "property", "og:site_name"),
@@ -404,20 +357,13 @@ func getSite(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) strin
 //	  return this.cleanTitle(rawTitle, this.getSite(doc, schemaOrgData, metaTags));
 //	}
 func getTitle(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
-	// Use cmp.Or for cleaner fallback chain
-	rawTitle := getMetaContent(metaTags, "property", "og:title")
-	if rawTitle == "" {
-		rawTitle = getMetaContent(metaTags, "name", "twitter:title")
-	}
-	if rawTitle == "" {
-		rawTitle = getSchemaProperty(schemaOrgData, "headline")
-	}
-	if rawTitle == "" {
-		rawTitle = getMetaContent(metaTags, "name", "title")
-	}
-	if rawTitle == "" {
-		rawTitle = getMetaContent(metaTags, "name", "sailthru.title")
-	}
+	rawTitle := cmp.Or(
+		getMetaContent(metaTags, "property", "og:title"),
+		getMetaContent(metaTags, "name", "twitter:title"),
+		getSchemaProperty(schemaOrgData, "headline"),
+		getMetaContent(metaTags, "name", "title"),
+		getMetaContent(metaTags, "name", "sailthru.title"),
+	)
 	if rawTitle == "" {
 		titleEl := doc.Find("title").First()
 		if titleEl.Length() > 0 {
@@ -456,7 +402,6 @@ func cleanTitle(title, siteName string) string {
 		return title
 	}
 
-	// Remove site name if it exists
 	siteNameEscaped := regexp.QuoteMeta(siteName)
 	patterns := []string{
 		`\s*[\|\-–—]\s*` + siteNameEscaped + `\s*$`, // Title | Site Name
@@ -492,7 +437,6 @@ func cleanTitle(title, siteName string) string {
 //	  );
 //	}
 func getDescription(_ *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
-	// Use cmp.Or for cleaner fallback chain (Go 1.22+)
 	return cmp.Or(
 		getMetaContent(metaTags, "name", "description"),
 		getMetaContent(metaTags, "property", "description"),
@@ -518,7 +462,6 @@ func getDescription(_ *goquery.Document, schemaOrgData any, metaTags []MetaTag) 
 //	  );
 //	}
 func getImage(_ *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
-	// Use cmp.Or for cleaner fallback chain (Go 1.22+)
 	return cmp.Or(
 		getMetaContent(metaTags, "property", "og:image"),
 		getMetaContent(metaTags, "name", "twitter:image"),
@@ -598,7 +541,6 @@ func getFavicon(doc *goquery.Document, baseURL string, metaTags []MetaTag) strin
 //	  );
 //	}
 func getPublished(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag) string {
-	// Use cmp.Or for cleaner fallback chain (Go 1.22+)
 	return cmp.Or(
 		getSchemaProperty(schemaOrgData, "datePublished"),
 		getMetaContent(metaTags, "property", "article:published_time"),
@@ -732,24 +674,19 @@ func getSchemaProperty(schemaOrgData any, property string) string {
 
 	var searchSchema func(data any, props []string, isExactMatch bool) []string
 	searchSchema = func(data any, props []string, isExactMatch bool) []string {
-		// Handle string data
 		if str, ok := data.(string); ok {
 			if len(props) == 0 {
 				return []string{str}
 			}
 			return []string{}
 		}
-
-		// Handle non-object data
 		if data == nil {
 			return []string{}
 		}
 
-		// Handle arrays
 		if arr, ok := data.([]any); ok {
 			if len(props) > 0 {
 				currentProp := props[0]
-				// Handle array index notation like [0]
 				if arrayIndexPattern.MatchString(currentProp) {
 					indexStr := currentProp[1 : len(currentProp)-1]
 					if index, err := strconv.Atoi(indexStr); err == nil && index < len(arr) {
@@ -759,9 +696,8 @@ func getSchemaProperty(schemaOrgData any, property string) string {
 				}
 			}
 
-			// If no props left and all items are strings/numbers, return them
 			if len(props) == 0 {
-				var results []string
+				results := make([]string, 0, len(arr))
 				for _, item := range arr {
 					if str, ok := item.(string); ok {
 						results = append(results, str)
@@ -774,7 +710,6 @@ func getSchemaProperty(schemaOrgData any, property string) string {
 				}
 			}
 
-			// Search in all array items
 			var allResults []string
 			for _, item := range arr {
 				results := searchSchema(item, props, isExactMatch)
@@ -783,13 +718,9 @@ func getSchemaProperty(schemaOrgData any, property string) string {
 			return allResults
 		}
 
-		// Handle maps/objects
 		if obj, ok := data.(map[string]any); ok {
 			if len(props) == 0 {
 				if str, ok := obj["name"].(string); ok {
-					return []string{str}
-				}
-				if str, ok := data.(string); ok {
 					return []string{str}
 				}
 				return []string{}
@@ -798,12 +729,10 @@ func getSchemaProperty(schemaOrgData any, property string) string {
 			currentProp := props[0]
 			remainingProps := props[1:]
 
-			// Check if property exists
 			if value, exists := obj[currentProp]; exists {
 				return searchSchema(value, remainingProps, true)
 			}
 
-			// If not exact match, search nested objects
 			if !isExactMatch {
 				var nestedResults []string
 				for _, value := range obj {
@@ -825,7 +754,7 @@ func getSchemaProperty(schemaOrgData any, property string) string {
 		results = searchSchema(schemaOrgData, props, false)
 	}
 
-	var filteredResults []string
+	filteredResults := make([]string, 0, len(results))
 	for _, result := range results {
 		if result != "" {
 			filteredResults = append(filteredResults, result)
@@ -833,6 +762,22 @@ func getSchemaProperty(schemaOrgData any, property string) string {
 	}
 
 	return strings.Join(filteredResults, ", ")
+}
+
+func formatAuthorList(authors []string) string {
+	cleanAuthors := make([]string, 0, len(authors))
+	for _, author := range authors {
+		cleaned := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(author), ","))
+		if cleaned != "" {
+			cleanAuthors = append(cleanAuthors, cleaned)
+		}
+	}
+
+	uniqueAuthors := removeDuplicates(cleanAuthors)
+	if len(uniqueAuthors) > 10 {
+		uniqueAuthors = uniqueAuthors[:10]
+	}
+	return strings.Join(uniqueAuthors, ", ")
 }
 
 // removeDuplicates removes duplicate strings from slice while preserving order
