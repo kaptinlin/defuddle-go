@@ -2,6 +2,11 @@
 // It includes CSS selectors for finding main content, removing unwanted elements, and processing footnotes.
 package constants
 
+import (
+	"maps"
+	"slices"
+)
+
 // EntryPointElements are the elements that will be used to find the main content
 // JavaScript original code:
 // export const ENTRY_POINT_ELEMENTS = [
@@ -1104,18 +1109,10 @@ func IsAllowedAttributeDebug(attrName string) bool {
 
 // GetInlineElements returns a slice of inline element names
 func GetInlineElements() []string {
-	elements := make([]string, 0, len(InlineElements))
-	for element := range InlineElements {
-		elements = append(elements, element)
-	}
-	return elements
+	return slices.Collect(maps.Keys(InlineElements))
 }
 
 // GetAllowedEmptyElements returns a slice of allowed empty element names
 func GetAllowedEmptyElements() []string {
-	elements := make([]string, 0, len(AllowedEmptyElements))
-	for element := range AllowedEmptyElements {
-		elements = append(elements, element)
-	}
-	return elements
+	return slices.Collect(maps.Keys(AllowedEmptyElements))
 }

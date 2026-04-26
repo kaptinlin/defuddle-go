@@ -3,6 +3,7 @@ package extractors
 import (
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
@@ -189,9 +190,7 @@ func (r *Registry) ClearCache() *Registry {
 // GetMappings returns a copy of current mappings (read-only access)
 // This is a Go-specific method for introspection
 func (r *Registry) GetMappings() []ExtractorMapping {
-	mappings := make([]ExtractorMapping, len(r.mappings))
-	copy(mappings, r.mappings)
-	return mappings
+	return slices.Clone(r.mappings)
 }
 
 // Global registry instance and convenience functions

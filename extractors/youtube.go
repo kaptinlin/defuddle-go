@@ -191,7 +191,7 @@ func (y *YouTubeExtractor) Extract() *ExtractorResult {
 func (y *YouTubeExtractor) getVideoData() map[string]any {
 	if y.schemaOrgData == nil {
 		slog.Debug("YouTube extractor: no schema.org data available")
-		return make(map[string]any)
+		return map[string]any{}
 	}
 
 	// Handle both single object and array of objects
@@ -220,7 +220,7 @@ func (y *YouTubeExtractor) getVideoData() map[string]any {
 		slog.Debug("YouTube extractor: unexpected schema.org data type", "type", fmt.Sprintf("%T", data))
 	}
 
-	return make(map[string]any)
+	return map[string]any{}
 }
 
 // getVideoID extracts the video ID from the URL
