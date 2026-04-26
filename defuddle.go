@@ -987,30 +987,30 @@ func (d *Defuddle) processSchemaOrgData(processor *ld.JsonLdProcessor, options *
 	}
 
 	// Expand JSON-LD to resolve contexts and normalize structure
-	expanded, err := processor.Expand(rawData, options)
-	if err != nil {
-		return nil, fmt.Errorf("JSON-LD expansion failed: %w", err)
-	}
-
-	// If expansion succeeded, try to compact with schema.org context for cleaner output
-	if len(expanded) > 0 {
-		schemaContext := map[string]any{
-			"@context": "https://schema.org/",
-		}
-
-		compacted, err := processor.Compact(expanded, schemaContext, options)
-		if err != nil {
-			// If compaction fails, use expanded data
-			if d.debug {
-				slog.Debug("Schema.org compaction failed, using expanded data", "error", err)
+	expanded, expandErr := processor.Expand(rawData, options)
+	if expandErr == nil {
+		// If expansion succeeded, try to compact with schema.org context for cleaner output
+		if len(expanded) > 0 {
+			schemaContext := map[string]any{
+				"@context": "https://schema.org/",
 			}
-			return expanded, nil
+
+			compacted, err := processor.Compact(expanded, schemaContext, options)
+			if err != nil {
+				// If compaction fails, use expanded data
+				if d.debug {
+					slog.Debug("Schema.org compaction failed, using expanded data", "error", err)
+				}
+				return expanded, nil
+			}
+
+			return compacted, nil
 		}
 
-		return compacted, nil
+		return expanded, nil
 	}
 
-	return expanded, nil
+	return rawData, nil
 }
 
 // extractSchemaItems extracts individual schema items from processed JSON-LD data

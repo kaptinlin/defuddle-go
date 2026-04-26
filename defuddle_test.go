@@ -764,6 +764,84 @@ func TestRemoveImages(t *testing.T) {
 	})
 }
 
+func TestSchemaOrgDataRetainsInlineContextWhenExpansionFails(t *testing.T) {
+	t.Parallel()
+
+	html := `<html><head>
+		<title>Fallback Title</title>
+		<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@type": "Article",
+			"headline": "Inline Schema Headline",
+			"description": "Inline schema description",
+			"author": {"@type": "Person", "name": "Schema Author"}
+		}
+		</script>
+	</head><body><article><h1>Inline Schema Headline</h1><p>Readable article body for schema fallback.</p></article></body></html>`
+
+	result, err := ParseFromString(context.Background(), html, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	schemaItems, ok := result.SchemaOrgData.([]any)
+	require.True(t, ok, "SchemaOrgData = %T, want []any", result.SchemaOrgData)
+	require.Len(t, schemaItems, 1)
+	article, ok := schemaItems[0].(map[string]any)
+	require.True(t, ok, "schema item = %T, want map[string]any", schemaItems[0])
+	assert.Equal(t, "Article", article["@type"])
+	assert.Equal(t, "Inline Schema Headline", result.Title)
+	assert.Equal(t, "Inline schema description", result.Description)
+	assert.Equal(t, "Schema Author", result.Author)
+}
+
+func TestSchemaOrgDataHandlesGraphAndArrays(t *testing.T) {
+	t.Parallel()
+
+	html := `<html><head>
+		<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@graph": [
+				{"@type": "Organization", "name": "Example Publisher"},
+				{"@type": "Article", "headline": "Graph Headline", "author": [{"name": "First Author"}, {"name": "Second Author"}]}
+			]
+		}
+		</script>
+	</head><body><article><h1>Graph Headline</h1><p>Readable article body for graph schema.</p></article></body></html>`
+
+	result, err := ParseFromString(context.Background(), html, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	schemaItems, ok := result.SchemaOrgData.([]any)
+	require.True(t, ok, "SchemaOrgData = %T, want []any", result.SchemaOrgData)
+	require.Len(t, schemaItems, 2)
+	assert.Equal(t, "Graph Headline", result.Title)
+	assert.Equal(t, "First Author, Second Author", result.Author)
+
+	organization, ok := schemaItems[0].(map[string]any)
+	require.True(t, ok, "schema item = %T, want map[string]any", schemaItems[0])
+	assert.Equal(t, "Organization", organization["@type"])
+	assert.Equal(t, "Example Publisher", organization["name"])
+}
+
+func TestSchemaOrgDataIgnoresInvalidJSON(t *testing.T) {
+	t.Parallel()
+
+	html := `<html><head>
+		<title>Document Title</title>
+		<script type="application/ld+json">{invalid json</script>
+	</head><body><article><h1>Document Title</h1><p>Readable article body for invalid schema.</p></article></body></html>`
+
+	result, err := ParseFromString(context.Background(), html, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Empty(t, result.SchemaOrgData)
+	assert.Equal(t, "Document Title", result.Title)
+}
+
 func TestParseFromString(t *testing.T) {
 	html := `
 <!DOCTYPE html>
