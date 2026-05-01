@@ -200,6 +200,9 @@ func TestGrokExtractorExtractsMessagesAndDeduplicatesFootnotes(t *testing.T) {
 	if !strings.Contains(result.ContentHTML, "User question") || !strings.Contains(result.ContentHTML, "source") || !strings.Contains(result.ContentHTML, `id="fn:1"`) {
 		t.Fatalf("ContentHTML = %q, want user, assistant, and footnote references", result.ContentHTML)
 	}
+	if strings.Contains(result.ContentHTML, `id="fn:2"`) {
+		t.Fatalf("ContentHTML = %q, want duplicate Grok source links to reuse the first footnote", result.ContentHTML)
+	}
 	if strings.Contains(result.ContentHTML, "artifact") {
 		t.Fatalf("ContentHTML = %q, want DeepSearch artifact removed", result.ContentHTML)
 	}

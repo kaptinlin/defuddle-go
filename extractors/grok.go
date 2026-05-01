@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -423,19 +424,11 @@ func (g *GrokExtractor) processFootnotes(content string) string {
 			return match
 		}
 
-		// Check if this URL already exists in our footnotes
-		var footnoteIndex int
-		found := false
+		footnoteIndex := slices.IndexFunc(g.footnotes, func(footnote Footnote) bool {
+			return footnote.URL == urlStr
+		}) + 1
 
-		for idx, footnote := range g.footnotes {
-			if footnote.URL == urlStr {
-				footnoteIndex = idx + 1 // 1-based index
-				found = true
-				break
-			}
-		}
-
-		if !found {
+		if footnoteIndex == 0 {
 			// Create a new footnote if URL doesn't exist
 			g.footnoteCounter++
 			footnoteIndex = g.footnoteCounter
