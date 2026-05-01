@@ -196,46 +196,45 @@ func executeParseContent(opts *ParseOptions) error {
 		}
 		content = string(jsonData)
 	case opts.Markdown:
-		if result.ContentMarkdown != nil {
-			content = *result.ContentMarkdown
-		} else {
-			// If ContentMarkdown is not available, try to convert HTML content to markdown
-			// Create a new defuddle instance specifically for markdown conversion
-			markdownOpts := &defuddle.Options{
-				Debug:            false,
-				URL:              opts.Source,
-				Markdown:         true,
-				SeparateMarkdown: true,
-			}
-
-			// Create temporary HTML document for conversion
-			htmlContent := fmt.Sprintf("<html><body>%s</body></html>", result.Content)
-			defuddleInstance, err := defuddle.NewDefuddle(htmlContent, markdownOpts)
-			if err == nil {
-				ctx := context.Background()
-				if opts.Timeout > 0 {
-					var cancel context.CancelFunc
-					ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
-					defer cancel()
-				}
-
-				markdownResult, markdownErr := defuddleInstance.Parse(ctx)
-				if markdownErr == nil && markdownResult.ContentMarkdown != nil {
-					content = *markdownResult.ContentMarkdown
-				} else {
-					// Fallback to original content if markdown conversion fails
-					content = result.Content
-				}
-			} else {
-				// Fallback to original content if defuddle creation fails
-				content = result.Content
-			}
-		}
+		content = markdownContent(result, opts)
 	default:
 		content = result.Content
 	}
 
 	return writeOutput(opts.Output, content)
+}
+
+func markdownContent(result *defuddle.Result, opts *ParseOptions) string {
+	if result.ContentMarkdown != nil {
+		return *result.ContentMarkdown
+	}
+
+	markdownOpts := &defuddle.Options{
+		Debug:            false,
+		URL:              opts.Source,
+		Markdown:         true,
+		SeparateMarkdown: true,
+	}
+
+	htmlContent := fmt.Sprintf("<html><body>%s</body></html>", result.Content)
+	defuddleInstance, err := defuddle.NewDefuddle(htmlContent, markdownOpts)
+	if err != nil {
+		return result.Content
+	}
+
+	ctx := context.Background()
+	if opts.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
+		defer cancel()
+	}
+
+	markdownResult, err := defuddleInstance.Parse(ctx)
+	if err != nil || markdownResult.ContentMarkdown == nil {
+		return result.Content
+	}
+
+	return *markdownResult.ContentMarkdown
 }
 
 func parseHeader(header string) (string, string, error) {
@@ -258,7 +257,6 @@ func readFile(filename string) (string, error) {
 }
 
 func validateFilePath(filename string) error {
-	// Add basic path validation to prevent directory traversal
 	if strings.Contains(filename, "..") {
 		return ErrDirectoryTraversal
 	}

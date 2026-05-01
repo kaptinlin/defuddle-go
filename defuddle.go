@@ -713,97 +713,56 @@ func (d *Defuddle) removeBySelector(doc *goquery.Document, removeExact, removePa
 //	  ...overrideOptions
 //	};
 func (d *Defuddle) mergeOptions(overrideOptions *Options) *Options {
-	// Start with defaults (exactly like TypeScript version)
 	options := &Options{
 		RemoveExactSelectors:   true,
 		RemovePartialSelectors: true,
 	}
 
-	// Apply instance options if they exist (...this.options)
-	if d.options != nil {
-		// Copy all values from instance options, including false values
-		options.Debug = d.options.Debug
-		if d.options.URL != "" {
-			options.URL = d.options.URL
-		}
-		options.Markdown = d.options.Markdown
-		options.SeparateMarkdown = d.options.SeparateMarkdown
-
-		// For boolean options that can override defaults, always apply them
-		options.RemoveExactSelectors = d.options.RemoveExactSelectors
-		options.RemovePartialSelectors = d.options.RemovePartialSelectors
-		options.RemoveImages = d.options.RemoveImages
-		options.ProcessCode = d.options.ProcessCode
-		options.ProcessImages = d.options.ProcessImages
-		options.ProcessHeadings = d.options.ProcessHeadings
-		options.ProcessMath = d.options.ProcessMath
-		options.ProcessFootnotes = d.options.ProcessFootnotes
-		options.ProcessRoles = d.options.ProcessRoles
-
-		// Copy pointer fields
-		if d.options.CodeOptions != nil {
-			options.CodeOptions = d.options.CodeOptions
-		}
-		if d.options.ImageOptions != nil {
-			options.ImageOptions = d.options.ImageOptions
-		}
-		if d.options.HeadingOptions != nil {
-			options.HeadingOptions = d.options.HeadingOptions
-		}
-		if d.options.MathOptions != nil {
-			options.MathOptions = d.options.MathOptions
-		}
-		if d.options.FootnoteOptions != nil {
-			options.FootnoteOptions = d.options.FootnoteOptions
-		}
-		if d.options.RoleOptions != nil {
-			options.RoleOptions = d.options.RoleOptions
-		}
-	}
-
-	// Apply override options if they exist (...overrideOptions)
-	if overrideOptions != nil {
-		// Copy all values from override options, including false values
-		options.Debug = overrideOptions.Debug
-		if overrideOptions.URL != "" {
-			options.URL = overrideOptions.URL
-		}
-		options.Markdown = overrideOptions.Markdown
-		options.SeparateMarkdown = overrideOptions.SeparateMarkdown
-
-		// Override boolean options (these will override any previous values)
-		options.RemoveExactSelectors = overrideOptions.RemoveExactSelectors
-		options.RemovePartialSelectors = overrideOptions.RemovePartialSelectors
-		options.RemoveImages = overrideOptions.RemoveImages
-		options.ProcessCode = overrideOptions.ProcessCode
-		options.ProcessImages = overrideOptions.ProcessImages
-		options.ProcessHeadings = overrideOptions.ProcessHeadings
-		options.ProcessMath = overrideOptions.ProcessMath
-		options.ProcessFootnotes = overrideOptions.ProcessFootnotes
-		options.ProcessRoles = overrideOptions.ProcessRoles
-
-		// Copy pointer fields
-		if overrideOptions.CodeOptions != nil {
-			options.CodeOptions = overrideOptions.CodeOptions
-		}
-		if overrideOptions.ImageOptions != nil {
-			options.ImageOptions = overrideOptions.ImageOptions
-		}
-		if overrideOptions.HeadingOptions != nil {
-			options.HeadingOptions = overrideOptions.HeadingOptions
-		}
-		if overrideOptions.MathOptions != nil {
-			options.MathOptions = overrideOptions.MathOptions
-		}
-		if overrideOptions.FootnoteOptions != nil {
-			options.FootnoteOptions = overrideOptions.FootnoteOptions
-		}
-		if overrideOptions.RoleOptions != nil {
-			options.RoleOptions = overrideOptions.RoleOptions
-		}
-	}
+	applyOptions(options, d.options)
+	applyOptions(options, overrideOptions)
 
 	return options
+}
+
+func applyOptions(options, source *Options) {
+	if source == nil {
+		return
+	}
+
+	options.Debug = source.Debug
+	if source.URL != "" {
+		options.URL = source.URL
+	}
+	options.Markdown = source.Markdown
+	options.SeparateMarkdown = source.SeparateMarkdown
+	options.RemoveExactSelectors = source.RemoveExactSelectors
+	options.RemovePartialSelectors = source.RemovePartialSelectors
+	options.RemoveImages = source.RemoveImages
+	options.ProcessCode = source.ProcessCode
+	options.ProcessImages = source.ProcessImages
+	options.ProcessHeadings = source.ProcessHeadings
+	options.ProcessMath = source.ProcessMath
+	options.ProcessFootnotes = source.ProcessFootnotes
+	options.ProcessRoles = source.ProcessRoles
+
+	if source.CodeOptions != nil {
+		options.CodeOptions = source.CodeOptions
+	}
+	if source.ImageOptions != nil {
+		options.ImageOptions = source.ImageOptions
+	}
+	if source.HeadingOptions != nil {
+		options.HeadingOptions = source.HeadingOptions
+	}
+	if source.MathOptions != nil {
+		options.MathOptions = source.MathOptions
+	}
+	if source.FootnoteOptions != nil {
+		options.FootnoteOptions = source.FootnoteOptions
+	}
+	if source.RoleOptions != nil {
+		options.RoleOptions = source.RoleOptions
+	}
 }
 
 // countWords counts words in HTML content
@@ -1482,26 +1441,9 @@ func (d *Defuddle) findSmallImages(doc *goquery.Document) map[string]bool {
 	doc.Find("img, svg").Each(func(_ int, element *goquery.Selection) {
 		tagName := goquery.NodeName(element)
 
-		// Get dimensions from attributes
-		widthStr, _ := element.Attr("width")
-		heightStr, _ := element.Attr("height")
+		width := parseIntAttr(element, "width")
+		height := parseIntAttr(element, "height")
 
-		width := 0
-		height := 0
-
-		if widthStr != "" {
-			if w, err := strconv.Atoi(widthStr); err == nil {
-				width = w
-			}
-		}
-
-		if heightStr != "" {
-			if h, err := strconv.Atoi(heightStr); err == nil {
-				height = h
-			}
-		}
-
-		// Check if dimensions are small
 		if (width > 0 && width < minDimension) || (height > 0 && height < minDimension) {
 			identifier := d.getElementIdentifier(element, tagName)
 			if identifier != "" {
@@ -1598,23 +1540,29 @@ func (d *Defuddle) removeAllImages(doc *goquery.Document) {
 //
 //		return null;
 //	}
+func parseIntAttr(element *goquery.Selection, name string) int {
+	value, _ := element.Attr(name)
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return 0
+	}
+	return parsed
+}
+
 func (d *Defuddle) getElementIdentifier(element *goquery.Selection, tagName string) string {
 	if tagName == "img" {
-		// For lazy-loaded images, use data-src as identifier if available
-		if dataSrc, exists := element.Attr("data-src"); exists && dataSrc != "" {
-			return "src:" + dataSrc
-		}
-
-		if src, exists := element.Attr("src"); exists && src != "" {
-			return "src:" + src
-		}
-
-		if srcset, exists := element.Attr("srcset"); exists && srcset != "" {
-			return "srcset:" + srcset
-		}
-
-		if dataSrcset, exists := element.Attr("data-srcset"); exists && dataSrcset != "" {
-			return "srcset:" + dataSrcset
+		for _, attr := range []struct {
+			name   string
+			prefix string
+		}{
+			{name: "data-src", prefix: "src:"},
+			{name: "src", prefix: "src:"},
+			{name: "srcset", prefix: "srcset:"},
+			{name: "data-srcset", prefix: "srcset:"},
+		} {
+			if value, exists := element.Attr(attr.name); exists && value != "" {
+				return attr.prefix + value
+			}
 		}
 	}
 
