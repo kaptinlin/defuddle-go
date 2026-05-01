@@ -920,6 +920,11 @@ func (d *Defuddle) extractSchemaOrgData() any {
 
 		// Extract items from processed data
 		items := d.extractSchemaItems(processedData)
+		for _, item := range items {
+			if itemMap, ok := item.(map[string]any); ok {
+				preserveJSONLDType(itemMap)
+			}
+		}
 		allSchemaItems = append(allSchemaItems, items...)
 	})
 
@@ -1011,6 +1016,16 @@ func (d *Defuddle) processSchemaOrgData(processor *ld.JsonLdProcessor, options *
 	}
 
 	return rawData, nil
+}
+
+func preserveJSONLDType(item map[string]any) {
+	value, exists := item["type"]
+	if !exists {
+		return
+	}
+	if _, hasJSONLDType := item["@type"]; !hasJSONLDType {
+		item["@type"] = value
+	}
 }
 
 // extractSchemaItems extracts individual schema items from processed JSON-LD data

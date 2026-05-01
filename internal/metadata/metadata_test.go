@@ -193,3 +193,30 @@ func TestExtractFallsBackToSchemaAndDOM(t *testing.T) {
 		t.Fatalf("Favicon = %q, want default favicon resolved from base tag", metadata.Favicon)
 	}
 }
+
+func TestExtractUsesCanonicalURLAndDOMAuthorFallback(t *testing.T) {
+	t.Parallel()
+
+	doc := mustMetadataDocument(t, `<html><head>
+		<title>Canonical Article</title>
+		<link rel="canonical" href="https://www.example.net/articles/canonical">
+	</head><body>
+		<div class="author">Author, Alice</div>
+		<a href="/authors/bob">Bob Writer</a>
+		<time datetime="2026-04-30T10:00:00Z"></time>
+	</body></html>`)
+
+	metadata := Extract(doc, nil, nil, "")
+	if metadata.Domain != "example.net" {
+		t.Fatalf("Domain = %q, want canonical domain", metadata.Domain)
+	}
+	if metadata.Author != "Alice, Bob Writer" {
+		t.Fatalf("Author = %q, want cleaned DOM author fallback", metadata.Author)
+	}
+	if metadata.Published != "2026-04-30T10:00:00Z" {
+		t.Fatalf("Published = %q, want time element", metadata.Published)
+	}
+	if metadata.Favicon != "https://www.example.net/favicon.ico" {
+		t.Fatalf("Favicon = %q, want canonical favicon fallback", metadata.Favicon)
+	}
+}

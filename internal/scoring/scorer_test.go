@@ -95,3 +95,35 @@ func TestScoreAndRemoveRemovesNavigationButKeepsContent(t *testing.T) {
 		t.Fatal("ScoreAndRemove() removed the main article")
 	}
 }
+
+func TestScoreAndRemoveKeepsFootnotesAndOldTableContent(t *testing.T) {
+	t.Parallel()
+
+	doc := newScoringDocument(t, `<html><body>
+		<table width="640" align="center"><tr>
+			<td id="left-nav"><a href="/home">home</a></td>
+			<td id="story"><p>By Jane Doe</p><p>`+strings.Repeat(`old table article content `, 12)+`</p><a href="#fn1" class="footnote-ref">1</a></td>
+			<td id="right-nav"><a href="/ads">ads</a></td>
+		</tr></table>
+		<section id="notes"><ol class="footnotes"><li id="fn1">Footnote source</li></ol></section>
+		<div id="related" class="related"><a href="/one">one</a><a href="/two">two</a><a href="/three">three</a><p>related navigation subscribe popular</p></div>
+	</body></html>`)
+
+	leftScore := ScoreElement(doc.Find("#left-nav").First())
+	storyScore := ScoreElement(doc.Find("#story").First())
+	if storyScore <= leftScore {
+		t.Fatalf("ScoreElement(story) = %v, left nav = %v, want center table content favored", storyScore, leftScore)
+	}
+
+	ScoreAndRemove(doc, false)
+
+	if doc.Find("#story").Length() != 1 {
+		t.Fatal("ScoreAndRemove() removed center table story content")
+	}
+	if doc.Find("#notes").Length() != 1 {
+		t.Fatal("ScoreAndRemove() removed footnotes")
+	}
+	if doc.Find("#related").Length() != 0 {
+		t.Fatal("ScoreAndRemove() kept dense related-links block")
+	}
+}

@@ -161,3 +161,29 @@ func TestContentNormalizesTextButPreservesPreAndCode(t *testing.T) {
 		t.Fatalf("Content() code text = %q, want preserved code text", got)
 	}
 }
+
+func TestContentFlattensWrappersWhilePreservingReadableText(t *testing.T) {
+	t.Parallel()
+
+	doc := newStandardizeDocument(t, `<html><body><article>
+		<div class="outer wrapper"><div class="inner container"><p>Wrapped paragraph</p></div></div>
+		<div role="main" id="main-content"><p>Main role content</p></div>
+		<div class="inline-card">Inline <strong>text</strong></div>
+		<div class="punctuation"><span>,</span><span> </span></div>
+	</article></body></html>`)
+	article := doc.Find("article").First()
+
+	Content(article, &internalmetadata.Metadata{}, doc, false)
+
+	if article.Find(".outer, .inner, .punctuation").Length() != 0 {
+		t.Fatalf("Content() kept removable wrappers: %s", article.Text())
+	}
+	if got := article.Find("p").FilterFunction(func(_ int, p *goquery.Selection) bool {
+		return strings.Contains(p.Text(), "Inline text")
+	}).Length(); got != 1 {
+		t.Fatalf("Content() did not convert inline wrapper to paragraph, got %d", got)
+	}
+	if !strings.Contains(article.Text(), "Wrapped paragraph") || !strings.Contains(article.Text(), "Main role content") {
+		t.Fatalf("Content() removed readable text: %q", article.Text())
+	}
+}

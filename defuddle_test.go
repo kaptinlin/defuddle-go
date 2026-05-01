@@ -823,7 +823,17 @@ func TestSchemaOrgDataHandlesGraphAndArrays(t *testing.T) {
 	organization, ok := schemaItems[0].(map[string]any)
 	require.True(t, ok, "schema item = %T, want map[string]any", schemaItems[0])
 	assert.Equal(t, "Organization", organization["@type"])
+	assert.Equal(t, "Organization", organization["type"])
 	assert.Equal(t, "Example Publisher", organization["name"])
+
+	article, ok := schemaItems[1].(map[string]any)
+	require.True(t, ok, "schema item = %T, want map[string]any", schemaItems[1])
+	authors, ok := article["author"].([]any)
+	require.True(t, ok, "article author = %T, want []any", article["author"])
+	require.Len(t, authors, 2)
+	firstAuthor, ok := authors[0].(map[string]any)
+	require.True(t, ok, "author = %T, want map[string]any", authors[0])
+	assert.NotContains(t, firstAuthor, "@type")
 }
 
 func TestSchemaOrgDataIgnoresInvalidJSON(t *testing.T) {

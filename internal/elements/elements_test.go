@@ -132,6 +132,35 @@ func TestImageProcessing(t *testing.T) {
 	})
 }
 
+func TestImageProcessingPromotesLazySourcesAndGeneratesFigureMetadata(t *testing.T) {
+	t.Parallel()
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(`
+	<figure>
+		<img data-src="https://example.com/images/hero-photo.jpg" data-srcset="hero-small.jpg 480w, hero-large.jpg 960w" alt="Detailed product hero display" width="960">
+	</figure>
+	<picture>
+		<source srcset="  https://example.com/image.webp 1x  ">
+		<img src="fallback.jpg" alt="Fallback image">
+	</picture>`))
+	require.NoError(t, err)
+
+	ProcessImages(doc, DefaultImageProcessingOptions())
+
+	figure := doc.Find("figure").First()
+	assert.Contains(t, figure.AttrOr("class", ""), "image-figure")
+	assert.Contains(t, figure.AttrOr("class", ""), "large-image")
+	assert.Equal(t, "Detailed product hero display", strings.TrimSpace(figure.Find("figcaption").Text()))
+
+	img := figure.Find("img").First()
+	assert.Equal(t, "https://example.com/images/hero-photo.jpg", img.AttrOr("src", ""))
+	assert.Equal(t, "hero-small.jpg 480w, hero-large.jpg 960w", img.AttrOr("srcset", ""))
+	assert.Empty(t, img.AttrOr("data-src", ""))
+	assert.Contains(t, img.AttrOr("class", ""), "responsive-image")
+
+	assert.Equal(t, "https://example.com/image.webp 1x", doc.Find("source").First().AttrOr("srcset", ""))
+}
+
 func TestFootnoteProcessing(t *testing.T) {
 	html := `
 	<p>This is text with a footnote<sup><a href="#fn1">1</a></sup>.</p>

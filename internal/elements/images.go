@@ -214,6 +214,7 @@ func (p *ImageProcessor) processImage(s *goquery.Selection, options *ImageProces
 		// Check for data-src (lazy loading)
 		if dataSrc, hasDataSrc := s.Attr("data-src"); hasDataSrc {
 			src = dataSrc
+			s.SetAttr("src", dataSrc)
 		} else {
 			return
 		}
