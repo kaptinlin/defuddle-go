@@ -30,10 +30,6 @@ var ErrDirectoryTraversal = fmt.Errorf("invalid file path: directory traversal d
 // ErrPropertyNotFound is returned when a requested output property is missing.
 var ErrPropertyNotFound = fmt.Errorf("property not found in response")
 
-type contextKey string
-
-const optionsKey contextKey = "options"
-
 var rootCmd = &cobra.Command{
 	Use:     "defuddle",
 	Short:   "Extract and structure content from web pages",
@@ -119,8 +115,6 @@ func parseContent(cmd *cobra.Command, args []string) error {
 		Debug:     debug,
 		Proxy:     proxy,
 	}
-
-	cmd.SetContext(context.WithValue(cmd.Context(), optionsKey, opts))
 
 	if debug {
 		slog.SetLogLoggerLevel(slog.LevelDebug)

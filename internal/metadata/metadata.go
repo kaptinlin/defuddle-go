@@ -780,13 +780,12 @@ func formatAuthorList(authors []string) string {
 	return strings.Join(uniqueAuthors, ", ")
 }
 
-// removeDuplicates removes duplicate strings from slice while preserving order
 func removeDuplicates(slice []string) []string {
-	seen := make(map[string]bool)
+	seen := make(map[string]struct{})
 	var result []string
 	for _, item := range slice {
-		if !seen[item] {
-			seen[item] = true
+		if _, ok := seen[item]; !ok {
+			seen[item] = struct{}{}
 			result = append(result, item)
 		}
 	}

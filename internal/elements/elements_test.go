@@ -94,6 +94,22 @@ func TestMathProcessing(t *testing.T) {
 	})
 }
 
+func TestMathProcessorLooksLikeLaTeX(t *testing.T) {
+	t.Parallel()
+
+	processor := NewMathProcessor(nil)
+
+	for _, text := range []string{`$x^2$`, `\frac{1}{2}`, `alpha_beta`} {
+		if !processor.looksLikeLaTeX(text) {
+			t.Fatalf("looksLikeLaTeX(%q) = false, want true", text)
+		}
+	}
+
+	if processor.looksLikeLaTeX("plain text") {
+		t.Fatal("looksLikeLaTeX(plain text) = true, want false")
+	}
+}
+
 func TestImageProcessing(t *testing.T) {
 	html := `
 	<img src="test.jpg" alt="">

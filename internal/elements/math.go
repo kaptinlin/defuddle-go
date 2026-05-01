@@ -44,6 +44,18 @@ type MathProcessor struct {
 	doc *goquery.Document
 }
 
+var latexPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`\$.*\$`),
+	regexp.MustCompile(`\\\w+`),
+	regexp.MustCompile(`\{.*\}`),
+	regexp.MustCompile(`\^`),
+	regexp.MustCompile(`_`),
+	regexp.MustCompile(`\\frac`),
+	regexp.MustCompile(`\\sum`),
+	regexp.MustCompile(`\\int`),
+	regexp.MustCompile(`\\alpha|\\beta|\\gamma`),
+}
+
 // MathData represents extracted mathematical content
 // TypeScript original code:
 //
@@ -571,21 +583,8 @@ func (p *MathProcessor) looksLikeLaTeX(text string) bool {
 		return false
 	}
 
-	// Basic LaTeX patterns
-	latexPatterns := []string{
-		`\$.*\$`,                 // Dollar signs
-		`\\\w+`,                  // Backslash commands
-		`\{.*\}`,                 // Braces
-		`\^`,                     // Superscript
-		`_`,                      // Subscript
-		`\\frac`,                 // Fractions
-		`\\sum`,                  // Summation
-		`\\int`,                  // Integrals
-		`\\alpha|\\beta|\\gamma`, // Greek letters
-	}
-
 	for _, pattern := range latexPatterns {
-		if matched, _ := regexp.MatchString(pattern, text); matched {
+		if pattern.MatchString(text) {
 			return true
 		}
 	}

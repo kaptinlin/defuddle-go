@@ -177,9 +177,6 @@ var elementStandardizationRules = []StandardizationRule{
 func Content(element *goquery.Selection, metadata *metadata.Metadata, doc *goquery.Document, debug bool) {
 	standardizeSpaces(element)
 
-	// Remove HTML comments
-	removeHTMLComments(element)
-
 	// Handle H1 elements - remove first one and convert others to H2
 	standardizeHeadings(element, metadata.Title, doc)
 
@@ -323,32 +320,6 @@ func standardizeSpaces(element *goquery.Selection) {
 			processNode(sel.Get(0))
 		}
 	})
-}
-
-// removeHtmlComments removes HTML comments from the element
-// JavaScript original code:
-//
-//	function removeHtmlComments(element: Element): void {
-//		const walker = document.createTreeWalker(
-//			element,
-//			NodeFilter.SHOW_COMMENT,
-//			null,
-//			false
-//		);
-//
-//		const commentsToRemove: Comment[] = [];
-//		let node: Comment | null;
-//		while (node = walker.nextNode() as Comment) {
-//			commentsToRemove.push(node);
-//		}
-//
-//		commentsToRemove.forEach(comment => {
-//			comment.remove();
-//		});
-//	}
-func removeHTMLComments(_ *goquery.Selection) {
-	// goquery automatically handles comment removal during parsing
-	// This is a no-op in Go as comments are not preserved in the DOM tree
 }
 
 // standardizeHeadings handles H1 elements and converts them appropriately

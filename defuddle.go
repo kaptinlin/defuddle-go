@@ -825,37 +825,12 @@ func (d *Defuddle) mergeOptions(overrideOptions *Options) *Options {
 //	  return words.length;
 //	}
 func (d *Defuddle) countWords(content string) int {
-	// Parse HTML content to extract text
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(content))
 	if err != nil {
-		// Fallback: count words in raw content
-		text := strings.TrimSpace(content)
-		if text == "" {
-			return 0
-		}
-		words := strings.Fields(text)
-		return len(words)
+		return len(strings.Fields(content))
 	}
 
-	// Get text content, removing extra whitespace
-	text := strings.TrimSpace(doc.Text())
-	if text == "" {
-		return 0
-	}
-
-	// Replace multiple spaces with single space and split
-	text = strings.Join(strings.Fields(text), " ")
-	words := strings.Split(text, " ")
-
-	// Filter out empty strings
-	count := 0
-	for _, word := range words {
-		if len(strings.TrimSpace(word)) > 0 {
-			count++
-		}
-	}
-
-	return count
+	return len(strings.Fields(doc.Text()))
 }
 
 // extractSchemaOrgData extracts and processes schema.org structured data using JSON-LD processor
@@ -1256,7 +1231,7 @@ func (d *Defuddle) evaluateMediaQueries() []StyleChange {
 	// Note: In Go/server environment, we don't have access to CSS stylesheets
 	// This is a placeholder for future implementation if needed
 	// Most content extraction doesn't require CSS evaluation
-	return []StyleChange{}
+	return nil
 }
 
 // StyleChange represents a CSS style change for mobile

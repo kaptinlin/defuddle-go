@@ -17,8 +17,9 @@ import (
 
 // Pre-compiled regex patterns for content scoring.
 var (
-	dateRe   = regexp.MustCompile(`(?i)\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b`)
-	authorRe = regexp.MustCompile(`(?i)\b(?:by|written by|author:)\s+[A-Za-z\s]+\b`)
+	dateRe       = regexp.MustCompile(`(?i)\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b`)
+	authorRe     = regexp.MustCompile(`(?i)\b(?:by|written by|author:)\s+[A-Za-z\s]+\b`)
+	contentRoles = []string{"article", "main", "contentinfo"}
 )
 
 // ContentScore represents a scored element
@@ -600,11 +601,8 @@ func ScoreAndRemove(doc *goquery.Document, debug bool) {
 func isLikelyContent(element *goquery.Selection) bool {
 	// Check if the element has a role that indicates content
 	role, _ := element.Attr("role")
-	if role != "" {
-		contentRoles := []string{"article", "main", "contentinfo"}
-		if slices.Contains(contentRoles, role) {
-			return true
-		}
+	if role != "" && slices.Contains(contentRoles, role) {
+		return true
 	}
 
 	// Check if the element has a class or id that indicates content

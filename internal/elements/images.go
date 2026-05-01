@@ -63,6 +63,25 @@ type ImageProcessor struct {
 	doc *goquery.Document
 }
 
+var genericFilenamePatterns = []*regexp.Regexp{
+	regexp.MustCompile(`^image\d*\.(jpg|jpeg|png|gif|webp)$`),
+	regexp.MustCompile(`^img\d*\.(jpg|jpeg|png|gif|webp)$`),
+	regexp.MustCompile(`^picture\d*\.(jpg|jpeg|png|gif|webp)$`),
+	regexp.MustCompile(`^photo\d*\.(jpg|jpeg|png|gif|webp)$`),
+	regexp.MustCompile(`^screenshot\d*\.(jpg|jpeg|png|gif|webp)$`),
+	regexp.MustCompile(`^\d+\.(jpg|jpeg|png|gif|webp)$`),
+	regexp.MustCompile(`^untitled\d*\.(jpg|jpeg|png|gif|webp)$`),
+}
+
+var trackingPixelPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`pixel\.gif`),
+	regexp.MustCompile(`1x1\.gif`),
+	regexp.MustCompile(`tracking\.gif`),
+	regexp.MustCompile(`analytics`),
+	regexp.MustCompile(`metrics`),
+	regexp.MustCompile(`beacon`),
+}
+
 // ImageProcessingOptions contains options for image processing
 // TypeScript original code:
 //
@@ -921,8 +940,6 @@ func (p *ImageProcessor) processSource(s *goquery.Selection, _ *ImageProcessingO
 		return
 	}
 
-	// Basic srcset validation and cleanup could go here
-	// For now, just ensure the attribute is properly formatted
 	srcset = strings.TrimSpace(srcset)
 	s.SetAttr("srcset", srcset)
 }
@@ -1142,19 +1159,9 @@ func (p *ImageProcessor) findNearbyHeading(s *goquery.Selection) string {
 //	  return genericPatterns.some(pattern => pattern.test(filename));
 //	}
 func (p *ImageProcessor) isGenericFilename(filename string) bool {
-	genericPatterns := []string{
-		`^image\d*\.(jpg|jpeg|png|gif|webp)$`,
-		`^img\d*\.(jpg|jpeg|png|gif|webp)$`,
-		`^picture\d*\.(jpg|jpeg|png|gif|webp)$`,
-		`^photo\d*\.(jpg|jpeg|png|gif|webp)$`,
-		`^screenshot\d*\.(jpg|jpeg|png|gif|webp)$`,
-		`^\d+\.(jpg|jpeg|png|gif|webp)$`,
-		`^untitled\d*\.(jpg|jpeg|png|gif|webp)$`,
-	}
-
-	filenameLower := strings.ToLower(filename)
-	for _, pattern := range genericPatterns {
-		if matched, _ := regexp.MatchString(pattern, filenameLower); matched {
+	filename = strings.ToLower(filename)
+	for _, pattern := range genericFilenamePatterns {
+		if pattern.MatchString(filename) {
 			return true
 		}
 	}
@@ -1185,18 +1192,9 @@ func (p *ImageProcessor) isTrackingPixel(src string) bool {
 		return false
 	}
 
-	trackingPatterns := []string{
-		`pixel\.gif`,
-		`1x1\.gif`,
-		`tracking\.gif`,
-		`analytics`,
-		`metrics`,
-		`beacon`,
-	}
-
-	srcLower := strings.ToLower(src)
-	for _, pattern := range trackingPatterns {
-		if matched, _ := regexp.MatchString(pattern, srcLower); matched {
+	src = strings.ToLower(src)
+	for _, pattern := range trackingPixelPatterns {
+		if pattern.MatchString(src) {
 			return true
 		}
 	}
