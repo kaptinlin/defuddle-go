@@ -11,7 +11,7 @@ Run from this directory.
 ```bash
 task test          # Run go test -race ./...
 task lint          # Run golangci-lint and tidy checks
-task markdownlint  # Run markdownlint on Markdown files
+
 task verify        # Run deps + fmt + vet + lint + test + vuln
 ```
 
