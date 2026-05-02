@@ -26,8 +26,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/kaptinlin/orderedobject v0.2.13 h1:IqpPklfx84TATZi+FiNAX9Z4tvM3GplFxev9xWIc594=
 github.com/kaptinlin/orderedobject v0.2.13/go.mod h1:cGmewrS2p08FmAjTUACBjigOVXwP+FIampHWPEJ5eUc=
-github.com/kaptinlin/requests v0.5.1 h1:C6DOnqo2vroIcJkHvzwGa52TWQOJbfd6K8oKGC0/PkE=
-github.com/kaptinlin/requests v0.5.1/go.mod h1:LDEr55G9iky7vMjmI8gUOycVB6Cs7JP6YxbjQ5IQMJE=
+github.com/kaptinlin/requests v0.5.3 h1:6H6phAdwnEnJ6j4rvn0rWYgztwS8Om8plVGvoN78CMc=
+github.com/kaptinlin/requests v0.5.3/go.mod h1:qnPC6/+QoXWlM403+qgj8ncHf4FHqY3MOpmIHRfYwgQ=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
