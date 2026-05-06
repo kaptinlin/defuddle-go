@@ -144,12 +144,8 @@ func executeParseContent(opts *ParseOptions) error {
 	var err error
 
 	if strings.HasPrefix(opts.Source, "http://") || strings.HasPrefix(opts.Source, "https://") {
-		ctx := context.Background()
-		if opts.Timeout > 0 {
-			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
-			defer cancel()
-		}
+		ctx, cancel := parseContext(opts.Timeout)
+		defer cancel()
 		result, err = defuddle.ParseFromURL(ctx, opts.Source, defuddleOpts)
 	} else {
 		htmlContent, fileErr := readFile(opts.Source)
@@ -162,12 +158,8 @@ func executeParseContent(opts *ParseOptions) error {
 			return fmt.Errorf("error creating defuddle instance: %w", createErr)
 		}
 
-		ctx := context.Background()
-		if opts.Timeout > 0 {
-			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
-			defer cancel()
-		}
+		ctx, cancel := parseContext(opts.Timeout)
+		defer cancel()
 		result, err = defuddleInstance.Parse(ctx)
 	}
 
@@ -222,12 +214,8 @@ func markdownContent(result *defuddle.Result, opts *ParseOptions) string {
 		return result.Content
 	}
 
-	ctx := context.Background()
-	if opts.Timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
-		defer cancel()
-	}
+	ctx, cancel := parseContext(opts.Timeout)
+	defer cancel()
 
 	markdownResult, err := defuddleInstance.Parse(ctx)
 	if err != nil || markdownResult.ContentMarkdown == nil {
@@ -235,6 +223,13 @@ func markdownContent(result *defuddle.Result, opts *ParseOptions) string {
 	}
 
 	return *markdownResult.ContentMarkdown
+}
+
+func parseContext(timeout time.Duration) (context.Context, context.CancelFunc) {
+	if timeout > 0 {
+		return context.WithTimeout(context.Background(), timeout)
+	}
+	return context.Background(), func() {}
 }
 
 func parseHeader(header string) (string, string, error) {
@@ -278,6 +273,14 @@ func writeOutput(filename, content string) error {
 	return nil
 }
 
+func jsonProperty(value any) string {
+	jsonBytes, err := json.Marshal(value)
+	if err != nil {
+		return ""
+	}
+	return string(jsonBytes)
+}
+
 func getProperty(result *defuddle.Result, property string) string {
 	// Convert to lowercase for case-insensitive matching (matching TypeScript behavior)
 	prop := strings.ToLower(property)
@@ -306,23 +309,15 @@ func getProperty(result *defuddle.Result, property string) string {
 	case "parsetime":
 		return strconv.FormatInt(result.ParseTime, 10)
 	case "metatags":
-		if result.MetaTags != nil {
-			jsonBytes, err := json.Marshal(result.MetaTags)
-			if err != nil {
-				return ""
-			}
-			return string(jsonBytes)
+		if result.MetaTags == nil {
+			return ""
 		}
-		return ""
+		return jsonProperty(result.MetaTags)
 	case "schemaorgdata":
-		if result.SchemaOrgData != nil {
-			jsonBytes, err := json.Marshal(result.SchemaOrgData)
-			if err != nil {
-				return ""
-			}
-			return string(jsonBytes)
+		if result.SchemaOrgData == nil {
+			return "null"
 		}
-		return "null"
+		return jsonProperty(result.SchemaOrgData)
 	case "extractortype":
 		if result.ExtractorType != nil {
 			return *result.ExtractorType

@@ -1258,7 +1258,7 @@ func removeEmptyElements(element *goquery.Selection) {
 							return
 						}
 						content := strings.TrimSpace(child.Text())
-						if content != "," && content != "" && content != " " {
+						if content != "," && content != "" {
 							hasOnlyCommaSpans = false
 							return
 						}

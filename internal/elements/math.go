@@ -436,7 +436,8 @@ func (p *MathProcessor) isBlockDisplay(s *goquery.Selection) bool {
 		}
 		// Check if parent has center alignment
 		if style, hasStyle := parent.Attr("style"); hasStyle {
-			if strings.Contains(strings.ToLower(style), "text-align") && strings.Contains(strings.ToLower(style), "center") {
+			lowerStyle := strings.ToLower(style)
+			if strings.Contains(lowerStyle, "text-align") && strings.Contains(lowerStyle, "center") {
 				return true
 			}
 		}

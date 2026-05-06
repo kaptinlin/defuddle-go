@@ -71,14 +71,9 @@ func (p *RoleProcessor) convertParagraphRoles() {
 func (p *RoleProcessor) convertListRoles() {
 	// Convert role="list" to <ol> or <ul>
 	p.doc.Find(`[role="list"]`).Each(func(_ int, listElement *goquery.Selection) {
-		// Check if it's an ordered list by looking for numbered items
-		isOrdered := p.isOrderedList(listElement)
-
-		var newTag string
-		if isOrdered {
+		newTag := "ul"
+		if p.isOrderedList(listElement) {
 			newTag = "ol"
-		} else {
-			newTag = "ul"
 		}
 
 		// Convert list items first

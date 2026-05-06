@@ -88,9 +88,8 @@ func NewYouTubeExtractor(document *goquery.Document, url string, schemaOrgData a
 //		return true; // YouTube extractor can always extract
 //	}
 func (y *YouTubeExtractor) CanExtract() bool {
-	canExtract := true // YouTube extractor can always extract
-	slog.Debug("YouTube extractor can extract check", "canExtract", canExtract)
-	return canExtract
+	slog.Debug("YouTube extractor can extract check", "canExtract", true)
+	return true
 }
 
 // Name returns the name of the extractor

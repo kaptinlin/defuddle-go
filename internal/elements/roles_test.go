@@ -51,3 +51,21 @@ func TestRoleProcessorProcessRolesUsesDefaultOptionsWhenNil(t *testing.T) {
 	assert.Equal(t, 1, doc.Find("p").Length())
 	assert.Equal(t, "Default paragraph", strings.TrimSpace(doc.Find("p").Text()))
 }
+
+func TestRoleProcessorProcessRolesUsesUnorderedListWithoutNumberedLabels(t *testing.T) {
+	t.Parallel()
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(`
+		<div role="list" id="items">
+			<div role="listitem"><span class="label">•</span>Alpha</div>
+			<div role="listitem"><span class="label">•</span>Beta</div>
+		</div>`))
+	require.NoError(t, err)
+
+	processor := NewRoleProcessor(doc)
+	processor.ProcessRoles(DefaultRoleProcessingOptions())
+
+	assert.Equal(t, 1, doc.Find("ul#items").Length())
+	assert.Equal(t, 2, doc.Find("ul#items > li").Length())
+	assert.Zero(t, doc.Find("ol#items").Length())
+}

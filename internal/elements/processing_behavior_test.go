@@ -66,6 +66,22 @@ func TestProcessMathCleansScriptsAndPreservesLatexAsMathML(t *testing.T) {
 	assert.Equal(t, 0, doc.Find(".MathJax_Preview, script[src*='mathjax']").Length())
 }
 
+func TestProcessMathUsesCenteredParentStyleForBlockDisplay(t *testing.T) {
+	t.Parallel()
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(`
+		<div style="TEXT-ALIGN: center">
+			<span class="MathJax"><script type="math/tex">x^2</script></span>
+		</div>`))
+	require.NoError(t, err)
+
+	ProcessMath(doc, DefaultMathProcessingOptions())
+
+	math := doc.Find("math").First()
+	require.Equal(t, 1, math.Length())
+	assert.Equal(t, "block", math.AttrOr("display", ""))
+}
+
 func TestProcessMathPreservesExistingMathMLContent(t *testing.T) {
 	t.Parallel()
 

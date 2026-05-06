@@ -619,22 +619,9 @@ func isLikelyContent(element *goquery.Selection) bool {
 	words := len(strings.Fields(text))
 	paragraphs := element.Find("p").Length()
 
-	// If the element has a significant amount of text and paragraphs, it's likely content
-	if words > 50 && paragraphs > 1 {
-		return true
-	}
-
-	// Check for elements with significant text content, even if they don't have many paragraphs
-	if words > 100 {
-		return true
-	}
-
-	// Check for elements with text content and some paragraphs
-	if words > 30 && paragraphs > 0 {
-		return true
-	}
-
-	return false
+	return words > 100 ||
+		words > 50 && paragraphs > 1 ||
+		words > 30 && paragraphs > 0
 }
 
 // scoreNonContentBlock scores a block element to determine if it's likely not content

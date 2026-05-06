@@ -93,6 +93,28 @@ func TestWriteOutputPrintsToStdout(t *testing.T) {
 	assert.Equal(t, "Readable content", buf.String())
 }
 
+func TestParseContextHonorsPositiveAndNonPositiveTimeouts(t *testing.T) {
+	t.Parallel()
+
+	timedCtx, timedCancel := parseContext(time.Second)
+	defer timedCancel()
+	if _, ok := timedCtx.Deadline(); !ok {
+		t.Fatal("parseContext() with timeout did not set deadline")
+	}
+
+	plainCtx, plainCancel := parseContext(0)
+	defer plainCancel()
+	if _, ok := plainCtx.Deadline(); ok {
+		t.Fatal("parseContext() without timeout set deadline")
+	}
+}
+
+func TestJSONPropertyReturnsEmptyStringForUnmarshalableValues(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "", jsonProperty(func() {}))
+}
+
 func TestGetPropertyReturnsScalarMetadata(t *testing.T) {
 	t.Parallel()
 

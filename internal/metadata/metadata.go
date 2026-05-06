@@ -136,9 +136,7 @@ func Extract(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag, baseU
 	}
 
 	if documentURL != "" {
-		if parsedURL, err := url.Parse(documentURL); err == nil {
-			domain = strings.TrimPrefix(parsedURL.Hostname(), "www.")
-		}
+		domain = domainFromURL(documentURL)
 	}
 
 	// If still no URL, try base tag
@@ -147,9 +145,7 @@ func Extract(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag, baseU
 		if baseTag.Length() > 0 {
 			if href, exists := baseTag.Attr("href"); exists {
 				documentURL = href
-				if parsedURL, err := url.Parse(documentURL); err == nil {
-					domain = strings.TrimPrefix(parsedURL.Hostname(), "www.")
-				}
+				domain = domainFromURL(documentURL)
 			}
 		}
 	}
@@ -167,6 +163,14 @@ func Extract(doc *goquery.Document, schemaOrgData any, metaTags []MetaTag, baseU
 		WordCount:     0,
 		ParseTime:     0,
 	}
+}
+
+func domainFromURL(rawURL string) string {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimPrefix(parsedURL.Hostname(), "www.")
 }
 
 // getAuthor extracts author information

@@ -60,10 +60,9 @@ type Registry struct {
 //
 //	constructor() { this.initialize(); }
 func NewRegistry() *Registry {
-	registry := &Registry{
+	return &Registry{
 		mappings: make([]ExtractorMapping, 0),
 	}
-	return registry
 }
 
 // Register adds a new extractor mapping to the registry

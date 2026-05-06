@@ -80,6 +80,17 @@ func TestGetSchemaPropertyHandlesArrayIndex(t *testing.T) {
 	}
 }
 
+func TestDomainFromURLTrimsWWWAndIgnoresInvalidURLs(t *testing.T) {
+	t.Parallel()
+
+	if got := domainFromURL("https://www.example.com/articles/1"); got != "example.com" {
+		t.Fatalf("domainFromURL() = %q, want %q", got, "example.com")
+	}
+	if got := domainFromURL("://bad-url"); got != "" {
+		t.Fatalf("domainFromURL() = %q, want empty string", got)
+	}
+}
+
 func TestExtractPrefersBaseURLAndMetaData(t *testing.T) {
 	t.Parallel()
 
