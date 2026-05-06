@@ -608,10 +608,10 @@ func isLikelyContent(element *goquery.Selection) bool {
 	className := strings.ToLower(element.AttrOr("class", ""))
 	id := strings.ToLower(element.AttrOr("id", ""))
 
-	for _, indicator := range contentIndicators {
-		if strings.Contains(className, indicator) || strings.Contains(id, indicator) {
-			return true
-		}
+	if slices.ContainsFunc(contentIndicators, func(indicator string) bool {
+		return strings.Contains(className, indicator) || strings.Contains(id, indicator)
+	}) {
+		return true
 	}
 
 	// Check if the element has a high text density

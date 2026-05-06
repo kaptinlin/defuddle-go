@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -371,10 +372,10 @@ func (p *ImageProcessor) isDecorativeImage(s *goquery.Selection, src string) boo
 	if class, hasClass := s.Attr("class"); hasClass {
 		decorativeClasses := []string{"icon", "avatar", "emoji", "bullet", "decoration", "logo-small"}
 		classLower := strings.ToLower(class)
-		for _, decorativeClass := range decorativeClasses {
-			if strings.Contains(classLower, decorativeClass) {
-				return true
-			}
+		if slices.ContainsFunc(decorativeClasses, func(decorativeClass string) bool {
+			return strings.Contains(classLower, decorativeClass)
+		}) {
+			return true
 		}
 	}
 
@@ -700,14 +701,9 @@ func (p *ImageProcessor) isGenericAltText(alt string) bool {
 		return true
 	}
 
-	// Check if alt text exactly matches or contains generic terms
-	for _, term := range genericTerms {
-		if altLower == term || strings.Contains(altLower, term) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(genericTerms, func(term string) bool {
+		return altLower == term || strings.Contains(altLower, term)
+	})
 }
 
 // addLazyLoading adds lazy loading attributes to images

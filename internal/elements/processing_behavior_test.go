@@ -79,3 +79,19 @@ func TestProcessMathPreservesExistingMathMLContent(t *testing.T) {
 	assert.Equal(t, "inline", math.AttrOr("display", ""))
 	assert.Equal(t, "x=1", strings.TrimSpace(math.Text()))
 }
+
+func TestProcessImagesDropsDecorativeClassWithoutSizeHint(t *testing.T) {
+	t.Parallel()
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(`
+		<article>
+			<img src="badge.png" class="profile-avatar-large" alt="Author badge">
+			<img src="hero.jpg" class="article-photo" alt="Launch photo">
+		</article>`))
+	require.NoError(t, err)
+
+	ProcessImages(doc, DefaultImageProcessingOptions())
+
+	assert.Equal(t, 0, doc.Find("img.profile-avatar-large").Length())
+	assert.Equal(t, 1, doc.Find("img.article-photo").Length())
+}

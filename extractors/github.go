@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -96,23 +97,12 @@ func (g *GitHubExtractor) CanExtract() bool {
 		`[data-testid="issue-title"]`,
 	}
 
-	// Check for GitHub indicators
-	hasGitHubIndicator := false
-	for _, selector := range githubIndicators {
-		if g.document.Find(selector).Length() > 0 {
-			hasGitHubIndicator = true
-			break
-		}
-	}
-
-	// Check for page-specific indicators
-	hasPageIndicator := false
-	for _, selector := range githubPageIndicators {
-		if g.document.Find(selector).Length() > 0 {
-			hasPageIndicator = true
-			break
-		}
-	}
+	hasGitHubIndicator := slices.ContainsFunc(githubIndicators, func(selector string) bool {
+		return g.document.Find(selector).Length() > 0
+	})
+	hasPageIndicator := slices.ContainsFunc(githubPageIndicators, func(selector string) bool {
+		return g.document.Find(selector).Length() > 0
+	})
 
 	canExtract := hasGitHubIndicator && hasPageIndicator
 	slog.Debug("GitHub extractor can extract check", "canExtract", canExtract, "url", g.url)

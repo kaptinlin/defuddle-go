@@ -180,10 +180,7 @@ func (r *Registry) matchesPatterns(urlStr, domain string, patterns []any) bool {
 //	  this.domainCache.clear();
 //	}
 func (r *Registry) ClearCache() *Registry {
-	r.domainCache.Range(func(key, _ any) bool {
-		r.domainCache.Delete(key)
-		return true
-	})
+	r.domainCache.Clear()
 	return r // Enable method chaining
 }
 

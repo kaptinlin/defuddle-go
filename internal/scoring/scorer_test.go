@@ -127,3 +127,23 @@ func TestScoreAndRemoveKeepsFootnotesAndOldTableContent(t *testing.T) {
 		t.Fatal("ScoreAndRemove() kept dense related-links block")
 	}
 }
+
+func TestIsLikelyContentMatchesClassOrIDIndicator(t *testing.T) {
+	t.Parallel()
+
+	doc := newScoringDocument(t, `<html><body>
+		<div id="story-body">short</div>
+		<div class="article-shell">short</div>
+		<div id="chrome">short</div>
+	</body></html>`)
+
+	if !isLikelyContent(doc.Find("#story-body").First()) {
+		t.Fatal("isLikelyContent() did not match content indicator in id")
+	}
+	if !isLikelyContent(doc.Find(".article-shell").First()) {
+		t.Fatal("isLikelyContent() did not match content indicator in class")
+	}
+	if isLikelyContent(doc.Find("#chrome").First()) {
+		t.Fatal("isLikelyContent() matched element without content indicators")
+	}
+}
