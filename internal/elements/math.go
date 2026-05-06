@@ -165,6 +165,15 @@ func (p *MathProcessor) ProcessMath(options *MathProcessingOptions) {
 
 	var processedCount int
 	p.doc.Find(combinedSelector).Each(func(_ int, s *goquery.Selection) {
+		if s.HasClass("MathJax_Preview") {
+			return
+		}
+		if goquery.NodeName(s) == "script" {
+			parent := s.Parent()
+			if parent.HasClass("MathJax") || parent.HasClass("MathJax_Display") || parent.HasClass("katex") || parent.HasClass("katex-display") || parent.HasClass("katex-block") {
+				return
+			}
+		}
 		p.processMathElement(s, options)
 		processedCount++
 	})
@@ -220,13 +229,13 @@ func (p *MathProcessor) processMathElement(s *goquery.Selection, options *MathPr
 	// Create clean math element
 	cleanMathHTML := p.createCleanMathElement(mathData, latex, isBlock)
 
+	parent := s.Parent()
+	if options.CleanupScripts {
+		p.cleanupMathScripts(parent)
+	}
+
 	// Replace original element
 	s.ReplaceWithHtml(cleanMathHTML)
-
-	// Clean up associated scripts
-	if options.CleanupScripts {
-		p.cleanupMathScripts(s.Parent())
-	}
 
 	slog.Debug("processed math element", "hasLaTeX", latex != "", "hasMathML", mathData != nil && mathData.MathML != "", "isBlock", isBlock)
 }
@@ -271,9 +280,12 @@ func (p *MathProcessor) processMathElement(s *goquery.Selection, options *MathPr
 //	};
 func (p *MathProcessor) getMathMLFromElement(s *goquery.Selection) *MathData {
 	// Try to extract MathML directly
-	mathElement := s.Find("math").First()
+	mathElement := s
+	if !s.Is("math") {
+		mathElement = s.Find("math").First()
+	}
 	if mathElement.Length() > 0 {
-		mathHTML, err := mathElement.Html()
+		mathHTML, err := goquery.OuterHtml(mathElement)
 		if err == nil {
 			display := mathElement.AttrOr("display", "inline")
 			return &MathData{
