@@ -107,3 +107,5 @@ TODO*.md
 
 # Meeting records
 .meetings/
+.plans
+task.md

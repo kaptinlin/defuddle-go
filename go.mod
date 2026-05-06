@@ -5,8 +5,8 @@ go 1.26.2
 require (
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.0
 	github.com/PuerkitoBio/goquery v1.12.0
-	github.com/go-json-experiment/json v0.0.0-20260430182902-b6187a392ed4
-	github.com/kaptinlin/requests v0.5.3
+	github.com/go-json-experiment/json v0.0.0-20260505212615-e40f80bf6836
+	github.com/kaptinlin/requests v0.6.0
 	github.com/piprate/json-gold v0.8.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
