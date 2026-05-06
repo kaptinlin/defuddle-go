@@ -781,8 +781,8 @@ func formatAuthorList(authors []string) string {
 }
 
 func removeDuplicates(slice []string) []string {
-	seen := make(map[string]struct{})
-	var result []string
+	seen := make(map[string]struct{}, len(slice))
+	result := make([]string, 0, len(slice))
 	for _, item := range slice {
 		if _, ok := seen[item]; !ok {
 			seen[item] = struct{}{}

@@ -323,7 +323,7 @@ func (p *HeadingProcessor) extractNavigationTexts(s *goquery.Selection) []string
 		// Check for anchor links with hash
 		if child.Is("a") {
 			href, hasHref := child.Attr("href")
-			if hasHref && (strings.Contains(href, "#") || strings.HasPrefix(href, "#")) {
+			if hasHref && strings.Contains(href, "#") {
 				extractedText = strings.TrimSpace(child.Text())
 				shouldExtract = true
 			}
@@ -400,7 +400,7 @@ func (p *HeadingProcessor) removeNavigationElements(s *goquery.Selection) {
 		// Remove anchor links with hash
 		if child.Is("a") {
 			href, hasHref := child.Attr("href")
-			if hasHref && (strings.Contains(href, "#") || strings.HasPrefix(href, "#")) {
+			if hasHref && strings.Contains(href, "#") {
 				shouldRemove = true
 			}
 		}

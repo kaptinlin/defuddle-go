@@ -26,8 +26,7 @@ var (
 	}
 
 	codeThreeNewlinesRe = regexp.MustCompile(`\n{3,}`)
-	codeLeadingNlRe     = regexp.MustCompile(`^\n+`)
-	codeTrailingNlRe    = regexp.MustCompile(`\n+$`)
+	codeBlockSelector   = `pre, div[class*="prismjs"], .syntaxhighlighter, .highlight, .highlight-source, .wp-block-syntaxhighlighter-code, .wp-block-code, div[class*="language-"]`
 
 	codeLanguages = map[string]bool{
 		"abap": true, "actionscript": true, "ada": true, "adoc": true, "agda": true, "antlr4": true,
@@ -193,23 +192,10 @@ func (p *CodeBlockProcessor) ProcessCodeBlocks(options *CodeBlockProcessingOptio
 
 	slog.Debug("processing code blocks", "detectLanguage", options.DetectLanguage, "formatCode", options.FormatCode)
 
-	// Process code blocks with the same selector logic as TypeScript
-	selector := []string{
-		"pre",
-		"div[class*=\"prismjs\"]",
-		".syntaxhighlighter",
-		".highlight",
-		".highlight-source",
-		".wp-block-syntaxhighlighter-code",
-		".wp-block-code",
-		"div[class*=\"language-\"]",
-	}
-
-	combinedSelector := strings.Join(selector, ", ")
-	slog.Debug("using code block selector", "selector", combinedSelector)
+	slog.Debug("using code block selector", "selector", codeBlockSelector)
 
 	var processedCount int
-	p.doc.Find(combinedSelector).Each(func(_ int, s *goquery.Selection) {
+	p.doc.Find(codeBlockSelector).Each(func(_ int, s *goquery.Selection) {
 		p.processCodeBlock(s, options)
 		processedCount++
 	})
@@ -659,10 +645,6 @@ func (p *CodeBlockProcessor) normalizeCodeContent(content string) string {
 
 	// Normalize multiple newlines
 	content = codeThreeNewlinesRe.ReplaceAllString(content, "\n\n")
-
-	// Remove extra newlines at start and end
-	content = codeLeadingNlRe.ReplaceAllString(content, "")
-	content = codeTrailingNlRe.ReplaceAllString(content, "")
 
 	return content
 }

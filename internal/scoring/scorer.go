@@ -547,9 +547,8 @@ func ScoreAndRemove(doc *goquery.Document, debug bool) {
 		el.Remove()
 	}
 
-	endTime := time.Now()
 	if debug {
-		processingTime := float64(endTime.Sub(startTime).Nanoseconds()) / 1e6 // Convert to milliseconds
+		processingTime := float64(time.Since(startTime).Nanoseconds()) / 1e6
 		slog.Debug("Removed non-content blocks",
 			"count", removedCount,
 			"processingTime", processingTime)

@@ -39,6 +39,8 @@ var (
 	startsWithPunctRe  = regexp.MustCompile(`^[,.!?:;)\]]`)
 	endsWithPunctRe    = regexp.MustCompile(`[,.!?:;(\[]\s*$`)
 	orderedListLabelRe = regexp.MustCompile(`^\d+\)`)
+
+	additionalBlockElements = []string{"p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "pre", "blockquote", "figure"}
 )
 
 // StandardizationRule represents element standardization rules
@@ -684,8 +686,8 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 
 		// Check for semantic roles
 		role, _ := el.Attr("role")
-		semanticRoles := []string{"article", "main", "navigation", "banner", "contentinfo"}
-		if slices.Contains(semanticRoles, role) {
+		switch role {
+		case "article", "main", "navigation", "banner", "contentinfo":
 			return true
 		}
 
@@ -733,18 +735,10 @@ func flattenWrapperElements(element *goquery.Selection, _ *goquery.Document) {
 		// Check if all children are block elements
 		allBlockElements := true
 		blockElements := constants.GetBlockElements()
-		additionalBlocks := []string{"p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "pre", "blockquote", "figure"}
 
 		children.Each(func(_ int, child *goquery.Selection) {
 			tag := goquery.NodeName(child)
-			isBlock := slices.Contains(blockElements, tag)
-
-			// Check additional block elements
-			if !isBlock {
-				if slices.Contains(additionalBlocks, tag) {
-					isBlock = true
-				}
-			}
+			isBlock := slices.Contains(blockElements, tag) || slices.Contains(additionalBlockElements, tag)
 
 			if !isBlock {
 				allBlockElements = false
@@ -1624,12 +1618,8 @@ func removeEmptyLines(element *goquery.Selection, _ *goquery.Document) {
 		blockElements := constants.GetBlockElements()
 		isBlockElement := slices.Contains(blockElements, tag)
 
-		// Additional block elements
-		additionalBlocks := []string{"p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "pre", "blockquote", "figure"}
-		if !isBlockElement {
-			if slices.Contains(additionalBlocks, tag) {
-				isBlockElement = true
-			}
+		if !isBlockElement && slices.Contains(additionalBlockElements, tag) {
+			isBlockElement = true
 		}
 
 		// Only remove empty text nodes at the start and end if they contain just newlines/tabs

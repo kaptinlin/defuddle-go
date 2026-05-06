@@ -9,6 +9,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+const mathSelector = `math, .MathJax, .MathJax_Display, .MathJax_Preview, .katex, .katex-display, .katex-block, script[type^="math/"], script[type="application/x-tex"], script[type="text/latex"], [data-math], [data-latex], [data-katex], [data-mathjax]`
+
 /*
 TypeScript source code (math.core.ts, 68 lines and math.base.ts, 222 lines):
 
@@ -142,29 +144,10 @@ func (p *MathProcessor) ProcessMath(options *MathProcessingOptions) {
 
 	slog.Debug("processing mathematical formulas", "extractMathML", options.ExtractMathML, "extractLaTeX", options.ExtractLaTeX)
 
-	// Math element selectors based on TypeScript mathSelectors
-	selectors := []string{
-		"math",
-		".MathJax",
-		".MathJax_Display",
-		".MathJax_Preview",
-		".katex",
-		".katex-display",
-		".katex-block",
-		"script[type^=\"math/\"]",
-		"script[type=\"application/x-tex\"]",
-		"script[type=\"text/latex\"]",
-		"[data-math]",
-		"[data-latex]",
-		"[data-katex]",
-		"[data-mathjax]",
-	}
-
-	combinedSelector := strings.Join(selectors, ", ")
-	slog.Debug("using math selector", "selector", combinedSelector)
+	slog.Debug("using math selector", "selector", mathSelector)
 
 	var processedCount int
-	p.doc.Find(combinedSelector).Each(func(_ int, s *goquery.Selection) {
+	p.doc.Find(mathSelector).Each(func(_ int, s *goquery.Selection) {
 		if s.HasClass("MathJax_Preview") {
 			return
 		}

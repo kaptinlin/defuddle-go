@@ -31,6 +31,8 @@ var (
 	jsCommentRe     = regexp.MustCompile(`/\*[\s\S]*?\*/|^\s*//.*$`)
 	cdataRe         = regexp.MustCompile(`^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$`)
 	commentMarkerRe = regexp.MustCompile(`^\s*(\*/|/\*)\s*|\s*(\*/|/\*)\s*$`)
+
+	schemaCommonProps = []string{"name", "description", "url", "image", "author", "publisher"}
 )
 
 // Defuddle represents a document parser instance
@@ -1038,9 +1040,8 @@ func (d *Defuddle) isValidSchemaItem(item any) bool {
 	}
 
 	// Check if it has common schema.org properties
-	commonProps := []string{"name", "description", "url", "image", "author", "publisher"}
 	propCount := 0
-	for _, prop := range commonProps {
+	for _, prop := range schemaCommonProps {
 		if _, exists := itemMap[prop]; exists {
 			propCount++
 		}
