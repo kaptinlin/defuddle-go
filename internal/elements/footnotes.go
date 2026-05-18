@@ -421,25 +421,22 @@ func (p *FootnoteProcessor) findFootnoteDefinition(key string) *goquery.Selectio
 	}
 
 	// Try to find in footnote sections by text content
-	p.doc.Find(".footnotes, .notes, .references, .endnotes").Each(func(_ int, section *goquery.Selection) {
-		section.Find("li, div, p").Each(func(_ int, el *goquery.Selection) {
+	var definition *goquery.Selection
+	p.doc.Find(".footnotes, .notes, .references, .endnotes").EachWithBreak(func(_ int, section *goquery.Selection) bool {
+		section.Find("li, div, p").EachWithBreak(func(_ int, el *goquery.Selection) bool {
 			text := el.Text()
-			// Look for patterns like "1. " or "[1] " at the beginning
-			patterns := []string{
-				fmt.Sprintf("^%s\\.", key),
-				fmt.Sprintf("^\\[%s\\]", key),
-				fmt.Sprintf("^%s\\)", key),
+			if strings.HasPrefix(text, key+".") ||
+				strings.HasPrefix(text, "["+key+"]") ||
+				strings.HasPrefix(text, key+")") {
+				definition = el
+				return false
 			}
-
-			for _, pattern := range patterns {
-				if matched, _ := regexp.MatchString(pattern, text); matched {
-					return
-				}
-			}
+			return true
 		})
+		return definition == nil
 	})
 
-	return nil
+	return definition
 }
 
 // generateFootnoteID generates a footnote ID
