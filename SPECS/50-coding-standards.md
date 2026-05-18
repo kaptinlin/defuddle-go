@@ -21,7 +21,7 @@ Do not use this file for package topology or public field definitions. See `40-a
 
 ## Must Follow Rules
 
-- Use Go 1.26.2 for code changes.
+- Use the Go version declared in `go.mod` for code changes.
 - Keep public comments and documentation in English.
 - Preserve the repository's TypeScript-compatibility intent on shared root-package contracts.
 - Prefer a single obvious API path over compatibility shims or duplicate entry points.
