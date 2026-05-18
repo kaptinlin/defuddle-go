@@ -273,8 +273,8 @@ func (g *GitHubExtractor) extractAuthor(container *goquery.Selection, selectors 
 		authorLink := container.Find(selector).First()
 		if authorLink.Length() > 0 {
 			if href, exists := authorLink.Attr("href"); exists {
-				if strings.HasPrefix(href, "/") {
-					return href[1:]
+				if author, ok := strings.CutPrefix(href, "/"); ok {
+					return author
 				} else if strings.Contains(href, "github.com/") {
 					matches := githubUserRe.FindStringSubmatch(href)
 					if len(matches) > 1 && matches[1] != "" {
