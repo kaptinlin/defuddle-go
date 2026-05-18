@@ -36,6 +36,25 @@ func TestParseHeaderRejectsMissingSeparator(t *testing.T) {
 	require.ErrorIs(t, err, ErrInvalidHeaderFormat)
 }
 
+func TestValidateHeadersAcceptsMultipleHeaders(t *testing.T) {
+	t.Parallel()
+
+	err := validateHeaders([]string{
+		"Authorization: Bearer token",
+		"X-Trace: request:with:colons",
+	})
+
+	require.NoError(t, err)
+}
+
+func TestValidateHeadersRejectsInvalidHeader(t *testing.T) {
+	t.Parallel()
+
+	err := validateHeaders([]string{"Authorization: Bearer token", "Invalid"})
+
+	require.ErrorIs(t, err, ErrInvalidHeaderFormat)
+}
+
 func TestReadFileValidatesAndReadsContent(t *testing.T) {
 	t.Parallel()
 

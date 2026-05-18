@@ -124,13 +124,8 @@ func parseContent(cmd *cobra.Command, args []string) error {
 }
 
 func executeParseContent(opts *ParseOptions) error {
-	headerMap := make(map[string]string)
-	for _, header := range opts.Headers {
-		key, value, err := parseHeader(header)
-		if err != nil {
-			return err
-		}
-		headerMap[key] = value
+	if err := validateHeaders(opts.Headers); err != nil {
+		return err
 	}
 
 	defuddleOpts := &defuddle.Options{
@@ -143,7 +138,7 @@ func executeParseContent(opts *ParseOptions) error {
 	var result *defuddle.Result
 	var err error
 
-	if strings.HasPrefix(opts.Source, "http://") || strings.HasPrefix(opts.Source, "https://") {
+	if isHTTPURL(opts.Source) {
 		ctx, cancel := parseContext(opts.Timeout)
 		defer cancel()
 		result, err = defuddle.ParseFromURL(ctx, opts.Source, defuddleOpts)
@@ -232,6 +227,19 @@ func parseContext(timeout time.Duration) (context.Context, context.CancelFunc) {
 	return context.Background(), func() {}
 }
 
+func isHTTPURL(source string) bool {
+	return strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://")
+}
+
+func validateHeaders(headers []string) error {
+	for _, header := range headers {
+		if _, _, err := parseHeader(header); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func parseHeader(header string) (string, string, error) {
 	parts := strings.SplitN(header, ":", 2)
 	if len(parts) != 2 {
@@ -281,8 +289,14 @@ func jsonProperty(value any) string {
 	return string(jsonBytes)
 }
 
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
 func getProperty(result *defuddle.Result, property string) string {
-	// Convert to lowercase for case-insensitive matching (matching TypeScript behavior)
 	prop := strings.ToLower(property)
 
 	switch prop {
@@ -319,15 +333,9 @@ func getProperty(result *defuddle.Result, property string) string {
 		}
 		return jsonProperty(result.SchemaOrgData)
 	case "extractortype":
-		if result.ExtractorType != nil {
-			return *result.ExtractorType
-		}
-		return ""
+		return stringValue(result.ExtractorType)
 	case "contentmarkdown":
-		if result.ContentMarkdown != nil {
-			return *result.ContentMarkdown
-		}
-		return ""
+		return stringValue(result.ContentMarkdown)
 	default:
 		return ""
 	}

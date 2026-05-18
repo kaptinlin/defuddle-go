@@ -63,3 +63,32 @@ func TestYouTubeExtractorFallsBackWhenSchemaIsNotVideoObject(t *testing.T) {
 		t.Fatalf("image = %q, want generated thumbnail", got)
 	}
 }
+
+func TestYouTubeExtractorIgnoresNonStringSchemaStrings(t *testing.T) {
+	t.Parallel()
+
+	schema := map[string]any{
+		"@type":       "VideoObject",
+		"name":        42,
+		"description": []string{"not", "a", "string"},
+		"author":      []any{"Channel"},
+		"uploadDate":  20260519,
+	}
+	doc := newTestDocument(t, `<html><head><title>DOM Video - YouTube</title></head><body><div id="description">DOM description</div></body></html>`)
+	extractor := NewYouTubeExtractor(doc, "https://youtube.com/watch?v=dom123", schema)
+
+	result := extractor.Extract()
+
+	if got := result.Variables["title"]; got != "DOM Video" {
+		t.Fatalf("title = %q, want DOM fallback", got)
+	}
+	if got := result.Variables["author"]; got != "" {
+		t.Fatalf("author = %q, want empty string", got)
+	}
+	if got := result.Variables["published"]; got != "" {
+		t.Fatalf("published = %q, want empty string", got)
+	}
+	if !strings.Contains(result.ContentHTML, "DOM description") {
+		t.Fatalf("ContentHTML = %q, want DOM description fallback", result.ContentHTML)
+	}
+}

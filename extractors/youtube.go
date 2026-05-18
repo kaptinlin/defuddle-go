@@ -268,14 +268,11 @@ func (y *YouTubeExtractor) getVideoID() string {
 //		return title.replace(/ - YouTube$/, '');
 //	}
 func (y *YouTubeExtractor) getTitle(videoData map[string]any) string {
-	if name, exists := videoData["name"]; exists {
-		if nameStr, ok := name.(string); ok && nameStr != "" {
-			slog.Debug("YouTube extractor: using title from schema.org", "title", nameStr)
-			return nameStr
-		}
+	if name := schemaString(videoData, "name"); name != "" {
+		slog.Debug("YouTube extractor: using title from schema.org", "title", name)
+		return name
 	}
 
-	// Fallback to document title
 	title := y.document.Find("title").Text()
 	// Remove " - YouTube" suffix if present
 	title = strings.TrimSuffix(title, " - YouTube")
@@ -291,12 +288,7 @@ func (y *YouTubeExtractor) getTitle(videoData map[string]any) string {
 //		return videoData.author || '';
 //	}
 func (y *YouTubeExtractor) getAuthor(videoData map[string]any) string {
-	if author, exists := videoData["author"]; exists {
-		if authorStr, ok := author.(string); ok {
-			return authorStr
-		}
-	}
-	return ""
+	return schemaString(videoData, "author")
 }
 
 // getDescription gets the video description
@@ -312,14 +304,11 @@ func (y *YouTubeExtractor) getAuthor(videoData map[string]any) string {
 //		return descElement ? descElement.textContent || '' : '';
 //	}
 func (y *YouTubeExtractor) getDescription(videoData map[string]any) string {
-	if description, exists := videoData["description"]; exists {
-		if descStr, ok := description.(string); ok && descStr != "" {
-			slog.Debug("YouTube extractor: using description from schema.org", "descriptionLength", len(descStr))
-			return descStr
-		}
+	if description := schemaString(videoData, "description"); description != "" {
+		slog.Debug("YouTube extractor: using description from schema.org", "descriptionLength", len(description))
+		return description
 	}
 
-	// Fallback to description element in DOM
 	descElement := y.document.Find("#description").First()
 	if descElement.Length() > 0 {
 		description := descElement.Text()
@@ -338,12 +327,7 @@ func (y *YouTubeExtractor) getDescription(videoData map[string]any) string {
 //		return videoData.uploadDate || '';
 //	}
 func (y *YouTubeExtractor) getPublished(videoData map[string]any) string {
-	if uploadDate, exists := videoData["uploadDate"]; exists {
-		if dateStr, ok := uploadDate.(string); ok {
-			return dateStr
-		}
-	}
-	return ""
+	return schemaString(videoData, "uploadDate")
 }
 
 // getThumbnail gets the video thumbnail URL
@@ -421,6 +405,11 @@ func (y *YouTubeExtractor) formatDescription(description string) string {
 //
 //		return truncated.trim();
 //	}
+func schemaString(videoData map[string]any, key string) string {
+	value, _ := videoData[key].(string)
+	return value
+}
+
 func (y *YouTubeExtractor) truncateDescription(description string) string {
 	if len(description) <= 200 {
 		return strings.TrimSpace(description)

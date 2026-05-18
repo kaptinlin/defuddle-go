@@ -16,10 +16,7 @@ func ConvertHTML(htmlContent string) (string, error) {
 		return "", fmt.Errorf("failed to convert HTML to Markdown: %w", err)
 	}
 
-	// Clean up the markdown content
 	markdownContent = strings.TrimSpace(markdownContent)
-
-	// Remove excessive newlines
 	markdownContent = strings.ReplaceAll(markdownContent, "\n\n\n", "\n\n")
 
 	return markdownContent, nil
