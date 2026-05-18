@@ -3,6 +3,7 @@ package elements
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -186,21 +187,11 @@ func (p *FootnoteProcessor) ProcessFootnotes(options *FootnoteProcessingOptions)
 //	  return footnotes;
 //	}
 func (p *FootnoteProcessor) detectFootnotes(options *FootnoteProcessingOptions) []*Footnote {
-	footnotes := make([]*Footnote, 0, 10)
-
-	// Detect existing footnote elements
 	existingFootnotes := p.detectExistingFootnotes(options)
-	footnotes = append(footnotes, existingFootnotes...)
-
-	// Detect footnote patterns in text
 	textFootnotes := p.detectTextFootnotes(options)
-	footnotes = append(footnotes, textFootnotes...)
-
-	// Detect Wikipedia-style footnotes
 	wikiFootnotes := p.detectWikipediaFootnotes(options)
-	footnotes = append(footnotes, wikiFootnotes...)
 
-	return footnotes
+	return slices.Concat(existingFootnotes, textFootnotes, wikiFootnotes)
 }
 
 // detectExistingFootnotes detects existing footnote elements

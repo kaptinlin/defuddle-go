@@ -579,13 +579,9 @@ func (p *MathProcessor) looksLikeLaTeX(text string) bool {
 		return false
 	}
 
-	for _, pattern := range latexPatterns {
-		if pattern.MatchString(text) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(latexPatterns, func(pattern *regexp.Regexp) bool {
+		return pattern.MatchString(text)
+	})
 }
 
 // ProcessMath processes all mathematical formulas in the document (public interface)

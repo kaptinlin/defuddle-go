@@ -1156,13 +1156,9 @@ func (p *ImageProcessor) findNearbyHeading(s *goquery.Selection) string {
 //	}
 func (p *ImageProcessor) isGenericFilename(filename string) bool {
 	filename = strings.ToLower(filename)
-	for _, pattern := range genericFilenamePatterns {
-		if pattern.MatchString(filename) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(genericFilenamePatterns, func(pattern *regexp.Regexp) bool {
+		return pattern.MatchString(filename)
+	})
 }
 
 // isTrackingPixel determines if an image is a tracking pixel
@@ -1189,13 +1185,9 @@ func (p *ImageProcessor) isTrackingPixel(src string) bool {
 	}
 
 	src = strings.ToLower(src)
-	for _, pattern := range trackingPixelPatterns {
-		if pattern.MatchString(src) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(trackingPixelPatterns, func(pattern *regexp.Regexp) bool {
+		return pattern.MatchString(src)
+	})
 }
 
 // generateImageID generates a unique ID for images
