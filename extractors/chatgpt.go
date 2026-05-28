@@ -12,7 +12,7 @@ import (
 // Pre-compiled regex patterns for ChatGPT extraction.
 var (
 	chatgptEmptyParagraphRe = regexp.MustCompile(`<p[^>]*>\s*</p>`)
-	chatgptCitationRe       = regexp.MustCompile(`(&ZeroWidthSpace;)?(<span[^>]*?>\s*<a[^>]*?href="([^"]+)"[^>]*?target="_blank"[^>]*?rel="noopener"[^>]*?>[\s\S]*?</a>\s*</span>)`)
+	chatgptCitationRe       = regexp.MustCompile(`(?is)(&ZeroWidthSpace;)?(<span[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>[\s\S]*?</a>\s*</span>)`)
 )
 
 // ChatGPTExtractor handles ChatGPT conversation content extraction
@@ -360,8 +360,8 @@ func (c *ChatGPTExtractor) cleanMessageContent(messageContent string) string {
 	// Remove specific elements
 	tempDoc.Find(`h5.sr-only, h6.sr-only, span[data-state="closed"]`).Remove()
 
-	// Get the cleaned HTML
-	cleanedContent, err := tempDoc.Html()
+	// Get the cleaned fragment HTML
+	cleanedContent, err := tempDoc.Find("body").Html()
 	if err != nil {
 		slog.Warn("Failed to get cleaned HTML content", "error", err)
 		return messageContent
@@ -485,6 +485,10 @@ func (c *ChatGPTExtractor) processFootnotes(content string) string {
 	for _, match := range matches {
 		if len(match) >= 4 {
 			fullMatch := match[0]
+			if !strings.Contains(fullMatch, `target="_blank"`) || !strings.Contains(fullMatch, `rel="noopener"`) {
+				continue
+			}
+
 			url := match[3]
 
 			// Add to footnotes
@@ -495,7 +499,7 @@ func (c *ChatGPTExtractor) processFootnotes(content string) string {
 			})
 
 			// Replace with footnote reference
-			replacement := fmt.Sprintf(`<sup><a href="#footnote-%d">[%d]</a></sup>`, c.footnoteCounter, c.footnoteCounter)
+			replacement := fmt.Sprintf(`<sup id="fnref:%d"><a href="#fn:%d">%d</a></sup>`, c.footnoteCounter, c.footnoteCounter, c.footnoteCounter)
 			processedContent = strings.Replace(processedContent, fullMatch, replacement, 1)
 		}
 	}

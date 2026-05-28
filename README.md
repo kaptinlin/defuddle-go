@@ -1,7 +1,7 @@
 # Defuddle Go
 
 [![Release](https://img.shields.io/github/v/release/kaptinlin/defuddle-go)](https://github.com/kaptinlin/defuddle-go/releases)
-[![Test](https://github.com/kaptinlin/defuddle-go/workflows/Test/badge.svg)](https://github.com/kaptinlin/defuddle-go/actions)
+[![Go CI](https://github.com/kaptinlin/defuddle-go/actions/workflows/ci.yml/badge.svg)](https://github.com/kaptinlin/defuddle-go/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kaptinlin/defuddle-go)](https://goreportcard.com/report/github.com/kaptinlin/defuddle-go)
 [![GoDoc](https://godoc.org/github.com/kaptinlin/defuddle-go?status.svg)](https://godoc.org/github.com/kaptinlin/defuddle-go)
 

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -245,6 +247,30 @@ func TestExecuteParseContentReturnsRequestedProperty(t *testing.T) {
 	content, err := os.ReadFile(output)
 	require.NoError(t, err)
 	assert.Equal(t, "Property Title", string(content))
+}
+
+func TestExecuteParseContentAppliesHTTPRequestOptions(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "cli-agent", r.Header.Get("User-Agent"))
+		assert.Equal(t, "trace-value", r.Header.Get("X-Trace"))
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<html><head><title>Remote CLI Article</title></head><body><article><p>Readable remote CLI body.</p></article></body></html>`))
+	}))
+	defer server.Close()
+
+	output := filepath.Join(t.TempDir(), "remote.html")
+	err := executeParseContent(&ParseOptions{
+		Source:    server.URL,
+		Output:    output,
+		UserAgent: "cli-agent",
+		Headers:   []string{"X-Trace: trace-value"},
+		Timeout:   5 * time.Second,
+	})
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(output)
+	require.NoError(t, err)
+	assert.Contains(t, string(content), "Readable remote CLI body")
 }
 
 func TestExecuteParseContentReportsInvalidHeader(t *testing.T) {

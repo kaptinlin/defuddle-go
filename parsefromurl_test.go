@@ -28,6 +28,22 @@ func TestParseFromURL(t *testing.T) {
 	assert.Contains(t, result.Content, "Fetched body content from test server")
 }
 
+func TestParseFromURLUsesDefaultRequestsClient(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "Mozilla/5.0 (compatible; Defuddle/1.0; +https://github.com/kaptinlin/defuddle-go)", r.Header.Get("User-Agent"))
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<html><head><title>Default Client Title</title></head><body><article><p>Default client content.</p></article></body></html>`))
+	}))
+	defer server.Close()
+
+	result, err := ParseFromURL(context.Background(), server.URL, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Equal(t, "Default Client Title", result.Title)
+	assert.Contains(t, result.Content, "Default client content")
+}
+
 func TestParseFromURLUsesCustomRequestsClient(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "test-agent", r.Header.Get("User-Agent"))

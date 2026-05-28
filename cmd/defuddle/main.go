@@ -15,11 +15,16 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/kaptinlin/requests"
+
 	"github.com/kaptinlin/defuddle-go"
 	"github.com/kaptinlin/defuddle-go/extractors"
 )
 
-const version = "0.1.3"
+const (
+	version          = "0.1.3"
+	defaultUserAgent = "Mozilla/5.0 (compatible; Defuddle/1.0; +https://github.com/kaptinlin/defuddle-go)"
+)
 
 // ErrInvalidHeaderFormat is returned when a header flag is not in Key: Value form.
 var ErrInvalidHeaderFormat = fmt.Errorf("invalid header format (expected 'Key: Value')")
@@ -139,6 +144,12 @@ func executeParseContent(opts *ParseOptions) error {
 	var err error
 
 	if isHTTPURL(opts.Source) {
+		client, clientErr := newRequestsClient(opts)
+		if clientErr != nil {
+			return clientErr
+		}
+		defuddleOpts.Client = client
+
 		ctx, cancel := parseContext(opts.Timeout)
 		defer cancel()
 		result, err = defuddle.ParseFromURL(ctx, opts.Source, defuddleOpts)
@@ -225,6 +236,35 @@ func parseContext(timeout time.Duration) (context.Context, context.CancelFunc) {
 		return context.WithTimeout(context.Background(), timeout)
 	}
 	return context.Background(), func() {}
+}
+
+func newRequestsClient(opts *ParseOptions) (*requests.Client, error) {
+	userAgent := opts.UserAgent
+	if userAgent == "" {
+		userAgent = defaultUserAgent
+	}
+
+	clientOptions := []requests.ClientOption{
+		requests.WithUserAgent(userAgent),
+	}
+	if opts.Timeout > 0 {
+		clientOptions = append(clientOptions, requests.WithTimeout(opts.Timeout))
+	}
+	for _, header := range opts.Headers {
+		key, value, err := parseHeader(header)
+		if err != nil {
+			return nil, err
+		}
+		clientOptions = append(clientOptions, requests.WithHeader(key, value))
+	}
+
+	client := requests.New(clientOptions...)
+	if opts.Proxy != "" {
+		if err := client.SetProxy(opts.Proxy); err != nil {
+			return nil, fmt.Errorf("invalid proxy URL: %w", err)
+		}
+	}
+	return client, nil
 }
 
 func isHTTPURL(source string) bool {

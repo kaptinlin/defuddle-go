@@ -1,7 +1,8 @@
 version: "2"
 
 run:
-  timeout: 5m
+  timeout: 30m
+  concurrency: 1
   go: "1.26.3"
 
 linters:
@@ -65,25 +66,6 @@ linters:
           - noctx
           - bodyclose
           - errname
-          - revive
-      - path: examples/
-        linters:
-          - revive
-          - gosec
-      - path: cmd/
-        linters:
-          - revive
-      - text: "unused-parameter"
-        linters:
-          - revive
-      - text: "var-naming"
-        linters:
-          - revive
-      - text: "redefines-builtin-id"
-        linters:
-          - revive
-      - text: "package-comments"
-        linters:
           - revive
 
 formatters:
