@@ -64,3 +64,18 @@ func TestParseFromURLUsesCustomRequestsClient(t *testing.T) {
 	assert.Equal(t, "Custom Client Title", result.Title)
 	assert.Contains(t, result.Content, "Custom client content")
 }
+
+func TestParseFromURLReturnsErrorForHTTPErrorStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`<html><body><article><p>Temporary outage page.</p></article></body></html>`))
+	}))
+	defer server.Close()
+
+	result, err := ParseFromURL(context.Background(), server.URL, nil)
+
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "503 Service Unavailable")
+}

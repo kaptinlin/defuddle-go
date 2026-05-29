@@ -40,6 +40,7 @@ Do not use this file for field-by-field data-model detail or package topology. S
 - Writes `options.URL = url` when `options.URL` is empty.
 - Uses `options.Client` when provided.
 - Otherwise creates a default `requests.Client` with the Defuddle user agent and a 30s timeout.
+- Returns an error for HTTP error status codes instead of parsing error pages.
 
 > **Why:** The root package keeps URL parsing usable with zero setup while still allowing callers to inject a custom client.
 > **Rejected:** Requiring a caller-supplied HTTP client for all URL parsing because that adds too much ceremony; hiding the fetched URL from `Options.URL` because that breaks downstream metadata extraction.

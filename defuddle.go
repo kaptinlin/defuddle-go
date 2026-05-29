@@ -159,6 +159,9 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 			slog.Warn("Failed to close response", "error", closeErr)
 		}
 	}()
+	if resp.IsError() {
+		return nil, fmt.Errorf("failed to fetch URL %s: unexpected HTTP status %s", url, resp.Status())
+	}
 
 	html := resp.String()
 
