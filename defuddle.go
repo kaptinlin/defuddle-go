@@ -4,6 +4,7 @@ package defuddle
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -37,6 +38,37 @@ var (
 
 	schemaCommonProps = []string{"name", "description", "url", "image", "author", "publisher"}
 )
+
+// ErrHTTPStatus indicates that ParseFromURL received an HTTP error status.
+var ErrHTTPStatus = errors.New("unexpected HTTP status")
+
+// HTTPStatusError reports the non-success HTTP response returned by ParseFromURL.
+type HTTPStatusError struct {
+	// URL is the fetched URL that returned the status.
+	URL string
+
+	// Status is the HTTP status string, such as "503 Service Unavailable".
+	Status string
+
+	// StatusCode is the numeric HTTP status code.
+	StatusCode int
+}
+
+// Error returns a readable HTTP status failure message.
+func (e *HTTPStatusError) Error() string {
+	if e == nil {
+		return ErrHTTPStatus.Error()
+	}
+	if e.URL == "" {
+		return fmt.Sprintf("%s: %s", ErrHTTPStatus, e.Status)
+	}
+	return fmt.Sprintf("%s for %s: %s", ErrHTTPStatus, e.URL, e.Status)
+}
+
+// Unwrap returns ErrHTTPStatus for errors.Is checks.
+func (e *HTTPStatusError) Unwrap() error {
+	return ErrHTTPStatus
+}
 
 // Defuddle represents a document parser instance
 type Defuddle struct {
@@ -169,7 +201,11 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 		}
 	}()
 	if resp.IsError() {
-		return nil, fmt.Errorf("failed to fetch URL %s: unexpected HTTP status %s", url, resp.Status())
+		return nil, &HTTPStatusError{
+			URL:        url,
+			Status:     resp.Status(),
+			StatusCode: resp.StatusCode(),
+		}
 	}
 
 	html, err := decodeResponseHTML(resp)

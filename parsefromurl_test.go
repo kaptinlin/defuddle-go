@@ -2,7 +2,6 @@ package defuddle
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -76,9 +75,14 @@ func TestParseFromURLReturnsErrorForHTTPErrorStatus(t *testing.T) {
 
 	result, err := ParseFromURL(context.Background(), server.URL, nil)
 
-	require.Error(t, err)
+	require.ErrorIs(t, err, ErrHTTPStatus)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "503 Service Unavailable")
+
+	var statusErr *HTTPStatusError
+	require.ErrorAs(t, err, &statusErr)
+	assert.Equal(t, http.StatusServiceUnavailable, statusErr.StatusCode)
+	assert.Equal(t, "503 Service Unavailable", statusErr.Status)
+	assert.Equal(t, server.URL, statusErr.URL)
 }
 
 func TestParseFromURLDecodesDeclaredCharset(t *testing.T) {
@@ -154,7 +158,6 @@ func TestParseFromURLHonorsContextCancellation(t *testing.T) {
 
 	result, err := ParseFromURL(ctx, server.URL, nil)
 
-	require.Error(t, err)
+	require.ErrorIs(t, err, context.Canceled)
 	assert.Nil(t, result)
-	assert.True(t, errors.Is(err, context.Canceled), "error = %v", err)
 }

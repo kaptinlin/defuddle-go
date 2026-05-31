@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -316,6 +315,5 @@ func TestParseContentHonorsMarkdownAlias(t *testing.T) {
 
 	err := parseContent(cmd, []string{filepath.Join(t.TempDir(), "missing.html")})
 
-	require.Error(t, err)
-	assert.True(t, strings.Contains(err.Error(), "error reading file"))
+	require.ErrorIs(t, err, os.ErrNotExist)
 }
