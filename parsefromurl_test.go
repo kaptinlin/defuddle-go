@@ -81,6 +81,25 @@ func TestParseFromURLReturnsErrorForHTTPErrorStatus(t *testing.T) {
 	assert.Contains(t, err.Error(), "503 Service Unavailable")
 }
 
+func TestParseFromURLDecodesDeclaredCharset(t *testing.T) {
+	t.Parallel()
+
+	body := []byte("<html><head><title>Caf\xe9 Story</title><meta name=\"description\" content=\"Cr\xe8me summary\"></head><body><article><h1>Caf\xe9 Story</h1><p>Cr\xe8me br\xfbl\xe9e article body.</p></article></body></html>")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=iso-8859-1")
+		_, _ = w.Write(body)
+	}))
+	defer server.Close()
+
+	result, err := ParseFromURL(context.Background(), server.URL, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Equal(t, "Café Story", result.Title)
+	assert.Equal(t, "Crème summary", result.Description)
+	assert.Contains(t, result.Content, "Crème brûlée article body")
+}
+
 func TestParseFromURLNilOptionsUsesDefaultSelectorCleanup(t *testing.T) {
 	t.Parallel()
 

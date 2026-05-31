@@ -2,8 +2,10 @@
 package defuddle
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"regexp"
 	"strconv"
@@ -11,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-json-experiment/json"
+	"golang.org/x/net/html/charset"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/kaptinlin/requests"
@@ -169,7 +172,10 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 		return nil, fmt.Errorf("failed to fetch URL %s: unexpected HTTP status %s", url, resp.Status())
 	}
 
-	html := resp.String()
+	html, err := decodeResponseHTML(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read URL %s: %w", url, err)
+	}
 
 	// Create Defuddle instance and parse
 	defuddle, err := NewDefuddle(html, options)
@@ -178,6 +184,24 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 	}
 
 	return defuddle.Parse(ctx)
+}
+
+func decodeResponseHTML(resp *requests.Response) (string, error) {
+	body := resp.Body()
+	if len(body) == 0 {
+		return "", nil
+	}
+
+	reader, err := charset.NewReader(bytes.NewReader(body), resp.ContentType())
+	if err != nil {
+		return "", fmt.Errorf("detect response charset: %w", err)
+	}
+
+	decoded, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("decode response body: %w", err)
+	}
+	return string(decoded), nil
 }
 
 // ParseFromString parses HTML content directly from a string
