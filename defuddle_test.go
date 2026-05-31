@@ -193,6 +193,27 @@ func TestRetryLogic(t *testing.T) {
 	t.Logf("Short content word count: %d", result.WordCount)
 }
 
+func TestParseRetriesWithoutPartialSelectorRemovalForSparseFalsePositive(t *testing.T) {
+	t.Parallel()
+
+	body := strings.Repeat("Recovered article paragraph with reader visible reporting and analysis. ", 24)
+	html := `<html><head><title>Recovered Article</title></head><body><main><article>
+		<h1>Recovered Article</h1>
+		<p>Brief lead.</p>
+		<section class="reader-comments-analysis"><p>` + body + `</p></section>
+	</article></main></body></html>`
+
+	defuddle, err := NewDefuddle(html, nil)
+	require.NoError(t, err)
+
+	result, err := defuddle.Parse(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Contains(t, result.Content, "Recovered article paragraph")
+	assert.Greater(t, result.WordCount, 200)
+}
+
 func TestAdvancedAlgorithms(t *testing.T) {
 	html := `<html>
 		<head>
@@ -898,4 +919,87 @@ func TestParseFromStringWithoutOptions(t *testing.T) {
 	require.NoError(t, err, "ParseFromString with nil options failed")
 
 	assert.NotEmpty(t, result.Content, "Expected content to be extracted even with nil options")
+}
+
+func TestParseFromStringNilOptionsUsesDefaultSelectorCleanup(t *testing.T) {
+	t.Parallel()
+
+	html := `<html><head><title>Default Cleanup</title></head><body>
+		<header>Header clutter</header>
+		<main><article><h1>Default Cleanup</h1><p>Readable article body for default cleanup.</p></article></main>
+		<div id="comments">Comment clutter</div>
+	</body></html>`
+
+	result, err := ParseFromString(context.Background(), html, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Contains(t, result.Content, "Readable article body")
+	assert.NotContains(t, result.Content, "Header clutter")
+	assert.NotContains(t, result.Content, "Comment clutter")
+}
+
+func TestParseFromStringSeparateMarkdownAddsMarkdownWithoutReplacingHTML(t *testing.T) {
+	t.Parallel()
+
+	html := `<html><head><title>Separate Markdown</title></head><body><article><h1>Separate Markdown</h1><p>Readable markdown body.</p></article></body></html>`
+
+	result, err := ParseFromString(context.Background(), html, &Options{SeparateMarkdown: true})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.ContentMarkdown)
+
+	assert.Contains(t, result.Content, "<p>Readable markdown body.</p>")
+	assert.Contains(t, *result.ContentMarkdown, "Readable markdown body")
+}
+
+func TestSchemaItemsKeepURLIdentifiedAndCommonPropertyItems(t *testing.T) {
+	t.Parallel()
+
+	defuddle, err := NewDefuddle(`<html><body></body></html>`, nil)
+	require.NoError(t, err)
+
+	items := defuddle.extractSchemaItems([]any{
+		map[string]any{"@id": "https://schema.org/Article"},
+		map[string]any{"name": "Example", "url": "https://example.com"},
+		map[string]any{"name": "Only one common property"},
+		"not an item",
+	})
+
+	require.Len(t, items, 2)
+	identified, ok := items[0].(map[string]any)
+	require.True(t, ok, "identified item = %T, want map[string]any", items[0])
+	assert.Equal(t, "https://schema.org/Article", identified["@id"])
+	commonProps, ok := items[1].(map[string]any)
+	require.True(t, ok, "common-props item = %T, want map[string]any", items[1])
+	assert.Equal(t, "Example", commonProps["name"])
+}
+
+func TestApplyMobileStylesAppendsInlineStyles(t *testing.T) {
+	t.Parallel()
+
+	defuddle, err := NewDefuddle(`<html><body><article style="color: red;"><p>Readable</p></article></body></html>`, nil)
+	require.NoError(t, err)
+
+	defuddle.applyMobileStyles(defuddle.doc, []StyleChange{{Selector: "article", Styles: "display: block;"}})
+
+	assert.Equal(t, "color: red;display: block;", defuddle.doc.Find("article").AttrOr("style", ""))
+}
+
+func TestParseRemovesSmallSVGByStableIdentifier(t *testing.T) {
+	t.Parallel()
+
+	html := `<html><head><title>SVG Article</title></head><body><article>
+		<h1>SVG Article</h1>
+		<p>Readable SVG article body.</p>
+		<svg width="20" height="80" viewBox="0 0 20 80"><rect width="20" height="80"></rect></svg>
+		<svg width="120" height="80" viewBox="0 0 120 80"><rect width="120" height="80"></rect></svg>
+	</article></body></html>`
+
+	result, err := ParseFromString(context.Background(), html, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.NotContains(t, result.Content, `viewBox="0 0 20 80"`)
+	assert.Contains(t, result.Content, `viewBox="0 0 120 80"`)
 }

@@ -22,7 +22,7 @@ func TestParseSelectsReadableTableCellWhenSemanticContainersAreAbsent(t *testing
 	require.NotNil(t, result)
 
 	assert.Contains(t, result.Content, "Table based article paragraph")
-	assert.Contains(t, result.Content, "Archive")
+	assert.NotContains(t, result.Content, "Archive")
 	assert.Greater(t, result.WordCount, 50)
 }
 

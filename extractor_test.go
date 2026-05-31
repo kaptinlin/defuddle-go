@@ -119,3 +119,38 @@ func TestExtractors(t *testing.T) {
 		}
 	})
 }
+
+func TestParseWithExtractorHonorsMarkdownOption(t *testing.T) {
+	t.Parallel()
+
+	html := `<html>
+		<head>
+			<meta name="expected-hostname" content="github.com">
+			<title>Markdown Issue · kepano/defuddle</title>
+		</head>
+		<body>
+			<div data-testid="issue-title">Markdown Issue</div>
+			<div data-testid="issue-viewer-issue-container">
+				<div data-testid="issue-body-viewer">
+					<div class="markdown-body"><p>Extractor markdown body.</p></div>
+				</div>
+			</div>
+		</body>
+	</html>`
+
+	defuddleInstance, err := NewDefuddle(html, &Options{
+		URL:      "https://github.com/kepano/defuddle/issues/456",
+		Markdown: true,
+	})
+	require.NoError(t, err)
+
+	result, err := defuddleInstance.Parse(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.ExtractorType)
+	require.NotNil(t, result.ContentMarkdown)
+
+	assert.Equal(t, "github", *result.ExtractorType)
+	assert.Contains(t, result.Content, "Extractor markdown body")
+	assert.Contains(t, *result.ContentMarkdown, "Extractor markdown body")
+}

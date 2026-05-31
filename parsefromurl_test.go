@@ -2,6 +2,7 @@ package defuddle
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -78,4 +79,63 @@ func TestParseFromURLReturnsErrorForHTTPErrorStatus(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "503 Service Unavailable")
+}
+
+func TestParseFromURLNilOptionsUsesDefaultSelectorCleanup(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<html><head><title>Remote Defaults</title></head><body>
+			<nav>Remote navigation clutter</nav>
+			<main><article><h1>Remote Defaults</h1><p>Readable remote article body for default cleanup.</p></article></main>
+			<footer>Remote footer clutter</footer>
+		</body></html>`))
+	}))
+	defer server.Close()
+
+	result, err := ParseFromURL(context.Background(), server.URL, nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Contains(t, result.Content, "Readable remote article body")
+	assert.NotContains(t, result.Content, "Remote navigation clutter")
+	assert.NotContains(t, result.Content, "Remote footer clutter")
+}
+
+func TestParseFromURLPreservesProvidedOptionsURLForMetadata(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<html><head><title>Logical URL</title><link rel="icon" href="/icon.svg"></head><body><article><h1>Logical URL</h1><p>Readable logical URL article body.</p></article></body></html>`))
+	}))
+	defer server.Close()
+
+	options := &Options{URL: "https://www.example.com/articles/story"}
+	result, err := ParseFromURL(context.Background(), server.URL, options)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Equal(t, "https://www.example.com/articles/story", options.URL)
+	assert.Equal(t, "example.com", result.Domain)
+	assert.Equal(t, "https://www.example.com/icon.svg", result.Favicon)
+}
+
+func TestParseFromURLHonorsContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("server should not be reached with a canceled context")
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	result, err := ParseFromURL(ctx, server.URL, nil)
+
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.True(t, errors.Is(err, context.Canceled), "error = %v", err)
 }

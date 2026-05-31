@@ -38,6 +38,7 @@ var (
 // Defuddle represents a document parser instance
 type Defuddle struct {
 	doc      *goquery.Document
+	html     string
 	options  *Options
 	debug    bool
 	debugger *debug.Debugger
@@ -64,6 +65,7 @@ func NewDefuddle(html string, options *Options) (*Defuddle, error) {
 
 	return &Defuddle{
 		doc:      doc,
+		html:     html,
 		options:  options,
 		debug:    debugEnabled,
 		debugger: debugger,
@@ -106,13 +108,15 @@ func (d *Defuddle) Parse(ctx context.Context) (*Result, error) {
 			slog.Debug("Initial parse returned very little content, trying again")
 		}
 
-		retryOptions := &Options{}
-		if d.options != nil {
-			*retryOptions = *d.options
-		}
+		retryOptions := d.mergeOptions(nil)
 		retryOptions.RemovePartialSelectors = false
 
-		retryResult, retryErr := d.parseInternal(ctx, retryOptions)
+		retryParser, retryCreateErr := NewDefuddle(d.html, retryOptions)
+		if retryCreateErr != nil {
+			return result, retryCreateErr
+		}
+
+		retryResult, retryErr := retryParser.parseInternal(ctx, nil)
 		if retryErr != nil {
 			return result, retryErr
 		}
@@ -134,11 +138,13 @@ func (d *Defuddle) Parse(ctx context.Context) (*Result, error) {
 // // This corresponds to Node.js usage: Defuddle(htmlOrDom, url?, options?)
 func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, error) {
 	if options == nil {
-		options = &Options{}
-	}
-
-	// Set URL in options if not already set
-	if options.URL == "" {
+		options = &Options{
+			URL:                    url,
+			RemoveExactSelectors:   true,
+			RemovePartialSelectors: true,
+		}
+	} else if options.URL == "" {
+		// Set URL in options if not already set.
 		options.URL = url
 	}
 
@@ -177,10 +183,6 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 // ParseFromString parses HTML content directly from a string
 // This is useful when you already have the HTML content (e.g., from browser automation)
 func ParseFromString(ctx context.Context, html string, options *Options) (*Result, error) {
-	if options == nil {
-		options = &Options{}
-	}
-
 	// Create Defuddle instance and parse
 	defuddle, err := NewDefuddle(html, options)
 	if err != nil {
@@ -395,6 +397,14 @@ func (d *Defuddle) parseInternal(_ context.Context, overrideOptions *Options) (*
 			}
 		}
 
+		if options.Markdown || options.SeparateMarkdown {
+			if markdownContent, err := d.convertHTMLToMarkdown(result.Content); err == nil {
+				result.ContentMarkdown = &markdownContent
+			} else if d.debug {
+				slog.Debug("Failed to convert extractor content to Markdown", "error", err)
+			}
+		}
+
 		// Add debug info if enabled
 		if d.debugger.IsEnabled() {
 			d.debugger.EndTimer("total_parsing")
@@ -562,6 +572,10 @@ func (d *Defuddle) findMainContent(doc *goquery.Document) *goquery.Selection {
 	// Try entry point elements first
 	entryPoints := constants.GetEntryPointElements()
 	for _, selector := range entryPoints {
+		if selector == "body" {
+			continue
+		}
+
 		element := doc.Find(selector).First()
 		if element.Length() > 0 {
 			if d.debug {
@@ -587,6 +601,14 @@ func (d *Defuddle) findMainContent(doc *goquery.Document) *goquery.Selection {
 			slog.Debug("Found main content using scoring")
 		}
 		return scoredContent
+	}
+
+	body := doc.Find("body").First()
+	if body.Length() > 0 {
+		if d.debug {
+			slog.Debug("Found main content using body fallback")
+		}
+		return body
 	}
 
 	return nil
