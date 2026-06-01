@@ -172,6 +172,7 @@ func (d *Defuddle) Parse(ctx context.Context) (*Result, error) {
 // JavaScript original code:
 // // This corresponds to Node.js usage: Defuddle(htmlOrDom, url?, options?)
 func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, error) {
+	useResponseURL := options == nil || options.URL == ""
 	if options == nil {
 		options = &Options{
 			URL:                    url,
@@ -200,12 +201,20 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 			slog.Warn("Failed to close response", "error", closeErr)
 		}
 	}()
+	responseURL := responseURLString(resp)
 	if resp.IsError() {
+		statusURL := url
+		if responseURL != "" {
+			statusURL = responseURL
+		}
 		return nil, &HTTPStatusError{
-			URL:        url,
+			URL:        statusURL,
 			Status:     resp.Status(),
 			StatusCode: resp.StatusCode(),
 		}
+	}
+	if useResponseURL && responseURL != "" {
+		options.URL = responseURL
 	}
 
 	html, err := decodeResponseHTML(resp)
@@ -220,6 +229,13 @@ func ParseFromURL(ctx context.Context, url string, options *Options) (*Result, e
 	}
 
 	return defuddle.Parse(ctx)
+}
+
+func responseURLString(resp *requests.Response) string {
+	if resp == nil || resp.RawResponse == nil || resp.RawResponse.Request == nil || resp.RawResponse.Request.URL == nil {
+		return ""
+	}
+	return resp.RawResponse.Request.URL.String()
 }
 
 func decodeResponseHTML(resp *requests.Response) (string, error) {

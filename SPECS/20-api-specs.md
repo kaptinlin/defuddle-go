@@ -38,6 +38,8 @@ Do not use this file for field-by-field data-model detail or package topology. S
 
 - Initializes `options` when the caller passes `nil`.
 - Writes `options.URL = url` when `options.URL` is empty.
+- After a successful request, updates that implicit URL to the effective response URL so redirects resolve metadata against the parsed page.
+- Preserves an explicit `options.URL` as the caller's logical metadata URL.
 - Uses `options.Client` when provided.
 - Otherwise creates a default `requests.Client` with the Defuddle user agent and a 30s timeout.
 - Returns an error for HTTP error status codes instead of parsing error pages.
