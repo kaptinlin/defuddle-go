@@ -268,7 +268,8 @@ func newRequestsClient(opts *ParseOptions) (*requests.Client, error) {
 }
 
 func isHTTPURL(source string) bool {
-	return strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://")
+	lower := strings.ToLower(source)
+	return strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://")
 }
 
 func validateHeaders(headers []string) error {
@@ -285,7 +286,12 @@ func parseHeader(header string) (string, string, error) {
 	if len(parts) != 2 {
 		return "", "", fmt.Errorf("%w: %s", ErrInvalidHeaderFormat, header)
 	}
-	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), nil
+
+	key := strings.TrimSpace(parts[0])
+	if key == "" {
+		return "", "", fmt.Errorf("%w: %s", ErrInvalidHeaderFormat, header)
+	}
+	return key, strings.TrimSpace(parts[1]), nil
 }
 
 func readFile(filename string) (string, error) {

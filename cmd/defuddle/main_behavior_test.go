@@ -272,6 +272,42 @@ func TestExecuteParseContentAppliesHTTPRequestOptions(t *testing.T) {
 	assert.Contains(t, string(content), "Readable remote CLI body")
 }
 
+func TestExecuteParseContentTreatsHTTPURLSchemeCaseInsensitively(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<html><head><title>Uppercase Scheme</title></head><body><article><p>Readable uppercase scheme body.</p></article></body></html>`))
+	}))
+	defer server.Close()
+
+	output := filepath.Join(t.TempDir(), "remote.html")
+	err := executeParseContent(&ParseOptions{
+		Source:  "HTTP://" + server.URL[len("http://"):],
+		Output:  output,
+		Timeout: 5 * time.Second,
+	})
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(output)
+	require.NoError(t, err)
+	assert.Contains(t, string(content), "Readable uppercase scheme body")
+}
+
+func TestExecuteParseContentRejectsEmptyHeaderKey(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<html><body><article><p>Unreachable body.</p></article></body></html>`))
+	}))
+	defer server.Close()
+
+	err := executeParseContent(&ParseOptions{
+		Source:  server.URL,
+		Headers: []string{": value"},
+		Timeout: 5 * time.Second,
+	})
+
+	require.ErrorIs(t, err, ErrInvalidHeaderFormat)
+}
+
 func TestExecuteParseContentReportsInvalidHeader(t *testing.T) {
 	t.Parallel()
 
