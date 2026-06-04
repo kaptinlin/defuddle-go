@@ -145,6 +145,31 @@ func TestParseFromURLPreservesProvidedOptionsURLForMetadata(t *testing.T) {
 	assert.Equal(t, "https://www.example.com/icon.svg", result.Favicon)
 }
 
+func TestParseFromURLUsesFinalResponseURLForMetadata(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/start":
+			http.Redirect(w, r, "/articles/story", http.StatusFound)
+		case "/articles/story":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write([]byte(`<html><head><title>Redirected URL</title><link rel="icon" href="/favicon.ico"></head><body><article><h1>Redirected URL</h1><p>Readable redirected article body.</p></article></body></html>`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	options := &Options{}
+	result, err := ParseFromURL(context.Background(), server.URL+"/start", options)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Equal(t, server.URL+"/articles/story", options.URL)
+	assert.Equal(t, server.URL+"/favicon.ico", result.Favicon)
+}
+
 func TestParseFromURLHonorsContextCancellation(t *testing.T) {
 	t.Parallel()
 
