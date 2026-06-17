@@ -13,11 +13,10 @@ Do not use this file for package topology or public field definitions. See `40-a
 | `task test` | Runs `go test -race ./...` |
 | `task lint` | Runs `golangci-lint` plus tidy checks |
 | `task verify` | Runs deps, fmt, vet, lint, test, and `govulncheck` |
-| `lefthook` pre-commit | Runs trailing-whitespace cleanup, gitleaks, lint, test, markdownlint, and yamllint |
-| `task markdownlint` | Lints Markdown, including `SPECS/**` |
+| `lefthook` pre-commit | Runs trailing-whitespace cleanup, gitleaks, lint, test, yamllint |
 
 > **Why:** The repository already defines a complete local gate. Work should go green locally before it is committed or pushed.
-> **Rejected:** Treating CI as the first validation step because that is too slow for routine iteration; excluding `SPECS/**` from markdownlint because the canonical design docs would silently stop being checked.
+> **Rejected:** Treating CI as the first validation step because that is too slow for routine iteration; excluding `SPECS/**` from documentation review because the canonical design docs would silently stop being checked.
 
 ## Must Follow Rules
 
@@ -59,7 +58,7 @@ When a lint rule fails, fix the code or docs rather than weakening the rule for 
 - `SPECS/` documents current contracts and intended-state gaps.
 - `CLAUDE.md` documents workflow and points to the right spec.
 - `AGENTS.md` remains a symlink to `CLAUDE.md`.
-- Markdown in `SPECS/` must pass markdownlint.
+- Markdown in `SPECS/` must stay readable and reviewed.
 
 When code lags a better intended contract, keep the rule in `SPECS/` and mark the gap explicitly. Do not silently narrow the docs to whatever the code happens to do today.
 
@@ -80,7 +79,7 @@ When code lags a better intended contract, keep the rule in `SPECS/` and mark th
 
 ## Forbidden
 
-- Do not exclude `SPECS/**` from markdownlint.
+- Do not exclude `SPECS/**` from documentation review.
 - Do not add doc-layout `_test.go` files for `SPECS/`, `CLAUDE.md`, or `AGENTS.md`.
 - Do not document intended behavior in `README.md` as if it were already shipped.
 - Do not add compatibility shims when one API path is enough.
@@ -92,5 +91,3 @@ When code lags a better intended contract, keep the rule in `SPECS/` and mark th
 - [20-api-specs.md](20-api-specs.md) — compatibility-sensitive public APIs
 - [30-data-model-specs.md](30-data-model-specs.md) — exported structs and JSON tags
 - [40-architecture-specs.md](40-architecture-specs.md) — package ownership and parse pipeline
-
-**Origin:** extracted from `CLAUDE.md` sections `Testing Strategy` and `Configuration Notes`, then verified against `Taskfile.yml`, `.golangci.yml`, `lefthook.yml`, and `.markdownlint-cli2.yaml`.

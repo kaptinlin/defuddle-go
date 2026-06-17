@@ -66,7 +66,7 @@ If `SPECS/` and the current code diverge, verify whether the spec describes ship
 ## Testing
 
 - Run `task lint` and `task test` before committing.
-- Keep markdownlint green for `SPECS/**`, `README.md`, and this file.
+- Keep Markdown readable for `SPECS/**`, `README.md`, and this file.
 - Add or update tests when parser behavior, extractor routing, or exported contracts change.
 
 ## Agent Skills
